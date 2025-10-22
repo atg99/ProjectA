@@ -10,6 +10,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
 struct FInputActionValue;
+class AActor;
 
 UCLASS()
 class PROJECTA_API AATGPlayerCharacter : public ACharacter
@@ -47,6 +48,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* MouseLookAction;
 
+	/** Mouse Look Input Action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* Interaction;
+
 protected:
 
 	/** Called for movement input */
@@ -54,6 +59,9 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	/** Called for interaction input */
+	void Interact(const FInputActionValue& Value);
 
 public:
 
@@ -88,5 +96,9 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+protected:
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void PutInAtInventory(AActor*& PutInItem);
 
 };

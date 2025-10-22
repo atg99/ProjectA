@@ -12,6 +12,16 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 
+#include "Engine/OverlapResult.h"
+#include "Engine/World.h"
+#include "DrawDebugHelpers.h"
+#include "CollisionQueryParams.h"
+#include "CollisionShape.h"
+
+#include "ATGInterface.h"
+#include "ATGInventoryComponent.h"
+#include "GameFramework/PlayerState.h"
+
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
 {
@@ -84,16 +94,19 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AATGPlayerCharacter::Move);
 		
-
 		// Looking
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AATGPlayerCharacter::Look);
+
+		//Interaction
+		EnhancedInputComponent->BindAction(Interaction, ETriggerEvent::Started, this, &AATGPlayerCharacter::Interact);
+
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
 	}
-
 }
+
 
 void AATGPlayerCharacter::Move(const FInputActionValue& Value)
 {
@@ -153,6 +166,85 @@ void AATGPlayerCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
+{
+	TArray<FOverlapResult> Overlaps;
+
+	const FVector Center = GetMesh()->GetComponentLocation();
+
+	FCollisionObjectQueryParams ObjParams;
+	ObjParams.AddObjectTypesToQuery(ECC_WorldDynamic);  // µîµî
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(OverlapSphere), false);
+	QueryParams.AddIgnoredActor(GetOwner());
+
+	bool bAny = GetWorld()->OverlapMultiByObjectType(
+		Overlaps,
+		Center,
+		FQuat::Identity,
+		ObjParams,
+		FCollisionShape::MakeSphere(100),
+		QueryParams
+	);
+
+	DrawDebugSphere(GetWorld(), Center, 100.f, 16, FColor::Cyan, false, 2.f);
+
+	if (!bAny)
+	{
+		return;
+	}
+
+	float MinDist = 9999999.f;
+	UActorComponent* NearestInterfaceActorComp = nullptr;
+
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		TSet<UActorComponent*> ActorComps = Overlap.GetActor()->GetComponents();
+		
+		for (auto Comp : ActorComps)
+		{
+			if (Comp->GetClass()->ImplementsInterface(UATGInterface::StaticClass()))
+			{
+				if (GEngine)
+					GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, Comp->GetReadableName());
+
+				float Dist = FVector::DistSquared(Center, Overlap.GetActor()->GetActorLocation());
+				if (Dist < MinDist)
+				{
+					MinDist = Dist;
+					NearestInterfaceActorComp = Comp;
+				}
+			}
+		}
+	}
+
+	if (NearestInterfaceActorComp)
+	{
+		auto ATGInterface = Cast<IATGInterface>(NearestInterfaceActorComp);
+		AActor* InteractedActor = nullptr;
+		ATGInterface->PlayerInteract(InteractedActor);
+		PutInAtInventory(InteractedActor);
+	}
+	else
+	{
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("There is no NearestInterfaceActorComp"));
+	}
+}
+
+void AATGPlayerCharacter::PutInAtInventory(AActor*& PutInItem)
+{
+	for (auto Comp : GetPlayerState()->GetComponents())
+	{
+		auto ATGPlayerState = Cast<UATGInventoryComponent>(Comp);
+		if (ATGPlayerState)
+		{
+			if (GEngine)
+				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("InventoryComp Found"));
+		}
+	}
 }
 
 
