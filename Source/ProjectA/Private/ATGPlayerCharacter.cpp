@@ -22,6 +22,9 @@
 #include "ATGInventoryComponent.h"
 #include "GameFramework/PlayerState.h"
 
+#include "ATGEnum.h"
+#include "ATGItemData.h"
+
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
 {
@@ -223,9 +226,20 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 	if (NearestInterfaceActorComp)
 	{
 		auto ATGInterface = Cast<IATGInterface>(NearestInterfaceActorComp);
-		AActor* InteractedActor = nullptr;
-		ATGInterface->PlayerInteract(InteractedActor);
-		PutInAtInventory(InteractedActor);
+		FInteractionData InteractionData;
+		ATGInterface->PlayerInteract(InteractionData);
+
+		switch (InteractionData.InteractionType)
+		{
+		case EInteractionType::Inventory:
+			PutInAtInventory(InteractionData);
+			break;
+		case EInteractionType::Equipment:
+			break;
+		default:
+			break;
+		}
+		
 	}
 	else
 	{
@@ -234,16 +248,16 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 	}
 }
 
-void AATGPlayerCharacter::PutInAtInventory(AActor*& PutInItem)
+void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InterationData)
 {
-	for (auto Comp : GetPlayerState()->GetComponents())
+	UActorComponent* Comp = GetPlayerState()->GetComponentByClass(UATGInventoryComponent::StaticClass());
+	auto InventoryComp = Cast<UATGInventoryComponent>(Comp);
+	if (InventoryComp)
 	{
-		auto ATGPlayerState = Cast<UATGInventoryComponent>(Comp);
-		if (ATGPlayerState)
-		{
-			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("InventoryComp Found"));
-		}
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("InventoryComp Found"));
+		//load asset
+		InventoryComp->ServerAddItemAuto(InterationData.ItemDef.LoadSynchronous(), 1);
 	}
 }
 

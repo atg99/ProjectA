@@ -17,7 +17,7 @@ class PROJECTA_API UATGItemData : public UPrimaryDataAsset
 
 public:
 
-    // 에디터에서 에셋 이름(파일명) 자체가 고유 ID 역할을 겸해도 됨
+    // Asset Name
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     FText DisplayName;
 
@@ -25,6 +25,15 @@ public:
     UTexture2D* Icon = nullptr;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+    UStaticMesh* Mesh = nullptr;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     int32 MaxStack = 99;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Grid")
+    int32 Width = 1;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Grid")
+    int32 Height = 1;
 	
 };

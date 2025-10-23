@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "ATGEnum.h"
 #include "ATGInterface.generated.h"
 
 // This class does not need to be modified.
@@ -24,5 +25,5 @@ class PROJECTA_API IATGInterface
 public:
 
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
-	virtual void PlayerInteract(AActor*& Weapon) = 0;
+	virtual void PlayerInteract(FInteractionData& InteractionData) = 0;
 };

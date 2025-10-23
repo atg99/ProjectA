@@ -4,6 +4,7 @@
 #include "ATGInventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "InventoryTypes.h"
+#include "ATGItemData.h"
 
 // Sets default values for this component's properties
 UATGInventoryComponent::UATGInventoryComponent()
@@ -45,12 +46,57 @@ void UATGInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(UATGInventoryComponent, Inventory);
 }
 
-void UATGInventoryComponent::ServerAddItem_Implementation(UATGItemData* ItemDef, int32 Quantity)
+void UATGInventoryComponent::ServerAddItemAuto_Implementation(UATGItemData* ItemDef, int32 Quantity)
 {
-	Inventory.AddOrStack(ItemDef, Quantity);
+	if (!ItemDef || Quantity <= 0) return;
+
+	int32 W = ItemDef->Width;
+	int32 H = ItemDef->Height;
+	int32 OutX = -1, OutY = -1;
+
+	if (!Inventory.FindFirstFit(W, H, OutX, OutY))
+		return; // °¡µæ Ã¡À½
+
+	const int32 Id = Inventory.AddItemAt(ItemDef, Quantity, OutX, OutY, W, H, false);
+	//if (Id > 0) OnItemAdded.Broadcast(Id);
 }
 
-void UATGInventoryComponent::ServerRemoveItem_Implementation(UATGItemData* ItemDef, int32 Quantity)
+void UATGInventoryComponent::ServerAddItemAt_Implementation(UATGItemData* ItemDef, int32 Quantity, int32 X, int32 Y, bool bRotated)
 {
-	Inventory.RemoveItem(ItemDef, Quantity);
+	if (!ItemDef || Quantity <= 0) return;
+
+	int32 W = bRotated ? ItemDef->Height : ItemDef->Width;
+	int32 H = bRotated ? ItemDef->Width : ItemDef->Height;
+
+	const int32 Id = Inventory.AddItemAt(ItemDef, Quantity, X, Y, W, H, bRotated);
+	//if (Id > 0) OnItemAdded.Broadcast(Id);
 }
+
+void UATGInventoryComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int32 NewX, int32 NewY)
+{
+	Inventory.MoveOrSwap(EntryId, NewX, NewY);
+		//OnItemChanged.Broadcast(EntryId);
+}
+
+void UATGInventoryComponent::ServerRotateItem_Implementation(int32 EntryId)
+{
+	Inventory.Rotate(EntryId);
+		//OnItemChanged.Broadcast(EntryId);
+}
+
+void UATGInventoryComponent::ServerRemoveItem_Implementation(int32 EntryId)
+{
+	Inventory.RemoveById(EntryId);
+		//OnItemRemoved.Broadcast(EntryId);
+}
+
+
+//void UATGInventoryComponent::ServerAddItem_Implementation(UATGItemData* ItemDef, int32 Quantity)
+//{
+//	Inventory.AddOrStack(ItemDef, Quantity);
+//}
+//
+//void UATGInventoryComponent::ServerRemoveItem_Implementation(UATGItemData* ItemDef, int32 Quantity)
+//{
+//	Inventory.RemoveItem(ItemDef, Quantity);
+//}

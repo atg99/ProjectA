@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ATGInterface.h"
+#include "ATGEnum.h"
 #include "ATGWeaponBase.generated.h"
 
 class UStaticMeshComponent;
@@ -32,6 +33,6 @@ protected:
 
 protected:
 
-	virtual void PlayerInteract(AActor*& Weapon) override;
+	virtual void PlayerInteract(FInteractionData& InteractionData) override;
 
 };

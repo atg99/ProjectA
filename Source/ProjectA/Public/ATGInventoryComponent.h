@@ -7,7 +7,7 @@
 #include "InventoryTypes.h"
 #include "ATGInventoryComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemEvent, const FInventoryEntry&, Entry);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridEvent, int32, EntryId);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PROJECTA_API UATGInventoryComponent : public UActorComponent
@@ -30,27 +30,53 @@ public:
 
 protected:
 
-public:
 	// FastArray 
 	UPROPERTY(Replicated)
-	FInventoryList Inventory;
+	FInventoryGrid Inventory;
 
+public:
 	// client UI
 	UPROPERTY(BlueprintAssignable) 
-	FOnItemEvent OnItemAdded;
+	FOnGridEvent OnItemAdded;
 	UPROPERTY(BlueprintAssignable) 
-	FOnItemEvent OnItemRemoved;
+	FOnGridEvent OnItemRemoved;
 	UPROPERTY(BlueprintAssignable) 
-	FOnItemEvent OnItemChanged;
+	FOnGridEvent OnItemChanged;
 
-	//server API 
+	// Server RPCs
 	UFUNCTION(Server, Reliable)
-	void ServerAddItem(UATGItemData* ItemDef, int32 Quantity);
+	void ServerAddItemAuto(UATGItemData* ItemDef, int32 Quantity);
 
 	UFUNCTION(Server, Reliable)
-	void ServerRemoveItem(UATGItemData* ItemDef, int32 Quantity);
+	void ServerAddItemAt(UATGItemData* ItemDef, int32 Quantity, int32 X, int32 Y, bool bRotated);
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	UFUNCTION(Server, Reliable)
+	void ServerMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRotateItem(int32 EntryId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRemoveItem(int32 EntryId);
+
+	// Blueprint Helpers
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
 	const TArray<FInventoryEntry>& GetEntries() const { return Inventory.Entries; }
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
+	int32 GetGridWidth() const { return Inventory.GridWidth; }
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
+	int32 GetGridHeight() const { return Inventory.GridHeight; }
+
+	////server API 
+	//UFUNCTION(Server, Reliable)
+	//void ServerAddItem(UATGItemData* ItemDef, int32 Quantity);
+
+	//UFUNCTION(Server, Reliable)
+	//void ServerRemoveItem(UATGItemData* ItemDef, int32 Quantity);
+
+	//UFUNCTION(BlueprintCallable, Category = "Inventory")
+	//const TArray<FInventoryEntry>& GetEntries() const { return Inventory.Entries; }
 
 };

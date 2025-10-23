@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "ATGInterface.h"
+#include "ATGEnum.h"
 #include "ATGPickupComponent.generated.h"
 
+class UATGItemData;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PROJECTA_API UATGPickupComponent : public UActorComponent, public IATGInterface
@@ -27,5 +29,14 @@ public:
 
 protected:
 
-	virtual void PlayerInteract(AActor*& Weapon) override;
+	virtual void PlayerInteract(FInteractionData& InteractionData) override;
+
+
+public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	TSoftObjectPtr<UATGItemData> ItemDef;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	EInteractionType InteractionType = EInteractionType::Inventory;
 };

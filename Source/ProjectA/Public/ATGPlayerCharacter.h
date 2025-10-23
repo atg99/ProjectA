@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+
 #include "ATGPlayerCharacter.generated.h"
 
 class USpringArmComponent;
@@ -11,6 +12,7 @@ class UCameraComponent;
 class UInputAction;
 struct FInputActionValue;
 class AActor;
+struct FInteractionData;
 
 UCLASS()
 class PROJECTA_API AATGPlayerCharacter : public ACharacter
@@ -99,6 +101,6 @@ public:
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void PutInAtInventory(AActor*& PutInItem);
+	void PutInAtInventory(FInteractionData& InterationData);
 
 };

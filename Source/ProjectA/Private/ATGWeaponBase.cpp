@@ -31,8 +31,7 @@ void AATGWeaponBase::Tick(float DeltaTime)
 
 }
 
-void AATGWeaponBase::PlayerInteract(AActor*& Weapon)
+void AATGWeaponBase::PlayerInteract(FInteractionData& InteractionData)
 {
-	Weapon = this;
 }
 

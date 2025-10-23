@@ -32,10 +32,12 @@ void UATGPickupComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	// ...
 }
 
-void UATGPickupComponent::PlayerInteract(AActor*& Weapon)
+void UATGPickupComponent::PlayerInteract(FInteractionData& InteractionData)
 {
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("PickupCompoent PlayerInteract"));
-	Weapon = GetOwner();
+	InteractionData.InteractedActor = GetOwner();
+	InteractionData.InteractionType = InteractionType;
+	InteractionData.ItemDef = ItemDef;
 }
 
