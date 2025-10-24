@@ -44,5 +44,8 @@ protected:
 	void EnsureWidgetCreated();
 
 	//void SetupUIMode(bool bShowMouse);
+
+public:
+	void ToggleInventoryUI();
 	
 };

@@ -25,6 +25,8 @@
 #include "ATGEnum.h"
 #include "ATGItemData.h"
 
+#include "ATGPlayerController.h"
+
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
 {
@@ -101,7 +103,10 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AATGPlayerCharacter::Look);
 
 		//Interaction
-		EnhancedInputComponent->BindAction(Interaction, ETriggerEvent::Started, this, &AATGPlayerCharacter::Interact);
+		EnhancedInputComponent->BindAction(IA_Interaction, ETriggerEvent::Started, this, &AATGPlayerCharacter::Interact);
+
+		//Inventory
+		EnhancedInputComponent->BindAction(IA_Inventory, ETriggerEvent::Started, this, &AATGPlayerCharacter::ToggleInventory);
 
 	}
 	else
@@ -246,6 +251,15 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("There is no NearestInterfaceActorComp"));
 	}
+}
+
+void AATGPlayerCharacter::ToggleInventory(const FInputActionValue& Value)
+{
+	if (AATGPlayerController* ATGController = Cast<AATGPlayerController>(GetController()))
+	{
+		ATGController->ToggleInventoryUI();
+	}
+	
 }
 
 void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InterationData)

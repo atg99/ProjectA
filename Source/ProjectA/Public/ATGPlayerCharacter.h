@@ -52,7 +52,11 @@ protected:
 
 	/** Mouse Look Input Action */
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* Interaction;
+	UInputAction* IA_Interaction;
+
+	/** Mouse Look Input Action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* IA_Inventory;
 
 protected:
 
@@ -64,6 +68,9 @@ protected:
 
 	/** Called for interaction input */
 	void Interact(const FInputActionValue& Value);
+
+	/** Called for interaction input */
+	void ToggleInventory(const FInputActionValue& Value);
 
 public:
 

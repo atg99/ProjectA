@@ -73,9 +73,38 @@ void AATGPlayerController::EnsureWidgetCreated()
 	if (InventoryWidget)
 	{
 		InventoryWidget->AddToViewport();
-		InventoryWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 
 	if (GEngine)
 			GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Magenta, TEXT("WidgetCreated"));
+}
+
+void AATGPlayerController::ToggleInventoryUI()
+{
+	if (!InventoryWidget)
+	{
+		return;
+	}
+	switch (InventoryWidget->GetVisibility())
+	{
+	case ESlateVisibility::Visible:
+		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
+		break;
+	case ESlateVisibility::Collapsed:
+		InventoryWidget->SetVisibility(ESlateVisibility::Visible);
+		break;
+	default:
+		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
+		break;
+	} 
+
+	if (InventoryWidget->GetVisibility() == ESlateVisibility::Visible)
+	{
+		SetShowMouseCursor(true);
+	}
+	else
+	{
+		SetShowMouseCursor(false);
+	}
+	
 }
