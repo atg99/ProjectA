@@ -2,6 +2,7 @@
 
 
 #include "ATGPickupComponent.h"
+#include "ATGItemData.h"
 
 // Sets default values for this component's properties
 UATGPickupComponent::UATGPickupComponent()
@@ -20,9 +21,8 @@ void UATGPickupComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+	SetItemMesh();
 }
-
 
 // Called every frame
 void UATGPickupComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -39,5 +39,29 @@ void UATGPickupComponent::PlayerInteract(FInteractionData& InteractionData)
 	InteractionData.InteractedActor = GetOwner();
 	InteractionData.InteractionType = InteractionType;
 	InteractionData.ItemDef = ItemDef;
+}
+
+void UATGPickupComponent::SetItemMesh()
+{
+	if (!GetOwner())
+	{
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("No Owner ATGPickupComp"));
+		return;
+	}
+	UStaticMeshComponent* ItemMeshComp = GetOwner()->GetComponentByClass<UStaticMeshComponent>();
+	if (ItemMeshComp)
+	{
+		UATGItemData* Data = ItemDef.LoadSynchronous();
+		if (Data)
+		{
+			if (GEngine)
+				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Can't LoadData ATGPickupComp"));
+			if (Data->Mesh)
+			{
+				ItemMeshComp->SetStaticMesh(Data->Mesh);
+			}
+		}
+	}
 }
 

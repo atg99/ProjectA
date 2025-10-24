@@ -7,6 +7,7 @@
 #include "ATGPlayerController.generated.h"
 
 class UInputMappingContext;
+class UATGInventoryGirdWidget;
 
 /**
  * 
@@ -24,5 +25,24 @@ protected:
 
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
+public:
+
+	virtual void BeginPlay() override;
+
+protected:
+
+	virtual void OnRep_PlayerState() override;
+
+protected:
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UATGInventoryGirdWidget> InventoryWidgetClass;
+
+	UPROPERTY(Transient)
+	UATGInventoryGirdWidget* InventoryWidget = nullptr;
+
+	void EnsureWidgetCreated();
+
+	//void SetupUIMode(bool bShowMouse);
 	
 };

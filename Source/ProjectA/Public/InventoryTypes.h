@@ -96,8 +96,6 @@ struct FInventoryGrid : public FFastArraySerializer
     const FInventoryEntry* GetById(int32 EntryId) const;
     FInventoryEntry* GetById(int32 EntryId);
 
-
-
 };
 
 

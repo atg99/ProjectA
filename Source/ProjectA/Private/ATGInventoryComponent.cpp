@@ -89,14 +89,3 @@ void UATGInventoryComponent::ServerRemoveItem_Implementation(int32 EntryId)
 	Inventory.RemoveById(EntryId);
 		//OnItemRemoved.Broadcast(EntryId);
 }
-
-
-//void UATGInventoryComponent::ServerAddItem_Implementation(UATGItemData* ItemDef, int32 Quantity)
-//{
-//	Inventory.AddOrStack(ItemDef, Quantity);
-//}
-//
-//void UATGInventoryComponent::ServerRemoveItem_Implementation(UATGItemData* ItemDef, int32 Quantity)
-//{
-//	Inventory.RemoveItem(ItemDef, Quantity);
-//}

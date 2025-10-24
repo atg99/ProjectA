@@ -5,6 +5,10 @@
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
+#include "ATGPlayerState.h"
+#include "ATGInventoryGirdWidget.h"
+#include "GameFramework/PlayerState.h"
+#include "ATGInventoryComponent.h"
 
 
 void AATGPlayerController::SetupInputComponent()
@@ -23,4 +27,55 @@ void AATGPlayerController::SetupInputComponent()
 			}
 		}
 	}
+}
+
+void AATGPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (IsLocalController())
+	{
+		EnsureWidgetCreated();
+	}
+}
+
+void AATGPlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	if (!IsLocalController()) return;
+
+	if (!InventoryWidget)
+	{
+		EnsureWidgetCreated();
+	}
+
+	UATGInventoryComponent* Comp = GetPlayerState<APlayerState>()->FindComponentByClass<UATGInventoryComponent>();
+	if (Comp)
+	{
+		InventoryWidget->InventoryComp = Comp;
+		InventoryWidget->BindInventoryComp();
+	}
+}
+
+void AATGPlayerController::EnsureWidgetCreated()
+{
+	if (InventoryWidget || !InventoryWidgetClass)
+	{
+		return;
+	}
+	else
+	{
+
+	}
+
+	InventoryWidget = CreateWidget<UATGInventoryGirdWidget>(this, InventoryWidgetClass);
+	if (InventoryWidget)
+	{
+		InventoryWidget->AddToViewport();
+		InventoryWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+
+	if (GEngine)
+			GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Magenta, TEXT("WidgetCreated"));
 }

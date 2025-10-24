@@ -39,4 +39,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	EInteractionType InteractionType = EInteractionType::Inventory;
+
+protected:
+
+	void SetItemMesh();
 };
