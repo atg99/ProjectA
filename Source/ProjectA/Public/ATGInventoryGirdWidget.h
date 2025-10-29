@@ -72,6 +72,7 @@ protected:
 	UFUNCTION() void HandleItemAdded(int32 EntryId);
 	UFUNCTION() void HandleItemChanged(int32 EntryId);
 	UFUNCTION() void HandleItemRemoved(int32 EntryId);
+	UFUNCTION() void HandleItemRotated(int32 EntryId);
 
 
 	// 헬퍼
@@ -82,4 +83,9 @@ protected:
 
 	// 셀 배경 생성
 	void BuildCellBackground();
+
+protected:
+	//드래그관련
+	UDragDropOperation* Operation;
+	bool bIsRotate = false;
 };

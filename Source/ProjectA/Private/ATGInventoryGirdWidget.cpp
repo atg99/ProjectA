@@ -78,11 +78,12 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		InventoryComp->OnItemAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
 		InventoryComp->OnItemChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		InventoryComp->OnItemRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
-
+		InventoryComp->OnItemRotated.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
 
 		InventoryComp->OnItemAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
 		InventoryComp->OnItemChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		InventoryComp->OnItemRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
+		InventoryComp->OnItemRotated.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
 	}
 	RebuildAll();
 }
@@ -179,7 +180,6 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 {
 	if (!InventoryComp || !GridPanel) return false;
 
-
 	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
 	{
 		const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
@@ -197,9 +197,17 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 		Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
 
 
-		InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y);
+		InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
+
+		Operation = nullptr;
+		bIsRotate = false;
+
 		return true;
 	}
+
+	Operation = nullptr;
+	bIsRotate = false;
+
 	return false;
 }
 
@@ -208,6 +216,7 @@ void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FD
 {
 	//Super::NativeOnDragEnter(InGeo, InDragDropEvent, InOperation);
 	// TODO: 클라 미리보기(가능/불가 하이라이트) 구현 시 여기서 셀 강조 처리
+	Operation = InOperation;
 }
  
 
@@ -215,6 +224,10 @@ void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDrop
 {
 	//Super::NativeOnDragLeave(InDragDropEvent, InOperation);
 	// TODO: 하이라이트 해제
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragLeave"));
+	Operation = nullptr;
+	bIsRotate = false;
 }
 
 
@@ -250,7 +263,6 @@ void UATGInventoryGirdWidget::HandleItemChanged(int32 EntryId)
 		return;
 	}
 
-
 	if (!W)
 	{
 		W = CreateItemWidget(*E);
@@ -268,4 +280,18 @@ void UATGInventoryGirdWidget::HandleItemRemoved(int32 EntryId)
 		W->RemoveFromParent();
 	}
 	IdToWidget.Remove(EntryId);
+}
+
+void UATGInventoryGirdWidget::HandleItemRotated(int32 EntryId)
+{
+	if (UWidget* Ghost = Operation ? Operation->DefaultDragVisual : nullptr)
+	{
+		//90도 시각 회전
+		Ghost->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+		FWidgetTransform T = Ghost->GetRenderTransform();
+		T.Angle += 90.f;
+		Ghost->SetRenderTransform(T);
+
+		bIsRotate = !bIsRotate;
+	}
 }

@@ -43,6 +43,9 @@ public:
 	UPROPERTY(BlueprintAssignable) 
 	FOnGridEvent OnItemChanged;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnGridEvent OnItemRotated;
+
 	// Server RPCs
 	UFUNCTION(Server, Reliable)
 	void ServerAddItemAuto(UATGItemData* ItemDef, int32 Quantity);
@@ -51,7 +54,7 @@ public:
 	void ServerAddItemAt(UATGItemData* ItemDef, int32 Quantity, int32 X, int32 Y, bool bRotated);
 
 	UFUNCTION(Server, Reliable)
-	void ServerMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY);
+	void ServerMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRotateItem(int32 EntryId);

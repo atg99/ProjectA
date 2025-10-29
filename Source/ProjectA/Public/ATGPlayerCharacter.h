@@ -10,6 +10,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
+class UATGInventoryComponent;
 struct FInputActionValue;
 class AActor;
 struct FInteractionData;
@@ -113,4 +114,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void PutInAtInventory(FInteractionData& InterationData);
 
+//Helper
+protected:
+	UATGInventoryComponent* GetInventoryComponent();
 };

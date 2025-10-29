@@ -72,9 +72,9 @@ void UATGInventoryComponent::ServerAddItemAt_Implementation(UATGItemData* ItemDe
 	//if (Id > 0) OnItemAdded.Broadcast(Id);
 }
 
-void UATGInventoryComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int32 NewX, int32 NewY)
+void UATGInventoryComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
 {
-	Inventory.MoveOrSwap(EntryId, NewX, NewY);
+	Inventory.MoveOrSwap(EntryId, NewX, NewY, bIsRotate);
 		//OnItemChanged.Broadcast(EntryId);
 }
 

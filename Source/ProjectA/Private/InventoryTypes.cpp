@@ -87,8 +87,8 @@ bool FInventoryGrid::CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, 
         const int32 NX2 = StartX + W - 1;
         const int32 NY2 = StartY + H - 1;
 
-        const bool bOverlap =
-            !(NX2 < E.X || EX2 < StartX || NY2 < E.Y || EY2 < StartY);
+        //조건중 하나라도 만족하면 겹치지 않음
+        const bool bOverlap = !(NX2 < E.X || EX2 < StartX || NY2 < E.Y || EY2 < StartY);
 
         if (bOverlap) return false;
     }
@@ -139,43 +139,75 @@ int32 FInventoryGrid::AddItemAt(UATGItemData* Def, int32 Qty, int32 X, int32 Y, 
     return NewE.Id;
 }
 
-bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY)
+bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
 {
     FInventoryEntry* Me = GetById(EntryId);
     if (!Me) return false;
 
-    // 빈 자리면 이동
-    if (CanPlaceRect(NewX, NewY, Me->Width, Me->Height, Me->Id))
+    // 1) 이번 이동/스왑에서 사용할 "검사용" 치수
+    const int32 NewW = bIsRotate ? Me->Height : Me->Width;
+    const int32 NewH = bIsRotate ? Me->Width : Me->Height;
+
+    // 2) 빈 자리면 이동 (검사는 NewW/NewH로)
+    if (CanPlaceRect(NewX, NewY, NewW, NewH, Me->Id))
     {
-        Me->X = NewX; Me->Y = NewY;
+        Me->X = NewX;
+        Me->Y = NewY;
+
+        // 성공 확정이므로 실제 회전 반영
+        if (bIsRotate)
+        {
+            Swap(Me->Width, Me->Height); // 또는 Orientation 토글
+        }
+
         MarkItemDirty(*Me);
         if (OwnerComp) OwnerComp->OnItemChanged.Broadcast(EntryId);
         return true;
     }
 
-    // 스왑 후보 찾기
+    // 3) 스왑 후보 찾기 (겹침 판정도 NewW/NewH로)
     FInventoryEntry* Other = nullptr;
     for (auto& E : Entries)
     {
         if (E.Id == Me->Id) continue;
-        const bool bHit = !(NewX + Me->Width - 1 < E.X || E.X + E.Width - 1 < NewX ||
-            NewY + Me->Height - 1 < E.Y || E.Y + E.Height - 1 < NewY);
+
+        const int32 NX2 = NewX + NewW - 1;
+        const int32 NY2 = NewY + NewH - 1;
+        const int32 EX2 = E.X + E.Width - 1;
+        const int32 EY2 = E.Y + E.Height - 1;
+
+        const bool bHit = !(NX2 < E.X || EX2 < NewX || NY2 < E.Y || EY2 < NewY);
         if (bHit) { Other = &E; break; }
     }
     if (!Other) return false;
 
-    // 스왑 후 서로의 자리 가능 여부 검사
-    const int32 MeOldX = Me->X, MeOldY = Me->Y;
-    const int32 OtOldX = Other->X, OtOldY = Other->Y;
+    // 4) 스왑 가능성 검사
+    const int32 MeOldX = Me->X;
+    const int32 MeOldY = Me->Y;
+    const int32 OtOldX = Other->X;
+    const int32 OtOldY = Other->Y;
 
-    // 다른 애를 내 자리로
-    const bool bOtherFitInMy = CanPlaceRect(MeOldX, MeOldY, Other->Width, Other->Height, Other->Id);
-    const bool bMeFitInNew = CanPlaceRect(NewX, NewY, Me->Width, Me->Height, Me->Id);
+    // Other가 내 기존 자리로 들어갈 수 있는가 (Other는 회전 없음)
+    const bool bOtherFitInMy = CanPlaceRect(MeOldX, MeOldY, Other->Width, Other->Height, Me->Id);
+
+    // 나는 새 자리(NewX,NewY)에 들어갈 수 있는가 (나는 NewW/NewH로 검사)
+    const bool bMeFitInNew = CanPlaceRect(NewX, NewY, NewW, NewH, Other->Id);
 
     if (bMeFitInNew && bOtherFitInMy)
     {
-        Other->X = MeOldX; Other->Y = MeOldY;
-        Me->X = NewX; Me->Y = NewY;
+        // 스왑 확정
+        Other->X = MeOldX;
+        Other->Y = MeOldY;
+
+        Me->X = NewX;
+        Me->Y = NewY;
+
+        // 성공 확정이므로 실제 회전 반영
+        if (bIsRotate)
+        {
+            Swap(Me->Width, Me->Height); // 또는 Orientation 토글
+        }
+
         MarkItemDirty(*Other);
         MarkItemDirty(*Me);
         if (OwnerComp) OwnerComp->OnItemChanged.Broadcast(EntryId);

@@ -90,7 +90,7 @@ struct FInventoryGrid : public FFastArraySerializer
 
     // === 조작 API (OwnerComp에서 호출됨) ===
     int32 AddItemAt(UATGItemData* Def, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated);
-    bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY); // 비는 자리면 이동, 차 있으면 스왑
+    bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate); // 비는 자리면 이동, 차 있으면 스왑
     bool Rotate(int32 EntryId); // 가로세로 교환 후 배치 가능하면 회전
     bool RemoveById(int32 EntryId);
     const FInventoryEntry* GetById(int32 EntryId) const;

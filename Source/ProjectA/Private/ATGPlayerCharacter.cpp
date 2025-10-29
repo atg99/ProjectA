@@ -267,14 +267,18 @@ void AATGPlayerCharacter::ToggleInventory(const FInputActionValue& Value)
 
 void AATGPlayerCharacter::RotateHeldItem(const FInputActionValue& Value)
 {
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("RotateItem"));
+	UATGInventoryComponent* InventoryComp = GetInventoryComponent();
+	if (InventoryComp)
+	{
+		InventoryComp->OnItemRotated.Broadcast(-1);
+	}
+	//if (GEngine)
+	//	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("RotateItem"));
 }
 
 void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InterationData)
 {
-	UActorComponent* Comp = GetPlayerState()->GetComponentByClass(UATGInventoryComponent::StaticClass());
-	auto InventoryComp = Cast<UATGInventoryComponent>(Comp);
+	UATGInventoryComponent* InventoryComp = GetInventoryComponent();
 	if (InventoryComp)
 	{
 	/*	if (GEngine)
@@ -282,6 +286,13 @@ void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InterationData)
 		//load asset
 		InventoryComp->ServerAddItemAuto(InterationData.ItemDef.LoadSynchronous(), 1);
 	}
+}
+
+UATGInventoryComponent* AATGPlayerCharacter::GetInventoryComponent()
+{
+	UActorComponent* Comp = GetPlayerState()->GetComponentByClass(UATGInventoryComponent::StaticClass());
+	UATGInventoryComponent* InventoryComp = Cast<UATGInventoryComponent>(Comp);
+	return InventoryComp;
 }
 
 

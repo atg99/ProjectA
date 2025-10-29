@@ -73,6 +73,7 @@ void AATGPlayerController::EnsureWidgetCreated()
 	if (InventoryWidget)
 	{
 		InventoryWidget->AddToViewport();
+		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
 	if (GEngine)
