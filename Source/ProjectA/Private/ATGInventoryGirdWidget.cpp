@@ -182,8 +182,14 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 
 	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
 	{
-		const FVector2D Local = InGeo.AbsoluteToLocal(InDragDropEvent.GetScreenSpacePosition());
+		const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
+		const FGeometry PanelGeo = GridPanel->GetTickSpaceGeometry();
+		const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local")+Local.ToString());
 		FIntPoint Cell = CellFromLocal(Local);
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+Cell.ToString());
 
 
 		// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
@@ -203,7 +209,7 @@ void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FD
 	//Super::NativeOnDragEnter(InGeo, InDragDropEvent, InOperation);
 	// TODO: 클라 미리보기(가능/불가 하이라이트) 구현 시 여기서 셀 강조 처리
 }
-
+ 
 
 void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {

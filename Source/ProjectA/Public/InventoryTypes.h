@@ -64,7 +64,7 @@ struct FInventoryGrid : public FFastArraySerializer
     int32 GridWidth = 10;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    int32 GridHeight = 6;
+    int32 GridHeight = 10;
 
     /*
     * 이 함수는 배열의 변경된 부분만을 복제하여 네트워크 부하를 줄이는 역할을 한다. 

@@ -23,6 +23,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
 	TArray<UInputMappingContext*> DefaultMappingContexts;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputMappingContext* InventoryMappingContexts;
+
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
 public:
@@ -44,6 +47,8 @@ protected:
 	void EnsureWidgetCreated();
 
 	//void SetupUIMode(bool bShowMouse);
+
+	void ToggleInventoryInputMapping(bool bIsInvent);
 
 public:
 	void ToggleInventoryUI();

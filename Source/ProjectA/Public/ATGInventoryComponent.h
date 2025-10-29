@@ -31,7 +31,7 @@ public:
 protected:
 
 	// FastArray 
-	UPROPERTY(Replicated)
+	UPROPERTY(EditAnywhere ,Replicated)
 	FInventoryGrid Inventory;
 
 public:

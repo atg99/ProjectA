@@ -83,7 +83,6 @@ void UATGInventoryItemWidget::NativeOnDragDetected(const FGeometry& InGeo, const
 {
 	UDragDropOperation* Op = NewObject<UDragDropOperation>(this);
 
-
 	// 드래그 비주얼은 새 인스턴스로 만들어서 원본 위젯 분리/깜빡임 방지
 	UATGInventoryItemWidget* Visual = CreateWidget<UATGInventoryItemWidget>(GetOwningPlayer(), GetClass());
 	if (Visual)

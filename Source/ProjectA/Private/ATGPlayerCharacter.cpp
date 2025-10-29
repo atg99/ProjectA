@@ -108,6 +108,9 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		//Inventory
 		EnhancedInputComponent->BindAction(IA_Inventory, ETriggerEvent::Started, this, &AATGPlayerCharacter::ToggleInventory);
 
+		//RotateItem
+		EnhancedInputComponent->BindAction(IA_RotateHeldItemAction, ETriggerEvent::Started, this, &AATGPlayerCharacter::RotateHeldItem);
+
 	}
 	else
 	{
@@ -215,8 +218,8 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 		{
 			if (Comp->GetClass()->ImplementsInterface(UATGInterface::StaticClass()))
 			{
-				if (GEngine)
-					GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, Comp->GetReadableName());
+				/*if (GEngine)
+					GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, Comp->GetReadableName());*/
 
 				float Dist = FVector::DistSquared(Center, Overlap.GetActor()->GetActorLocation());
 				if (Dist < MinDist)
@@ -262,14 +265,20 @@ void AATGPlayerCharacter::ToggleInventory(const FInputActionValue& Value)
 	
 }
 
+void AATGPlayerCharacter::RotateHeldItem(const FInputActionValue& Value)
+{
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("RotateItem"));
+}
+
 void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InterationData)
 {
 	UActorComponent* Comp = GetPlayerState()->GetComponentByClass(UATGInventoryComponent::StaticClass());
 	auto InventoryComp = Cast<UATGInventoryComponent>(Comp);
 	if (InventoryComp)
 	{
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("InventoryComp Found"));
+	/*	if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("InventoryComp Found"));*/
 		//load asset
 		InventoryComp->ServerAddItemAuto(InterationData.ItemDef.LoadSynchronous(), 1);
 	}

@@ -79,6 +79,25 @@ void AATGPlayerController::EnsureWidgetCreated()
 			GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Magenta, TEXT("WidgetCreated"));
 }
 
+void AATGPlayerController::ToggleInventoryInputMapping(bool bIsInvent)
+{
+	if (IsLocalPlayerController())
+	{
+		// Add Input Mapping Contexts
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		{
+			if (bIsInvent)
+			{
+				Subsystem->AddMappingContext(InventoryMappingContexts, 1);
+			}
+			else
+			{
+				Subsystem->RemoveMappingContext(InventoryMappingContexts);
+			}
+		}
+	}
+}
+
 void AATGPlayerController::ToggleInventoryUI()
 {
 	if (!InventoryWidget)
@@ -101,10 +120,12 @@ void AATGPlayerController::ToggleInventoryUI()
 	if (InventoryWidget->GetVisibility() == ESlateVisibility::Visible)
 	{
 		SetShowMouseCursor(true);
+		ToggleInventoryInputMapping(true);
 	}
 	else
 	{
 		SetShowMouseCursor(false);
+		ToggleInventoryInputMapping(false);
 	}
 	
 }

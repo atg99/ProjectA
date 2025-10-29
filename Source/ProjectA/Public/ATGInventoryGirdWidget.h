@@ -24,7 +24,7 @@ class PROJECTA_API UATGInventoryGirdWidget : public UUserWidget
 
 public:
 	// 디자이너에서 GridPanel 바인드 (Named Slot: GridPanel)
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
 	UGridPanel* GridPanel = nullptr;
 
 	// 픽셀 단위 셀 크기 & 패딩

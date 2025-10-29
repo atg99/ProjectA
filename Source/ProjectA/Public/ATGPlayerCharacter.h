@@ -50,13 +50,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* MouseLookAction;
 
-	/** Mouse Look Input Action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* IA_Interaction;
 
-	/** Mouse Look Input Action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* IA_Inventory;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* IA_RotateHeldItemAction;
 
 protected:
 
@@ -71,6 +72,8 @@ protected:
 
 	/** Called for interaction input */
 	void ToggleInventory(const FInputActionValue& Value);
+
+	void RotateHeldItem(const FInputActionValue& Value);
 
 public:
 
