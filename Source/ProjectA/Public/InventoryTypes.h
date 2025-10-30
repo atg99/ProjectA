@@ -19,7 +19,7 @@ struct FClientAddRequest
     TSoftObjectPtr<UATGItemData> ItemDef;
 
     UPROPERTY()
-    int32 PredictionKey = -1;
+    int32 PredictionKey = 0;
 
     UPROPERTY() 
     int32 Quantity = 1;
@@ -71,7 +71,7 @@ struct FInventoryChangeResult
 
     /** 클라 예측 식별 키 (프리뷰 매칭용, 반드시 Echo) */
     UPROPERTY(BlueprintReadOnly)
-    int32 PredictionKey = -1;
+    int32 PredictionKey = 0;
 
     /** 인벤토리 스냅샷 버전(순증가). 최신만 적용 */
     UPROPERTY(BlueprintReadOnly)
@@ -155,6 +155,9 @@ struct FInventoryEntry : public FFastArraySerializerItem
     UPROPERTY()
     int32 Id = -1;
 
+    UPROPERTY() 
+    int32 PredictionKey = 0;
+
     void PreReplicatedRemove(const struct FInventoryGrid& InArraySerializer);
     void PostReplicatedAdd(const struct FInventoryGrid& InArraySerializer);
     void PostReplicatedChange(const struct FInventoryGrid& InArraySerializer);
@@ -189,16 +192,24 @@ struct FInventoryGrid : public FFastArraySerializer
     }
 
     bool CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) const;
+
     bool FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, int32 IgnoreId = -1) const;
 
-    int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated);
+    int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey);
+
     bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate); // ��� �ڸ��� �̵�, �� ������ ����
+
     bool Rotate(int32 EntryId); 
+
     bool RemoveById(int32 EntryId);
+
     const FInventoryEntry* GetById(int32 EntryId) const;
+
     FInventoryEntry* GetById(int32 EntryId);
 
     bool PreviewRemoveById(int32 EntryId);
+
+    bool PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 };
 
 

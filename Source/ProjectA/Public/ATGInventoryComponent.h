@@ -76,11 +76,17 @@ public:
 
 	//Client CallBack
 	UFUNCTION(Client, Reliable)
-	void ClientCallBackAddItem(FInventoryChangeResult Result);
+	void ClientAddItemResult(FInventoryChangeResult Result);
+
+	UFUNCTION(Client, Reliable)
+	void ClientMoveResult(const FInventoryChangeResult& Result);
 
 	// Client Preview + ServerRPC
 	UFUNCTION()
 	void TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity);
+
+	UFUNCTION()
+	void TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 
 	// Blueprint Helpers
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
@@ -98,9 +104,11 @@ public:
 
 protected:
 
-	TMap<int32 /*ServerEntryId*/, int32 /*PredictionId*/> PendingServerToPred;
+	//TMap<int32 /*ServerEntryId*/, int32 /*PredictionId*/> PendingServerToPred;
+	UFUNCTION()
+	void HandleReplicatedAdd(int32 EntryId);
 
-	void HandleReplicatedAdd(int32 ServerEntryId);
+	int32 LocalPred = -1;
 
 	////server API 
 	//UFUNCTION(Server, Reliable)

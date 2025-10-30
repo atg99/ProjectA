@@ -200,13 +200,12 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+Cell.ToString());
 
-
 		// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
 		Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
 		Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
 
-
-		InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
+		//InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
+		InventoryComp->TryMoveOrSwapClient(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
 
 		Operation = nullptr;
 		bIsRotate = false;
@@ -245,7 +244,7 @@ void UATGInventoryGirdWidget::HandleItemAdded(int32 EntryId)
 {
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("OnHandleItemAdded"));
-	HandleItemPreRemoved(EntryId);
+	
 
 	if (const FInventoryEntry* E = FindEntryById(EntryId))
 	{
@@ -264,6 +263,7 @@ void UATGInventoryGirdWidget::HandleItemAdded(int32 EntryId)
 
 void UATGInventoryGirdWidget::HandleItemChanged(int32 EntryId)
 {
+	HandleItemPreRemoved(EntryId); //프리뷰 제거
 	UATGInventoryItemWidget* W = IdToWidget.FindRef(EntryId).Get();
 	const FInventoryEntry* E = FindEntryById(EntryId);
 	if (!E)

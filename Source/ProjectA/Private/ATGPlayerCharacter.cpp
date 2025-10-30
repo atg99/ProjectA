@@ -251,8 +251,8 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 	}
 	else
 	{
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("There is no NearestInterfaceActorComp"));
+		/*if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("There is no NearestInterfaceActorComp"));*/
 	}
 }
 

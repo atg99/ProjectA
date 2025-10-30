@@ -60,7 +60,7 @@ int32 UATGInventoryComponent::AddItemAuto(const FClientAddRequest& ClientAddRequ
 	if (!Inventory.FindFirstFit(W, H, OutX, OutY))
 		return -1; // 가득 찼음
 
-	const int32 Id = Inventory.AddItemAt(ClientAddRequest.ItemDef, ClientAddRequest.Quantity, OutX, OutY, W, H, false);
+	const int32 Id = Inventory.AddItemAt(ClientAddRequest.ItemDef, ClientAddRequest.Quantity, OutX, OutY, W, H, false, ClientAddRequest.PredictionKey);
 	return Id;
 }
 
@@ -71,22 +71,23 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 		return;
 	}
 
+	
+	int32 PredKey = LocalPred--;
+
 	FClientAddRequest ClientAddRequest;
 
 	ClientAddRequest.ItemDef = ItemDef;
 	ClientAddRequest.Quantity = Quantity;
 	ClientAddRequest.X = -1;
 	ClientAddRequest.Y = -1;
-	ClientAddRequest.PredictionKey = -1;
+	ClientAddRequest.PredictionKey = PredKey;
 
 	int32 Id = AddItemAuto(ClientAddRequest);
 
-	if (Id < 0) //클라에서 판정실패시 서버요청 안함
+	if (Id == 0) //클라에서 판정실패시 서버요청 안함
 	{
 		return;
 	}
-
-	ClientAddRequest.PredictionKey = Id;
 
 	ServerAddItemAuto(ClientAddRequest);
 }
@@ -109,29 +110,26 @@ void UATGInventoryComponent::ServerAddItemAuto_Implementation(FClientAddRequest 
 
 	InventoryChangeResult.NewEntryId = Id;
 	
-	ClientCallBackAddItem(InventoryChangeResult);
+	ClientAddItemResult(InventoryChangeResult);
 	
 	//if (Id > 0) OnItemAdded.Broadcast(Id);
 }
 
-void UATGInventoryComponent::ClientCallBackAddItem_Implementation(FInventoryChangeResult Result)
+void UATGInventoryComponent::ClientAddItemResult_Implementation(FInventoryChangeResult Result)
 {
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Emerald, TEXT("ClientCallBackAddItem"));
 	if (Result.Status == EInventoryChangeStatus::Success)
 	{
-		// 성공 → OnRep에서 프리뷰를 지워야 하므로 매핑만 추가
-		if (Result.NewEntryId > 0 && Result.PredictionKey > 0)
-		{
-			PendingServerToPred.Add(Result.NewEntryId, Result.PredictionKey);
-		}
+		// 성공이면 복제 도착 시점(HandleReplicatedAdd)에서 지우므로 생략
 	}
 	else
 	{
-		// 실패 → 인벤토리에 항목이 안 들어가므로 프리뷰 즉시 제거
-		if (Result.PredictionKey > 0)
+		// 실패 → 프리뷰 즉시 제거
+		if (Result.PredictionKey != 0)
 		{
 			Inventory.PreviewRemoveById(Result.PredictionKey);
+			OnItemPreRemoved.Broadcast(Result.PredictionKey);
 		}
 	}
 }
@@ -143,14 +141,41 @@ void UATGInventoryComponent::ServerAddItemAt_Implementation(UATGItemData* ItemDe
 	int32 W = bRotated ? ItemDef->Height : ItemDef->Width;
 	int32 H = bRotated ? ItemDef->Width : ItemDef->Height;
 
-	const int32 Id = Inventory.AddItemAt(ItemDef, Quantity, X, Y, W, H, bRotated);
+	const int32 Id = Inventory.AddItemAt(ItemDef, Quantity, X, Y, W, H, bRotated, 0);
 	//if (Id > 0) OnItemAdded.Broadcast(Id);
+}
+
+void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
+{
+	if (!IsLocallyOwned())
+	{
+		return;
+	}
+
+	if (!Inventory.PreviewMoveOrSwap(EntryId, NewX, NewY, bIsRotate))
+	{
+		return; // 놓을 수 없으면 서버 호출 안함
+	}
+	
+	ServerMoveOrSwap(EntryId, NewX, NewY, bIsRotate);
 }
 
 void UATGInventoryComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
 {
-	Inventory.MoveOrSwap(EntryId, NewX, NewY, bIsRotate);
-		//OnItemChanged.Broadcast(EntryId);
+	bool bIsSuccessful = Inventory.MoveOrSwap(EntryId, NewX, NewY, bIsRotate);
+	FInventoryChangeResult Result;
+	
+	Result.Status = (bIsSuccessful ? EInventoryChangeStatus::Success : EInventoryChangeStatus::Rejected);
+	Result.NewEntryId = EntryId;
+	ClientMoveResult(Result);
+}
+
+void UATGInventoryComponent::ClientMoveResult_Implementation(const FInventoryChangeResult& Result)
+{
+	if (Result.Status == EInventoryChangeStatus::Rejected)
+	{
+		Inventory.PreviewRemoveById(Result.NewEntryId);
+	}
 }
 
 void UATGInventoryComponent::ServerRotateItem_Implementation(int32 EntryId)
@@ -165,13 +190,16 @@ void UATGInventoryComponent::ServerRemoveItem_Implementation(int32 EntryId)
 		//OnItemRemoved.Broadcast(EntryId);
 }
 
-void UATGInventoryComponent::HandleReplicatedAdd(int32 ServerEntryId)
+void UATGInventoryComponent::HandleReplicatedAdd(int32 EntryId)
 {
-	if (int32* Pred = PendingServerToPred.Find(ServerEntryId))
+	const FInventoryEntry* E = Inventory.GetById(EntryId);
+	if (E && E->PredictionKey != 0)
 	{
-		Inventory.PreviewRemoveById(*Pred);   // ← PredictionId로 프리뷰 제거
-		PendingServerToPred.Remove(ServerEntryId);
+		Inventory.PreviewRemoveById(E->PredictionKey); // PredKey로 직접 제거
+		OnItemPreRemoved.Broadcast(E->PredictionKey);  // 위젯에게도 알려 제거
 	}
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! InventComp HandleReplicatedAddp"));
 }
 
 bool UATGInventoryComponent::IsHasAuthority()
