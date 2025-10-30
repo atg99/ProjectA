@@ -14,7 +14,9 @@ void FInventoryEntry::PreReplicatedRemove(const FInventoryGrid& InArraySerialize
 void FInventoryEntry::PostReplicatedAdd(const FInventoryGrid& InArraySerializer)
 {
     if (InArraySerializer.OwnerComp)
+    {
         InArraySerializer.OwnerComp->OnItemAdded.Broadcast(Id);
+    }    
 }
 
 void FInventoryEntry::PostReplicatedChange(const FInventoryGrid& InArraySerializer)
@@ -92,6 +94,25 @@ bool FInventoryGrid::CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, 
 
         if (bOverlap) return false;
     }
+
+    if (OwnerComp->IsLocallyOwned()) //Local 판정일 때 프리뷰아이템도 고려
+    {
+        for (const auto& E : PreviewEntries)
+        {
+            if (E.Id == IgnoreId) continue;
+
+            const int32 EX2 = E.X + E.Width - 1;
+            const int32 EY2 = E.Y + E.Height - 1;
+            const int32 NX2 = StartX + W - 1;
+            const int32 NY2 = StartY + H - 1;
+
+            //조건중 하나라도 만족하면 겹치지 않음
+            const bool bOverlap = !(NX2 < E.X || EX2 < StartX || NY2 < E.Y || EY2 < StartY);
+
+            if (bOverlap) return false;
+        }
+    }
+
     return true;
 }
 
@@ -120,23 +141,36 @@ FInventoryEntry* FInventoryGrid::GetById(int32 EntryId)
     return Entries.FindByPredicate([&](FInventoryEntry& E) { return E.Id == EntryId; });
 }
 
-int32 FInventoryGrid::AddItemAt(UATGItemData* Def, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated)
+int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated)
 {
-    if (!Def || Qty <= 0) return -1;
+    if (!ItemDef || Qty <= 0) return -1;
     if (!CanPlaceRect(X, Y, W, H)) return -1;
 
     FInventoryEntry NewE;
-    NewE.Item = TSoftObjectPtr<UATGItemData>(Def);
+    NewE.Item = ItemDef;
     NewE.Quantity = Qty;
     NewE.X = X; NewE.Y = Y;
     NewE.Width = W; NewE.Height = H;
     NewE.bRotated = bRotated;
     NewE.Id = Entries.Num() ? (Entries.Last().Id + 1) : 1;
+    
+    if (OwnerComp && OwnerComp->IsHasAuthority())
+    {
+        Entries.Add(NewE);
+        MarkItemDirty(Entries.Last());
 
-    Entries.Add(NewE);
-    MarkItemDirty(Entries.Last());
-    if (OwnerComp) OwnerComp->OnItemAdded.Broadcast(NewE.Id);
-    return NewE.Id;
+        OwnerComp->OnItemAdded.Broadcast(NewE.Id);
+        return NewE.Id;
+    }
+    else if (OwnerComp && !OwnerComp->IsHasAuthority())
+    {
+        PreviewEntries.Add(NewE); // 복제 안하는 로컬 배열에 추가
+
+        OwnerComp->OnItemPreAdded.Broadcast(NewE);
+        return NewE.Id;
+    }
+    
+    return -1;
 }
 
 bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
@@ -258,5 +292,14 @@ bool FInventoryGrid::RemoveById(int32 EntryId)
     Entries.RemoveAt(Idx);
     MarkArrayDirty();
     if (OwnerComp) OwnerComp->OnItemRemoved.Broadcast(EntryId);
+    return true;
+}
+
+bool FInventoryGrid::PreviewRemoveById(int32 EntryId)
+{
+    const int32 Idx = PreviewEntries.IndexOfByPredicate([&](const FInventoryEntry& E) { return E.Id == EntryId; });
+    if (Idx == INDEX_NONE) return false;
+    PreviewEntries.RemoveAt(Idx);
+    if (OwnerComp) OwnerComp->OnItemPreRemoved.Broadcast(EntryId);
     return true;
 }

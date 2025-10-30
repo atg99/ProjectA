@@ -7,7 +7,9 @@
 #include "InventoryTypes.h"
 #include "ATGInventoryComponent.generated.h"
 
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridEvent, int32, EntryId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridPreEvent, FInventoryEntry, PreE);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PROJECTA_API UATGInventoryComponent : public UActorComponent
@@ -38,6 +40,7 @@ public:
 	// client UI
 	UPROPERTY(BlueprintAssignable) 
 	FOnGridEvent OnItemAdded;
+
 	UPROPERTY(BlueprintAssignable) 
 	FOnGridEvent OnItemRemoved;
 	UPROPERTY(BlueprintAssignable) 
@@ -46,9 +49,18 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnGridEvent OnItemRotated;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnGridPreEvent OnItemPreAdded;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridEvent OnItemPreRemoved;
+
 	// Server RPCs
 	UFUNCTION(Server, Reliable)
-	void ServerAddItemAuto(UATGItemData* ItemDef, int32 Quantity);
+	void ServerAddItemAuto(FClientAddRequest ClientAddRequest);
+
+	UFUNCTION()
+	int32 AddItemAuto(const FClientAddRequest& ClientAddRequest);
 
 	UFUNCTION(Server, Reliable)
 	void ServerAddItemAt(UATGItemData* ItemDef, int32 Quantity, int32 X, int32 Y, bool bRotated);
@@ -62,6 +74,14 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRemoveItem(int32 EntryId);
 
+	//Client CallBack
+	UFUNCTION(Client, Reliable)
+	void ClientCallBackAddItem(FInventoryChangeResult Result);
+
+	// Client Preview + ServerRPC
+	UFUNCTION()
+	void TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity);
+
 	// Blueprint Helpers
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
 	const TArray<FInventoryEntry>& GetEntries() const { return Inventory.Entries; }
@@ -71,6 +91,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
 	int32 GetGridHeight() const { return Inventory.GridHeight; }
+
+	bool IsHasAuthority();
+
+	bool IsLocallyOwned() const;
+
+protected:
+
+	TMap<int32 /*ServerEntryId*/, int32 /*PredictionId*/> PendingServerToPred;
+
+	void HandleReplicatedAdd(int32 ServerEntryId);
 
 	////server API 
 	//UFUNCTION(Server, Reliable)

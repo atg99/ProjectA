@@ -283,8 +283,8 @@ void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InterationData)
 	{
 	/*	if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("InventoryComp Found"));*/
-		//load asset
-		InventoryComp->ServerAddItemAuto(InterationData.ItemDef.LoadSynchronous(), 1);
+		//load asset  InterationData.ItemDef.LoadSynchronous()
+		InventoryComp->TryPickupClient(InterationData.ItemDef, 1);
 	}
 }
 

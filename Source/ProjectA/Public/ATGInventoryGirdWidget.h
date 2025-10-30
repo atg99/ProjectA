@@ -33,6 +33,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Layout")
 	int32 CellPadding = 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
+	FLinearColor BGColor = { 128, 128, 128, 0.5 };
 
 	// 셀 배경 텍스처(옵션)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
@@ -47,6 +49,10 @@ protected:
 	// Id -> ItemWidget 맵(부분 갱신용)
 	UPROPERTY(Transient)
 	TMap<int32, TWeakObjectPtr<UATGInventoryItemWidget>> IdToWidget;
+
+	//preview 전용
+	UPROPERTY(Transient)
+	TMap<int32, TWeakObjectPtr<UATGInventoryItemWidget>> PreviewIdToWidget;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TSubclassOf<UATGInventoryItemWidget> InventoryItemWidgetClass;
@@ -73,6 +79,9 @@ protected:
 	UFUNCTION() void HandleItemChanged(int32 EntryId);
 	UFUNCTION() void HandleItemRemoved(int32 EntryId);
 	UFUNCTION() void HandleItemRotated(int32 EntryId);
+
+	UFUNCTION() void HandleItemPreAdded(FInventoryEntry PreE);
+	UFUNCTION() void HandleItemPreRemoved(int32 PreEId);
 
 
 	// 헬퍼

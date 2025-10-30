@@ -9,6 +9,118 @@
 class UATGItemData;
 class UATGInventoryComponent;
 
+// InventoryTypes.h
+USTRUCT(BlueprintType)
+struct FClientAddRequest
+{
+    GENERATED_BODY()
+
+    UPROPERTY() 
+    TSoftObjectPtr<UATGItemData> ItemDef;
+
+    UPROPERTY()
+    int32 PredictionKey = -1;
+
+    UPROPERTY() 
+    int32 Quantity = 1;
+
+    // í´ë¼ê°€ ì§€ì •(ê·¸ë¦¬ë“œ ë“œë¡­)í–ˆì„ ìˆ˜ë„ ìˆê³ , ìë™ ë°°ì¹˜ë©´ -1 ìœ ì§€
+    UPROPERTY() 
+    int32 X = -1;
+    UPROPERTY() 
+    int32 Y = -1;
+    UPROPERTY() 
+    bool  bRotated = false;
+};
+
+UENUM(BlueprintType)
+enum class EInventoryChangeStatus : uint8
+{
+    Success         UMETA(DisplayName = "Success"),
+    Rejected        UMETA(DisplayName = "Rejected"),     // ì¼ë°˜ ê±°ì ˆ(ì‚¬ìœ ì½”ë“œë¡œ êµ¬ì²´í™”)
+    PartialSuccess  UMETA(DisplayName = "Partial Success"), // ì¼ë¶€ ìˆ˜ëŸ‰ë§Œ í™•ì •
+    Error           UMETA(DisplayName = "Error"),
+};
+
+UENUM(BlueprintType)
+enum class EInventoryRejectReason : uint8
+{
+    None,
+    AlreadyTaken,
+    NoSpace,            // ë¹ˆì¹¸ ì—†ìŒ
+    StackFull,          // ìŠ¤íƒ í•œë„ ì´ˆê³¼
+    OutOfRange,
+    InvalidItem,
+    NotOwner,
+    RateLimited,
+    Unknown,
+};
+
+USTRUCT(BlueprintType)
+struct FInventoryChangeResult
+{
+    GENERATED_BODY()
+
+    /** ì²˜ë¦¬ ê²°ê³¼ */
+    UPROPERTY(BlueprintReadOnly)
+    EInventoryChangeStatus Status = EInventoryChangeStatus::Error;
+
+    /** ì‹¤íŒ¨ ì‚¬ìœ  (Status==Rejectedì¼ ë•Œ ì˜ë¯¸ ìˆìŒ) */
+    UPROPERTY(BlueprintReadOnly)
+    EInventoryRejectReason Reason = EInventoryRejectReason::None;
+
+    /** í´ë¼ ì˜ˆì¸¡ ì‹ë³„ í‚¤ (í”„ë¦¬ë·° ë§¤ì¹­ìš©, ë°˜ë“œì‹œ Echo) */
+    UPROPERTY(BlueprintReadOnly)
+    int32 PredictionKey = -1;
+
+    /** ì¸ë²¤í† ë¦¬ ìŠ¤ëƒ…ìƒ· ë²„ì „(ìˆœì¦ê°€). ìµœì‹ ë§Œ ì ìš© */
+    UPROPERTY(BlueprintReadOnly)
+    int32 InventoryRevision = 0;
+
+    /** ì•„ì´í…œ ì •ì˜ ID (ê²½ëŸ‰) */
+    UPROPERTY(BlueprintReadOnly)
+    FPrimaryAssetId ItemDefId; // or FName/RowHandle
+
+    /** ìµœì¢… í™•ì •ëœ ì—”íŠ¸ë¦¬ Id (ì‹ ê·œ ìƒì„± ì‹œ) */
+    UPROPERTY(BlueprintReadOnly)
+    int32 NewEntryId = -1;
+
+    /** ê¸°ì¡´ ìŠ¤íƒê³¼ ë³‘í•©ëë‹¤ë©´ ë³‘í•© ëŒ€ìƒ ì—”íŠ¸ë¦¬ Id */
+    UPROPERTY(BlueprintReadOnly)
+    int32 MergedIntoEntryId = -1;
+
+    /** ìµœì¢… ì¢Œí‘œ/í¬ê¸°/íšŒì „ (ì„±ê³µ ë˜ëŠ” PartialSuccessì¼ ë•Œ) */
+    UPROPERTY(BlueprintReadOnly)
+    int32 X = -1;
+    UPROPERTY(BlueprintReadOnly)
+    int32 Y = -1;
+    UPROPERTY(BlueprintReadOnly)
+    int32 W = 1;
+    UPROPERTY(BlueprintReadOnly)
+    int32 H = 1;
+    UPROPERTY(BlueprintReadOnly)
+    bool bRotated = false;
+
+    /** ìˆ˜ëŸ‰ ì •ë³´ */
+    UPROPERTY(BlueprintReadOnly)
+    int32 RequestedQuantity = 0;
+    UPROPERTY(BlueprintReadOnly)
+    int32 GrantedQuantity = 0;    // í™•ì •/ë¶€ë¶„í™•ì • ìˆ˜ëŸ‰
+    UPROPERTY(BlueprintReadOnly)
+    int32 PreviousQuantity = 0;   // ë³‘í•© ì „ ê¸°ì¡´ ìŠ¤íƒ ìˆ˜ëŸ‰(ìˆìœ¼ë©´)
+
+    /** ì„œë²„ê°€ ìë™ë°°ì¹˜ í–ˆëŠ”ì§€(í´ë¼ í”„ë¦¬ë·°ì™€ ë‹¤ë¥¼ ìˆ˜ ìˆìŒ) */
+    UPROPERTY(BlueprintReadOnly)
+    bool bServerAutoPlaced = false;
+
+    /** ì‹¤íŒ¨ ì‹œ ëŒ€ì•ˆ(ì„ íƒ) */
+    UPROPERTY(BlueprintReadOnly)
+    int32 SuggestedX = -1;
+    UPROPERTY(BlueprintReadOnly)
+    int32 SuggestedY = -1;
+};
+
+
 /**
  * 
  */
@@ -57,6 +169,10 @@ struct FInventoryGrid : public FFastArraySerializer
     UPROPERTY()
     TArray<FInventoryEntry> Entries;
 
+    //preview ì „ìš© ë³µì œì•ˆí•˜ëŠ” ë°°ì—´
+    UPROPERTY(NotReplicated)
+    TArray<FInventoryEntry> PreviewEntries;
+
     UPROPERTY(NotReplicated)
     UATGInventoryComponent* OwnerComp = nullptr;
 
@@ -66,42 +182,29 @@ struct FInventoryGrid : public FFastArraySerializer
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     int32 GridHeight = 10;
 
-    /*
-    * ÀÌ ÇÔ¼ö´Â ¹è¿­ÀÇ º¯°æµÈ ºÎºĞ¸¸À» º¹Á¦ÇÏ¿© ³×Æ®¿öÅ© ºÎÇÏ¸¦ ÁÙÀÌ´Â ¿ªÇÒÀ» ÇÑ´Ù. 
-    FFastArraySerializer::FastArrayDeltaSerialize ÇÔ¼ö°¡ È£ÃâµÇ¾î, ´ÜÀÏ µ¥ÀÌÅÍÀÇ º¯È­¸¸À» Àü¼ÛÇÕ´Ï´Ù.
-    */
     //Custom Network Serialize
     bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
     {
         return FFastArraySerializer::FastArrayDeltaSerialize<FInventoryEntry, FInventoryGrid>(Entries, DeltaParms, *this);
     }
 
-    ////³×Æ®¿öÅ© TSoftObjectPtr rapping
-    //void AddOrStack(UATGItemData* Def, int32 Qty);
-    //bool RemoveItem(UATGItemData* Def, int32 Qty);
-
-    //// ÇïÆÛ ÇÔ¼öµé
-    //void AddOrStack(const TSoftObjectPtr<UATGItemData>& ItemDef, int32 Quantity);
-    //bool RemoveItem(const TSoftObjectPtr<UATGItemData>& ItemDef, int32 Quantity);
-
-    // === ÇïÆÛ ===
     bool CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) const;
     bool FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, int32 IgnoreId = -1) const;
 
-    // === Á¶ÀÛ API (OwnerComp¿¡¼­ È£ÃâµÊ) ===
-    int32 AddItemAt(UATGItemData* Def, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated);
-    bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate); // ºñ´Â ÀÚ¸®¸é ÀÌµ¿, Â÷ ÀÖÀ¸¸é ½º¿Ò
-    bool Rotate(int32 EntryId); // °¡·Î¼¼·Î ±³È¯ ÈÄ ¹èÄ¡ °¡´ÉÇÏ¸é È¸Àü
+    int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated);
+    bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate); // ï¿½ï¿½ï¿½ ï¿½Ú¸ï¿½ï¿½ï¿½ ï¿½Ìµï¿½, ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+    bool Rotate(int32 EntryId); 
     bool RemoveById(int32 EntryId);
     const FInventoryEntry* GetById(int32 EntryId) const;
     FInventoryEntry* GetById(int32 EntryId);
 
+    bool PreviewRemoveById(int32 EntryId);
 };
 
 
 /*
-* ÀÌ ÅÛÇÃ¸´ Æ¯¼ºÀº FFastArrayPlayerList ±¸Á¶Ã¼°¡ ³×Æ®¿öÅ© µ¨Å¸ Á÷·ÄÈ­(NetDeltaSerialize)¸¦ Áö¿øÇÔÀ» ¾ğ¸®¾ó ¿£Áø¿¡ ¾Ë·ÁÁØ´Ù.
-WithNetDeltaSerializer ÇÃ·¡±×°¡ true·Î ¼³Á¤µÇ¾î ÀÖ¾î, ³×Æ®¿öÅ© º¹Á¦ ½Ã NetDeltaSerialize ÇÔ¼ö°¡ È£ÃâµÈ´Ù.
+* ï¿½ï¿½ ï¿½ï¿½ï¿½Ã¸ï¿½ Æ¯ï¿½ï¿½ï¿½ï¿½ FFastArrayPlayerList ï¿½ï¿½ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½Æ®ï¿½ï¿½Å© ï¿½ï¿½Å¸ ï¿½ï¿½ï¿½ï¿½È­(NetDeltaSerialize)ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ğ¸®¾ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ë·ï¿½ï¿½Ø´ï¿½.
+WithNetDeltaSerializer ï¿½Ã·ï¿½ï¿½×°ï¿½ trueï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ç¾ï¿½ ï¿½Ö¾ï¿½, ï¿½ï¿½Æ®ï¿½ï¿½Å© ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ NetDeltaSerialize ï¿½Ô¼ï¿½ï¿½ï¿½ È£ï¿½ï¿½È´ï¿½.
 */
 template<>
 struct TStructOpsTypeTraits<FInventoryGrid> : public TStructOpsTypeTraitsBase2<FInventoryGrid>

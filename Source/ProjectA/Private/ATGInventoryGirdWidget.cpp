@@ -79,11 +79,17 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		InventoryComp->OnItemChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		InventoryComp->OnItemRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
 		InventoryComp->OnItemRotated.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
+		//preview
+		InventoryComp->OnItemPreAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreAdded);
+		InventoryComp->OnItemPreRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreRemoved);
 
 		InventoryComp->OnItemAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
 		InventoryComp->OnItemChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		InventoryComp->OnItemRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
 		InventoryComp->OnItemRotated.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
+		//preview
+		InventoryComp->OnItemPreAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreAdded);
+		InventoryComp->OnItemPreRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreRemoved);
 	}
 	RebuildAll();
 }
@@ -112,6 +118,10 @@ void UATGInventoryGirdWidget::BuildCellBackground()
 			{
 				Cell->SetBrushFromTexture(DefaultCellBg);
 			}
+			else
+			{
+				Cell->SetColorAndOpacity(BGColor);
+			}
 			CellBox->AddChild(Cell);
 
 
@@ -123,7 +133,6 @@ void UATGInventoryGirdWidget::BuildCellBackground()
 
 UATGInventoryItemWidget* UATGInventoryGirdWidget::CreateItemWidget(const FInventoryEntry& E)
 {
-	// 디자이너에서 만든 위젯 BP를 서브클래스로 쓰고 싶다면, 팩토리 부분을 BP 클래스로 교체
 	if (!InventoryItemWidgetClass)
 	{
 		if (GEngine)
@@ -236,6 +245,8 @@ void UATGInventoryGirdWidget::HandleItemAdded(int32 EntryId)
 {
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("OnHandleItemAdded"));
+	HandleItemPreRemoved(EntryId);
+
 	if (const FInventoryEntry* E = FindEntryById(EntryId))
 	{
 		if (GEngine)
@@ -294,4 +305,29 @@ void UATGInventoryGirdWidget::HandleItemRotated(int32 EntryId)
 
 		bIsRotate = !bIsRotate;
 	}
+}
+
+void UATGInventoryGirdWidget::HandleItemPreAdded(FInventoryEntry PreE)
+{
+
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("HandleItemPreAdded"));
+	UATGInventoryItemWidget* W = CreateItemWidget(PreE);
+	if (!W)
+	{
+		return;
+	}
+	W->SetVisibility(ESlateVisibility::HitTestInvisible); //preview widget 상호작용 불가
+	W->ItemIcon->SetColorAndOpacity(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
+	UpdateItemSlot(W, PreE);
+	PreviewIdToWidget.Add(PreE.Id, W);
+}
+
+void UATGInventoryGirdWidget::HandleItemPreRemoved(int32 PreEId)
+{
+	if (UATGInventoryItemWidget* W = PreviewIdToWidget.FindRef(PreEId).Get())
+	{
+		W->RemoveFromParent();
+	}
+	PreviewIdToWidget.Remove(PreEId);
 }
