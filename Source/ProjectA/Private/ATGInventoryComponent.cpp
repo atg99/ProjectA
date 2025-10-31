@@ -49,196 +49,19 @@ void UATGInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME_CONDITION(UATGInventoryComponent, Inventory, COND_OwnerOnly);
 }
 
-int32 UATGInventoryComponent::AddItemAuto(const FClientAddRequest& ClientAddRequest, FInventoryChangeResult& OutChangeResult)
+int32 UATGInventoryComponent::AddItemAuto(const FClientAddRequest& ClientAddRequest)
 {
-    const bool bIsAuthority = IsHasAuthority();
+	if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0) return -1;
 
-    if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0)
-    {
-        if (bIsAuthority)
-        {
-            OutChangeResult.Status = EInventoryChangeStatus::Rejected;
-            OutChangeResult.Reason = EInventoryRejectReason::InvalidItem;
-            OutChangeResult.PredictionKey = ClientAddRequest.PredictionKey;
-            OutChangeResult.RequestedQuantity = ClientAddRequest.Quantity;
-            OutChangeResult.GrantedQuantity = 0;
-        }
-        return 0;
-    }
+	int32 W = ClientAddRequest.ItemDef->Width;
+	int32 H = ClientAddRequest.ItemDef->Height;
+	int32 OutX = -1, OutY = -1;
 
-    UATGItemData* ItemData = ClientAddRequest.ItemDef.Get();
-    if (!ItemData)
-    {
-        ItemData = ClientAddRequest.ItemDef.LoadSynchronous();
-    }
-    if (!ItemData)
-    {
-        if (bIsAuthority)
-        {
-            OutChangeResult.Status = EInventoryChangeStatus::Rejected;
-            OutChangeResult.Reason = EInventoryRejectReason::InvalidItem;
-            OutChangeResult.PredictionKey = ClientAddRequest.PredictionKey;
-            OutChangeResult.RequestedQuantity = ClientAddRequest.Quantity;
-            OutChangeResult.GrantedQuantity = 0;
-        }
-        return 0;
-    }
+	if (!Inventory.FindFirstFit(W, H, OutX, OutY))
+		return -1; // 가득 찼음
 
-    const int32 MaxStack = FMath::Max(ItemData->MaxStack, 1);
-    const int32 Width = ItemData->Width;
-    const int32 Height = ItemData->Height;
-
-    int32 RemainingQty = ClientAddRequest.Quantity;
-    int32 TotalGranted = 0;
-    int32 FirstMergedEntryId = -1;
-    int32 FirstMergedPrevQuantity = 0;
-    int32 LastEntryId = 0;
-
-    if (bIsAuthority)
-    {
-        OutChangeResult.Status = EInventoryChangeStatus::Rejected;
-        OutChangeResult.Reason = EInventoryRejectReason::Unknown;
-        OutChangeResult.PredictionKey = ClientAddRequest.PredictionKey;
-        OutChangeResult.InventoryRevision = 0;
-        OutChangeResult.ItemDefId = ItemData->GetPrimaryAssetId();
-        OutChangeResult.NewEntryId = -1;
-        OutChangeResult.MergedIntoEntryId = -1;
-        OutChangeResult.PreviousQuantity = 0;
-        OutChangeResult.X = -1;
-        OutChangeResult.Y = -1;
-        OutChangeResult.W = Width;
-        OutChangeResult.H = Height;
-        OutChangeResult.bRotated = ClientAddRequest.bRotated;
-        OutChangeResult.RequestedQuantity = ClientAddRequest.Quantity;
-        OutChangeResult.GrantedQuantity = 0;
-        OutChangeResult.bServerAutoPlaced = false;
-        OutChangeResult.SuggestedX = -1;
-        OutChangeResult.SuggestedY = -1;
-    }
-
-    
-    for (FInventoryEntry& Entry : Inventory.Entries)
-    {
-        if (RemainingQty <= 0)
-        {
-            break;
-        }
-
-        if (Entry.Item != ClientAddRequest.ItemDef)
-        {
-            continue;
-        }
-
-        const int32 Space = MaxStack - Entry.Quantity;
-        if (Space <= 0)
-        {
-            continue;
-        }
-
-        const int32 Added = FMath::Min(Space, RemainingQty);
-        if (Added <= 0)
-        {
-            continue;
-        }
-
-        if (FirstMergedEntryId == -1)
-        {
-            FirstMergedEntryId = Entry.Id;
-            FirstMergedPrevQuantity = Entry.Quantity;
-        }
-
-        if (bIsAuthority)
-        {
-            Entry.Quantity += Added;
-            Inventory.MarkItemDirty(Entry);
-            OnItemChanged.Broadcast(Entry.Id);
-        }
-
-        RemainingQty -= Added;
-        TotalGranted += Added;
-    }
-
-    if (bIsAuthority)
-    {
-        OutChangeResult.MergedIntoEntryId = FirstMergedEntryId;
-        OutChangeResult.PreviousQuantity = FirstMergedPrevQuantity;
-    }
-
-    if (RemainingQty <= 0)
-    {
-        if (bIsAuthority)
-        {
-            OutChangeResult.Status = EInventoryChangeStatus::Success;
-            OutChangeResult.Reason = EInventoryRejectReason::None;
-            OutChangeResult.GrantedQuantity = TotalGranted;
-        }
-        return (FirstMergedEntryId > 0) ? FirstMergedEntryId : 0;
-    }
-
-    while (RemainingQty > 0)
-    {
-        int32 OutX = -1;
-        int32 OutY = -1;
-
-        if (!Inventory.FindFirstFit(Width, Height, OutX, OutY))
-        {
-            break;
-        }
-
-        const int32 StackQty = FMath::Min(RemainingQty, MaxStack);
-        const int32 NewId = Inventory.AddItemAt(ClientAddRequest.ItemDef, StackQty, OutX, OutY, Width, Height, false, ClientAddRequest.PredictionKey);
-        if (NewId <= 0)
-        {
-            break;
-        }
-
-        RemainingQty -= StackQty;
-        TotalGranted += StackQty;
-        LastEntryId = NewId;
-
-        if (bIsAuthority && OutChangeResult.NewEntryId == -1)
-        {
-            OutChangeResult.NewEntryId = NewId;
-            OutChangeResult.X = OutX;
-            OutChangeResult.Y = OutY;
-            OutChangeResult.W = Width;
-            OutChangeResult.H = Height;
-            OutChangeResult.bRotated = false;
-            OutChangeResult.bServerAutoPlaced = true;
-        }
-
-        if (!bIsAuthority)
-        {
-            break;
-        }
-    }
-
-    if (bIsAuthority)
-    {
-        OutChangeResult.GrantedQuantity = TotalGranted;
-        if (RemainingQty > 0)
-        {
-            OutChangeResult.Status = (TotalGranted > 0) ? EInventoryChangeStatus::PartialSuccess : EInventoryChangeStatus::Rejected;
-            OutChangeResult.Reason = EInventoryRejectReason::NoSpace;
-        }
-        else
-        {
-            OutChangeResult.Status = EInventoryChangeStatus::Success;
-            OutChangeResult.Reason = EInventoryRejectReason::None;
-        }
-    }
-
-    if (TotalGranted <= 0)
-    {
-        return 0;
-    }
-
-    if (LastEntryId > 0)
-    {
-        return LastEntryId;
-    }
-
-    return (FirstMergedEntryId > 0) ? FirstMergedEntryId : 0;
+	const int32 Id = Inventory.AddItemAt(ClientAddRequest.ItemDef, ClientAddRequest.Quantity, OutX, OutY, W, H, false, ClientAddRequest.PredictionKey);
+	return Id;
 }
 
 void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity)
@@ -248,18 +71,18 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 		return;
 	}
 
+	
 	int32 PredKey = LocalPred--;
 
 	FClientAddRequest ClientAddRequest;
 
 	ClientAddRequest.ItemDef = ItemDef;
-
 	ClientAddRequest.Quantity = Quantity;
 	ClientAddRequest.X = -1;
 	ClientAddRequest.Y = -1;
 	ClientAddRequest.PredictionKey = PredKey;
-    FInventoryChangeResult R; //클라에서는 사용X
-	int32 Id = AddItemAuto(ClientAddRequest, R);
+
+	int32 Id = AddItemAuto(ClientAddRequest);
 
 	if (Id == 0) //클라에서 판정실패시 서버요청 안함
 	{
@@ -272,10 +95,24 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 void UATGInventoryComponent::ServerAddItemAuto_Implementation(FClientAddRequest ClientAddRequest)
 {
 	FInventoryChangeResult InventoryChangeResult;
+	const int32 Id = AddItemAuto(ClientAddRequest);
+	if (Id >= 0)
+	{
+		InventoryChangeResult.Status = EInventoryChangeStatus::Success;
+	}
+	else
+	{
+		InventoryChangeResult.Status = EInventoryChangeStatus::Rejected;
+		InventoryChangeResult.Reason = EInventoryRejectReason::Unknown;
+	}
 
-    AddItemAuto(ClientAddRequest, InventoryChangeResult);
+	InventoryChangeResult.PredictionKey = ClientAddRequest.PredictionKey; //서버 클라이언트 매칭 키
+
+	InventoryChangeResult.NewEntryId = Id;
 	
 	ClientAddItemResult(InventoryChangeResult);
+	
+	//if (Id > 0) OnItemAdded.Broadcast(Id);
 }
 
 void UATGInventoryComponent::ClientAddItemResult_Implementation(FInventoryChangeResult Result)

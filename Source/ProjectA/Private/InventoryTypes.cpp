@@ -149,86 +149,11 @@ FInventoryEntry* FInventoryGrid::GetById(int32 EntryId)
 int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey)
 {
     if (!ItemDef || Qty <= 0) return 0;
-    //if (!CanPlaceRect(X, Y, W, H)) return 0;
-
-    UATGItemData* ItemData = ItemDef.Get();
-    if (!ItemData)
-    {
-        ItemData = ItemDef.LoadSynchronous();
-    }
-    if (!ItemData) return 0;
-
-    const int32 MaxStack = FMath::Max(ItemData->MaxStack, 1);
-    int32 RemainingQty = Qty;
-    int32 FirstMergedId = 0;
-
-    auto MergeIntoEntries = [&](TArray<FInventoryEntry>& TargetEntries, bool bNotifyChange)
-        {
-            for (FInventoryEntry& Entry : TargetEntries)
-            {
-                if (RemainingQty <= 0)
-                {
-                    break;
-                }
-
-                if (Entry.Item != ItemDef)
-                {
-                    continue;
-                }
-
-                const int32 Space = MaxStack - Entry.Quantity;
-                if (Space <= 0)
-                {
-                    continue;
-                }
-
-                const int32 Added = FMath::Min(Space, RemainingQty);
-                Entry.Quantity += Added;
-                RemainingQty -= Added;
-
-                if (FirstMergedId == 0)
-                {
-                    FirstMergedId = Entry.Id;
-                }
-
-                if (bNotifyChange)
-                {
-                    MarkItemDirty(Entry);
-                    if (OwnerComp)
-                    {
-                        OwnerComp->OnItemChanged.Broadcast(Entry.Id);
-                    }
-                }
-            }
-        };
-
-    if (OwnerComp)
-    {
-        if (OwnerComp->IsHasAuthority())
-        {
-            MergeIntoEntries(Entries, true);
-        }
-        else
-        {
-            MergeIntoEntries(PreviewEntries, false);
-        }
-    }
-
-    if (RemainingQty <= 0)
-    {
-        return FirstMergedId;
-    }
-
-    if (!CanPlaceRect(X, Y, W, H))
-    {
-        return FirstMergedId;
-    }
-
-    const int32 StackQuantity = FMath::Min(RemainingQty, MaxStack);
+    if (!CanPlaceRect(X, Y, W, H)) return 0;
 
     FInventoryEntry NewE;
     NewE.Item = ItemDef;
-    NewE.Quantity = StackQuantity;
+    NewE.Quantity = Qty;
     NewE.X = X; NewE.Y = Y;
     NewE.Width = W; NewE.Height = H;
     NewE.bRotated = bRotated;
@@ -239,7 +164,6 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty,
         NewE.PredictionKey = PreKey;
         Entries.Add(NewE);
         MarkItemDirty(Entries.Last());
-        MarkArrayDirty();
 
         OwnerComp->OnItemAdded.Broadcast(NewE.Id);
         return NewE.Id;
@@ -255,7 +179,7 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty,
         return NewE.Id;
     }
     
-    return FirstMergedId;
+    return 0;
 }
 
 bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
