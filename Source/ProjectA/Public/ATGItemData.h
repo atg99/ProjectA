@@ -22,6 +22,9 @@ public:
     FText DisplayName;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+    int32 ItemId;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     UTexture2D* Icon = nullptr;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")

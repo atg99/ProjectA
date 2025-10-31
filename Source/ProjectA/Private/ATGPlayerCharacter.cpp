@@ -283,7 +283,7 @@ void AATGPlayerCharacter::RotateHeldItem(const FInputActionValue& Value)
 	//	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("RotateItem"));
 }
 
-void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InterationData)
+void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InteractionData)
 {
 	UATGInventoryComponent* InventoryComp = GetInventoryComponent();
 	if (InventoryComp)
@@ -291,7 +291,7 @@ void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InterationData)
 	/*	if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("InventoryComp Found"));*/
 		//load asset  InterationData.ItemDef.LoadSynchronous()
-		InventoryComp->TryPickupClient(InterationData.ItemDef, 1);
+		InventoryComp->TryPickupClient(InteractionData.ItemDef, InteractionData.ItemQty);
 	}
 }
 

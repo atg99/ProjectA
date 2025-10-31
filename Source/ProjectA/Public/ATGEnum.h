@@ -30,5 +30,8 @@ struct FInteractionData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<UATGItemData> ItemDef;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ItemQty;
 };
 

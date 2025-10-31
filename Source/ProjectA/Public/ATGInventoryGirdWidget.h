@@ -51,8 +51,8 @@ protected:
 	TMap<int32, TWeakObjectPtr<UATGInventoryItemWidget>> IdToWidget;
 
 	//preview Àü¿ë
-	UPROPERTY(Transient)
-	TMap<int32, TWeakObjectPtr<UATGInventoryItemWidget>> PreviewIdToWidget;
+	//UPROPERTY(Transient)
+	TMap<int32, TArray<TWeakObjectPtr<UATGInventoryItemWidget>>> PreviewIdToWidget;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TSubclassOf<UATGInventoryItemWidget> InventoryItemWidgetClass;

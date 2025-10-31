@@ -49,19 +49,43 @@ void UATGInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME_CONDITION(UATGInventoryComponent, Inventory, COND_OwnerOnly);
 }
 
-int32 UATGInventoryComponent::AddItemAuto(const FClientAddRequest& ClientAddRequest)
+TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& ClientAddRequest)
 {
-	if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0) return -1;
+	TArray<int32> EntryIds;
+	EntryIds.Empty();
+	if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0) return EntryIds;
+
+	if (!ClientAddRequest.ItemDef.Get()) // 로드
+	{
+		ClientAddRequest.ItemDef.LoadSynchronous();
+	}
 
 	int32 W = ClientAddRequest.ItemDef->Width;
 	int32 H = ClientAddRequest.ItemDef->Height;
 	int32 OutX = -1, OutY = -1;
+	int32 Qty = ClientAddRequest.Quantity;
 
-	if (!Inventory.FindFirstFit(W, H, OutX, OutY))
-		return -1; // 가득 찼음
+	if (!Inventory.FindFirstFit(ClientAddRequest.ItemDef, W, H, OutX, OutY, Qty)) //여기서 존재하는 스택에 저장 남은 값 Qty 참조로 반환
+	{
+		return EntryIds; // 새로운 자리 없음 
+	}
 
-	const int32 Id = Inventory.AddItemAt(ClientAddRequest.ItemDef, ClientAddRequest.Quantity, OutX, OutY, W, H, false, ClientAddRequest.PredictionKey);
-	return Id;
+	if (Qty <= 0) //수량이 0이 된경우 
+	{
+		return EntryIds;
+	}
+
+	int32 Id = Inventory.AddItemAt(ClientAddRequest.ItemDef, Qty, OutX, OutY, W, H, false, ClientAddRequest.PredictionKey);
+	EntryIds.Add(Id);
+	//Qty 참조 반환
+	while (Qty >= 1) //수량이 0이 될때 까지 반복
+	{
+		Inventory.FindFirstFit(W, H, OutX, OutY); //다시 자리 검색, 존재하는 스택 저장 X 
+		Id = Inventory.AddItemAt(ClientAddRequest.ItemDef, Qty, OutX, OutY, W, H, false, ClientAddRequest.PredictionKey);
+		EntryIds.Add(Id);
+	}
+	
+	return EntryIds;
 }
 
 void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity)
@@ -70,7 +94,6 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 	{
 		return;
 	}
-
 	
 	int32 PredKey = LocalPred--;
 
@@ -82,12 +105,13 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 	ClientAddRequest.Y = -1;
 	ClientAddRequest.PredictionKey = PredKey;
 
-	int32 Id = AddItemAuto(ClientAddRequest);
+	TArray<int32> EntryIds = AddItemAuto(ClientAddRequest);
 
-	if (Id == 0) //클라에서 판정실패시 서버요청 안함
-	{
-		return;
-	}
+	//if (EntryIds.IsEmpty()) //클라에서 판정실패시 서버요청 안함
+	//{
+
+	//	return;
+	//}
 
 	ServerAddItemAuto(ClientAddRequest);
 }
@@ -95,8 +119,8 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 void UATGInventoryComponent::ServerAddItemAuto_Implementation(FClientAddRequest ClientAddRequest)
 {
 	FInventoryChangeResult InventoryChangeResult;
-	const int32 Id = AddItemAuto(ClientAddRequest);
-	if (Id >= 0)
+	TArray<int32> EntryIds = AddItemAuto(ClientAddRequest);
+	if (!EntryIds.IsEmpty())
 	{
 		InventoryChangeResult.Status = EInventoryChangeStatus::Success;
 	}
@@ -108,7 +132,7 @@ void UATGInventoryComponent::ServerAddItemAuto_Implementation(FClientAddRequest 
 
 	InventoryChangeResult.PredictionKey = ClientAddRequest.PredictionKey; //서버 클라이언트 매칭 키
 
-	InventoryChangeResult.NewEntryId = Id;
+	InventoryChangeResult.NewEntryIds = EntryIds;
 	
 	ClientAddItemResult(InventoryChangeResult);
 	
@@ -166,7 +190,7 @@ void UATGInventoryComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int3
 	FInventoryChangeResult Result;
 	
 	Result.Status = (bIsSuccessful ? EInventoryChangeStatus::Success : EInventoryChangeStatus::Rejected);
-	Result.NewEntryId = EntryId;
+	Result.NewEntryIds.Add(EntryId);
 	ClientMoveResult(Result);
 }
 
@@ -174,8 +198,8 @@ void UATGInventoryComponent::ClientMoveResult_Implementation(const FInventoryCha
 {
 	if (Result.Status == EInventoryChangeStatus::Rejected)
 	{
-		Inventory.PreviewRemoveById(Result.NewEntryId);
-		OnItemPreRemoved.Broadcast(Result.NewEntryId);
+		Inventory.PreviewRemoveById(Result.NewEntryIds[0]);
+		OnItemPreRemoved.Broadcast(Result.NewEntryIds[0]);
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! ClientMoveResult : Rejected"));
 	}

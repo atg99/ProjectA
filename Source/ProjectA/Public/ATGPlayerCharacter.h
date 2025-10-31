@@ -112,7 +112,7 @@ public:
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void PutInAtInventory(FInteractionData& InterationData);
+	void PutInAtInventory(FInteractionData& InteractionData);
 
 //Helper
 protected:

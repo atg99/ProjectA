@@ -121,7 +121,7 @@ bool FInventoryGrid::CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, 
     return true;
 }
 
-bool FInventoryGrid::FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, int32 IgnoreId) const
+bool FInventoryGrid::FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, int32 IgnoreId)
 {
     for (int32 y = 0; y <= GridHeight - H; ++y)
     {
@@ -137,6 +137,60 @@ bool FInventoryGrid::FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, in
     return false;
 }
 
+bool FInventoryGrid::FindFirstFit(TSoftObjectPtr<UATGItemData> ItemDef, int32 W, int32 H, int32& OutX, int32& OutY, int32& Qty, int32 IgnoreId)
+{
+    Qty = FindAddFitStack(ItemDef, Qty, IgnoreId); //채울수 있는 스택 검색 후 채움
+
+    for (int32 y = 0; y <= GridHeight - H; ++y)
+    {
+        for (int32 x = 0; x <= GridWidth - W; ++x)
+        {
+            if (CanPlaceRect(x, y, W, H, IgnoreId))
+            {
+                OutX = x; OutY = y;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 IgnoreId)
+{
+    if (!ItemDef.Get())
+    {
+        ItemDef.LoadSynchronous();
+    }
+    int32 RemainQty = Qty;
+    for (auto& E : Entries)
+    {
+        if (E.Id == IgnoreId) continue; //자기 자신 무시
+
+        if (RemainQty == 0) //스텍 찾으면서 순회하다 남은 수량 0되면 종료
+        {
+            return RemainQty;
+        }
+
+        int32 RemainCapacity = E.Item->MaxStack - E.Quantity;
+        if (E.Item->ItemId == ItemDef->ItemId && RemainCapacity >= 1) // 아이템 아이디 같고 스텍 남은 자리가 1이상일때
+        {
+            int32 AddedQty = FMath::Min(RemainCapacity, Qty);
+            RemainQty = FMath::Min(0, Qty - AddedQty); //스택에 넣고 남은 아이템 수량
+            E.Quantity += AddedQty;
+            if (OwnerComp)
+            {   
+                OwnerComp->OnItemChanged.Broadcast(E.Id);
+                if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+                {
+                    MarkItemDirty(E); 
+                }
+            }
+        }
+    }
+
+    return RemainQty;
+}
+
 const FInventoryEntry* FInventoryGrid::GetById(int32 EntryId) const
 {
     return Entries.FindByPredicate([&](const FInventoryEntry& E) { return E.Id == EntryId; });
@@ -146,18 +200,27 @@ FInventoryEntry* FInventoryGrid::GetById(int32 EntryId)
     return Entries.FindByPredicate([&](FInventoryEntry& E) { return E.Id == EntryId; });
 }
 
-int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey)
+int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey)
 {
+    
     if (!ItemDef || Qty <= 0) return 0;
     if (!CanPlaceRect(X, Y, W, H)) return 0;
 
+    int32 RemainQty = Qty;
+    
     FInventoryEntry NewE;
     NewE.Item = ItemDef;
-    NewE.Quantity = Qty;
+
+    int32 QtyStack = FMath::Min(ItemDef->MaxStack, Qty); // 최대 스택, 남은 수량 중 낮은 값
+    RemainQty = Qty - QtyStack; //남은 수량 다들어갔으면 남은 값은 0
+
+    NewE.Quantity = QtyStack;
     NewE.X = X; NewE.Y = Y;
     NewE.Width = W; NewE.Height = H;
     NewE.bRotated = bRotated;
-   
+
+    Qty = RemainQty;
+
     if (OwnerComp && OwnerComp->IsHasAuthority())
     {
         NewE.Id = Entries.Num() ? (Entries.Last().Id + 1) : 1;
@@ -178,7 +241,7 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty,
         OwnerComp->OnItemPreAdded.Broadcast(NewE);
         return NewE.Id;
     }
-    
+
     return 0;
 }
 
@@ -306,14 +369,13 @@ bool FInventoryGrid::RemoveById(int32 EntryId)
 
 bool FInventoryGrid::PreviewRemoveById(int32 PreviewId)
 {
-    const int32 Idx = PreviewEntries.IndexOfByPredicate(
-        [&](const FInventoryEntry& P) { return P.Id == PreviewId; });
-    if (Idx == INDEX_NONE) return false;
+    int32 Num = PreviewEntries.RemoveAll(
+        [&](const FInventoryEntry& P) 
+        {
+            return P.Id == PreviewId; 
+        });
 
-    const FInventoryEntry Removed = PreviewEntries[Idx];
-    PreviewEntries.RemoveAt(Idx);
-
-    return true;
+    return Num > 0;
 }
 
 bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)

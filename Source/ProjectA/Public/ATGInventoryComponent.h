@@ -60,7 +60,7 @@ public:
 	void ServerAddItemAuto(FClientAddRequest ClientAddRequest);
 
 	UFUNCTION()
-	int32 AddItemAuto(const FClientAddRequest& ClientAddRequest);
+	TArray<int32> AddItemAuto(const FClientAddRequest& ClientAddRequest);
 
 	UFUNCTION(Server, Reliable)
 	void ServerAddItemAt(UATGItemData* ItemDef, int32 Quantity, int32 X, int32 Y, bool bRotated);

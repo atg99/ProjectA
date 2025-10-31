@@ -83,7 +83,7 @@ struct FInventoryChangeResult
 
     /** 최종 확정된 엔트리 Id (신규 생성 시) */
     UPROPERTY(BlueprintReadOnly)
-    int32 NewEntryId = -1;
+    TArray<int32> NewEntryIds;
 
     /** 기존 스택과 병합됐다면 병합 대상 엔트리 Id */
     UPROPERTY(BlueprintReadOnly)
@@ -193,9 +193,13 @@ struct FInventoryGrid : public FFastArraySerializer
 
     bool CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) const;
 
-    bool FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, int32 IgnoreId = -1) const;
+    bool FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, int32 IgnoreId = -1);
 
-    int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey);
+    bool FindFirstFit(TSoftObjectPtr<UATGItemData> ItemDef, int32 W, int32 H, int32& OutX, int32& OutY, int32& Qty, int32 IgnoreId = -1);
+
+    int32 FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 IgnoreId = -1);
+
+    int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey);
 
     bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate); // ��� �ڸ��� �̵�, �� ������ ����
 

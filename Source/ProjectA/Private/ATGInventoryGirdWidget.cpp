@@ -320,14 +320,22 @@ void UATGInventoryGirdWidget::HandleItemPreAdded(FInventoryEntry PreE)
 	W->SetVisibility(ESlateVisibility::HitTestInvisible); //preview widget 상호작용 불가
 	W->ItemIcon->SetColorAndOpacity(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
 	UpdateItemSlot(W, PreE);
-	PreviewIdToWidget.Add(PreE.Id, W);
+	
+	PreviewIdToWidget.FindOrAdd(PreE.Id).Add(W); //배열맵에 키값 같은것 끼리 저장
 }
 
 void UATGInventoryGirdWidget::HandleItemPreRemoved(int32 PreEId)
 {
-	if (UATGInventoryItemWidget* W = PreviewIdToWidget.FindRef(PreEId).Get())
+	if (TArray<TWeakObjectPtr<UATGInventoryItemWidget>>* Arr = PreviewIdToWidget.Find(PreEId))
 	{
-		W->RemoveFromParent();
+		for (auto& WeakW : *Arr)
+		{
+			if (UATGInventoryItemWidget* W = WeakW.Get())
+			{
+				W->RemoveFromParent();
+			}
+		}
+
+		PreviewIdToWidget.Remove(PreEId);
 	}
-	PreviewIdToWidget.Remove(PreEId);
 }

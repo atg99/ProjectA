@@ -39,6 +39,7 @@ void UATGPickupComponent::PlayerInteract(FInteractionData& InteractionData)
 	InteractionData.InteractedActor = GetOwner();
 	InteractionData.InteractionType = InteractionType;
 	InteractionData.ItemDef = ItemDef;
+	InteractionData.ItemQty = ItemQty;
 }
 
 void UATGPickupComponent::SetItemMesh()
