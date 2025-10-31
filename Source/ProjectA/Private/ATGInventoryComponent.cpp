@@ -29,7 +29,7 @@ void UATGInventoryComponent::BeginPlay()
 	Inventory.OwnerComp = this;
 
 	OnItemAdded.AddDynamic(this, &UATGInventoryComponent::HandleReplicatedAdd);
-
+	//OnItemChanged.AddDynamic(this, &UATGInventoryComponent::HandleReplicatedChange);
 	// ...
 	
 }
@@ -175,6 +175,9 @@ void UATGInventoryComponent::ClientMoveResult_Implementation(const FInventoryCha
 	if (Result.Status == EInventoryChangeStatus::Rejected)
 	{
 		Inventory.PreviewRemoveById(Result.NewEntryId);
+		OnItemPreRemoved.Broadcast(Result.NewEntryId);
+		if (GEngine)
+			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! ClientMoveResult : Rejected"));
 	}
 }
 
@@ -201,6 +204,11 @@ void UATGInventoryComponent::HandleReplicatedAdd(int32 EntryId)
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! InventComp HandleReplicatedAddp"));
 }
+
+//void UATGInventoryComponent::HandleReplicatedChange(int32 EntryId)
+//{
+//	Inventory.GetById(EntryId);
+//}
 
 bool UATGInventoryComponent::IsHasAuthority()
 {

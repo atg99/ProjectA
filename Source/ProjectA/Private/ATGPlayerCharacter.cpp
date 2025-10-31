@@ -26,6 +26,8 @@
 #include "ATGItemData.h"
 
 #include "ATGPlayerController.h"
+#include "ATGHUDComponent.h"
+#include "GameFramework/HUD.h"
 
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
@@ -258,9 +260,14 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 
 void AATGPlayerCharacter::ToggleInventory(const FInputActionValue& Value)
 {
-	if (AATGPlayerController* ATGController = Cast<AATGPlayerController>(GetController()))
+	
+	if (UATGHUDComponent* HUDComp = Cast<AATGPlayerController>(GetController())->GetHUD()->FindComponentByClass<UATGHUDComponent>())
 	{
-		ATGController->ToggleInventoryUI();
+		HUDComp->ToggleInventoryUI();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Can't Find HUDComponent at HUD"));
 	}
 	
 }
