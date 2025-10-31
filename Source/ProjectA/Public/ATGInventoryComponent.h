@@ -108,6 +108,9 @@ protected:
 	UFUNCTION()
 	void HandleReplicatedAdd(int32 EntryId);
 
+	//UFUNCTION()
+	//void HandleReplicatedChange(int32 EntryId);
+
 	int32 LocalPred = -1;
 
 	////server API 

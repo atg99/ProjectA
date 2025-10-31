@@ -9,6 +9,8 @@
 #include "ATGInventoryGirdWidget.h"
 #include "GameFramework/PlayerState.h"
 #include "ATGInventoryComponent.h"
+#include "GameFramework/HUD.h"
+#include "ATGHUDComponent.h"
 
 
 void AATGPlayerController::SetupInputComponent()
@@ -35,7 +37,8 @@ void AATGPlayerController::BeginPlay()
 
 	if (IsLocalController())
 	{
-		EnsureWidgetCreated();
+		
+		
 	}
 }
 
@@ -44,41 +47,54 @@ void AATGPlayerController::OnRep_PlayerState()
 	Super::OnRep_PlayerState();
 
 	if (!IsLocalController()) return;
-
-	if (!InventoryWidget)
+	if (!GetHUD())
 	{
-		EnsureWidgetCreated();
+		UE_LOG(LogTemp, Error, TEXT("Can't Find HUD"));
+		return;
+	}
+	UATGHUDComponent* HUDComp = GetHUD()->FindComponentByClass<UATGHUDComponent>();
+	if (HUDComp)
+	{
+		HUDComp->EnsureWidgetCreated(this);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Can't Find HUDComponent at HUD"));
 	}
 
 	UATGInventoryComponent* Comp = GetPlayerState<APlayerState>()->FindComponentByClass<UATGInventoryComponent>();
 	if (Comp)
 	{
-		InventoryWidget->InventoryComp = Comp;
-		InventoryWidget->BindInventoryComp();
-	}
-}
-
-void AATGPlayerController::EnsureWidgetCreated()
-{
-	if (InventoryWidget || !InventoryWidgetClass)
-	{
-		return;
+		HUDComp->InventoryWidget->InventoryComp = Comp;
+		HUDComp->InventoryWidget->BindInventoryComp();
 	}
 	else
 	{
-
+		UE_LOG(LogTemp, Error, TEXT("Can't Find UATGInventoryComponent at PlayerState"));
 	}
-
-	InventoryWidget = CreateWidget<UATGInventoryGirdWidget>(this, InventoryWidgetClass);
-	if (InventoryWidget)
-	{
-		InventoryWidget->AddToViewport();
-		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
-	}
-
-	if (GEngine)
-			GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Magenta, TEXT("WidgetCreated"));
 }
+
+//void AATGPlayerController::EnsureWidgetCreated()
+//{
+//	if (InventoryWidget || !InventoryWidgetClass)
+//	{
+//		return;
+//	}
+//	else
+//	{
+//
+//	}
+//
+//	InventoryWidget = CreateWidget<UATGInventoryGirdWidget>(this, InventoryWidgetClass);
+//	if (InventoryWidget)
+//	{
+//		InventoryWidget->AddToViewport();
+//		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
+//	}
+//
+//	if (GEngine)
+//			GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Magenta, TEXT("WidgetCreated"));
+//}
 
 void AATGPlayerController::ToggleInventoryInputMapping(bool bIsInvent)
 {
@@ -99,34 +115,33 @@ void AATGPlayerController::ToggleInventoryInputMapping(bool bIsInvent)
 	}
 }
 
-void AATGPlayerController::ToggleInventoryUI()
-{
-	if (!InventoryWidget)
-	{
-		return;
-	}
-	switch (InventoryWidget->GetVisibility())
-	{
-	case ESlateVisibility::Visible:
-		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
-		break;
-	case ESlateVisibility::Collapsed:
-		InventoryWidget->SetVisibility(ESlateVisibility::Visible);
-		break;
-	default:
-		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
-		break;
-	} 
-
-	if (InventoryWidget->GetVisibility() == ESlateVisibility::Visible)
-	{
-		SetShowMouseCursor(true);
-		ToggleInventoryInputMapping(true);
-	}
-	else
-	{
-		SetShowMouseCursor(false);
-		ToggleInventoryInputMapping(false);
-	}
-	
-}
+//void AATGPlayerController::ToggleInventoryUI()
+//{
+//	if (!InventoryWidget)
+//	{
+//		return;
+//	}
+//	switch (InventoryWidget->GetVisibility())
+//	{
+//	case ESlateVisibility::Visible:
+//		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
+//		break;
+//	case ESlateVisibility::Collapsed:
+//		InventoryWidget->SetVisibility(ESlateVisibility::Visible);
+//		break;
+//	default:
+//		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
+//		break;
+//	} 
+//
+//	if (InventoryWidget->GetVisibility() == ESlateVisibility::Visible)
+//	{
+//		SetShowMouseCursor(true);
+//		ToggleInventoryInputMapping(true);
+//	}
+//	else
+//	{
+//		SetShowMouseCursor(false);
+//		ToggleInventoryInputMapping(false);
+//	}
+//}

@@ -38,19 +38,22 @@ protected:
 
 protected:
 
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UATGInventoryGirdWidget> InventoryWidgetClass;
+	//UPROPERTY(EditDefaultsOnly, Category = "UI")
+	//TSubclassOf<UATGInventoryGirdWidget> InventoryWidgetClass;
 
-	UPROPERTY(Transient)
-	UATGInventoryGirdWidget* InventoryWidget = nullptr;
+	//UPROPERTY(Transient)
+	//UATGInventoryGirdWidget* InventoryWidget = nullptr;
 
-	void EnsureWidgetCreated();
+	//void EnsureWidgetCreated();
 
 	//void SetupUIMode(bool bShowMouse);
 
-	void ToggleInventoryInputMapping(bool bIsInvent);
+	
 
 public:
-	void ToggleInventoryUI();
+
+	void ToggleInventoryInputMapping(bool bIsInvent);
+
+	//void ToggleInventoryUI();
 	
 };
