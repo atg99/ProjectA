@@ -81,6 +81,7 @@ protected:
 	UFUNCTION() void HandleItemRotated(int32 EntryId);
 
 	UFUNCTION() void HandleItemPreAdded(FInventoryEntry PreE);
+	UFUNCTION() void HandleItemPreChanged(FInventoryEntry PreE);
 	UFUNCTION() void HandleItemPreRemoved(int32 PreEId);
 
 

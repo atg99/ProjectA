@@ -139,6 +139,7 @@ bool FInventoryGrid::FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, in
 
 bool FInventoryGrid::FindFirstFit(TSoftObjectPtr<UATGItemData> ItemDef, int32 W, int32 H, int32& OutX, int32& OutY, int32& Qty, int32 IgnoreId)
 {
+    //int32 TempQty = Qty;
     Qty = FindAddFitStack(ItemDef, Qty, IgnoreId); //채울수 있는 스택 검색 후 채움
 
     for (int32 y = 0; y <= GridHeight - H; ++y)
@@ -175,7 +176,7 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
         if (E.Item->ItemId == ItemDef->ItemId && RemainCapacity >= 1) // 아이템 아이디 같고 스텍 남은 자리가 1이상일때
         {
             int32 AddedQty = FMath::Min(RemainCapacity, Qty);
-            RemainQty = FMath::Min(0, Qty - AddedQty); //스택에 넣고 남은 아이템 수량
+            RemainQty = RemainQty - AddedQty; //스택에 넣고 남은 아이템 수량
             E.Quantity += AddedQty;
             if (OwnerComp)
             {   
@@ -183,6 +184,11 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
                 if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
                 {
                     MarkItemDirty(E); 
+                }
+                else
+                {
+                    //프리뷰 위젯 변경 브로드케스트
+                    OwnerComp->OnItemPreChanged.Broadcast(E);
                 }
             }
         }
@@ -239,6 +245,7 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
         PreviewEntries.Add(NewE); // 복제 안하는 로컬 배열에 추가
 
         OwnerComp->OnItemPreAdded.Broadcast(NewE);
+
         return NewE.Id;
     }
 

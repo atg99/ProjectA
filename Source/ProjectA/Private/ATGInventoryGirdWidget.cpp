@@ -81,6 +81,7 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		InventoryComp->OnItemRotated.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
 		//preview
 		InventoryComp->OnItemPreAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreAdded);
+		InventoryComp->OnItemPreChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreChanged);
 		InventoryComp->OnItemPreRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreRemoved);
 
 		InventoryComp->OnItemAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
@@ -89,6 +90,7 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		InventoryComp->OnItemRotated.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
 		//preview
 		InventoryComp->OnItemPreAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreAdded);
+		InventoryComp->OnItemPreChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreChanged);
 		InventoryComp->OnItemPreRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreRemoved);
 	}
 	RebuildAll();
@@ -147,7 +149,6 @@ UATGInventoryItemWidget* UATGInventoryGirdWidget::CreateItemWidget(const FInvent
 void UATGInventoryGirdWidget::UpdateItemSlot(UATGInventoryItemWidget* W, const FInventoryEntry& E)
 {
 	if (!GridPanel || !W) return;
-
 
 	if (!W->GetParent())
 	{
@@ -307,6 +308,8 @@ void UATGInventoryGirdWidget::HandleItemRotated(int32 EntryId)
 	}
 }
 
+
+
 void UATGInventoryGirdWidget::HandleItemPreAdded(FInventoryEntry PreE)
 {
 
@@ -322,6 +325,21 @@ void UATGInventoryGirdWidget::HandleItemPreAdded(FInventoryEntry PreE)
 	UpdateItemSlot(W, PreE);
 	
 	PreviewIdToWidget.FindOrAdd(PreE.Id).Add(W); //배열맵에 키값 같은것 끼리 저장
+}
+
+//클라에서 실행 프리뷰위젯 수량 텍스트 변경
+void UATGInventoryGirdWidget::HandleItemPreChanged(FInventoryEntry PreE)
+{
+	if (TArray<TWeakObjectPtr<UATGInventoryItemWidget>>* Arr = PreviewIdToWidget.Find(PreE.Id))
+	{
+		for (auto& WeakW : *Arr)
+		{
+			if (UATGInventoryItemWidget* W = WeakW.Get())
+			{
+				W->RefreshFromEntry(PreE, CellSize, CellPadding);
+			}
+		}
+	}
 }
 
 void UATGInventoryGirdWidget::HandleItemPreRemoved(int32 PreEId)

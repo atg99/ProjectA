@@ -80,8 +80,17 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& Clien
 	//Qty 참조 반환
 	while (Qty >= 1) //수량이 0이 될때 까지 반복
 	{
-		Inventory.FindFirstFit(W, H, OutX, OutY); //다시 자리 검색, 존재하는 스택 저장 X 
+		OutX = -1; 
+		OutY = -1;
+		if (!Inventory.FindFirstFit(W, H, OutX, OutY)) //다시 자리 검색, 존재하는 스택 저장 X 
+		{
+			break;
+		}
 		Id = Inventory.AddItemAt(ClientAddRequest.ItemDef, Qty, OutX, OutY, W, H, false, ClientAddRequest.PredictionKey);
+		if (Id == 0)
+		{
+			break;
+		}
 		EntryIds.Add(Id);
 	}
 	

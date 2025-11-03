@@ -52,6 +52,10 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnGridPreEvent OnItemPreAdded;
 
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridPreEvent OnItemPreChanged;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnGridEvent OnItemPreRemoved;
 
