@@ -234,6 +234,8 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
         Entries.Add(NewE);
         MarkItemDirty(Entries.Last());
 
+        OwnerComp->GetOwner()->ForceNetUpdate();
+
         OwnerComp->OnItemAdded.Broadcast(NewE.Id);
         return NewE.Id;
     }
@@ -274,7 +276,14 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         }
 
         MarkItemDirty(*Me);
-        if (OwnerComp) OwnerComp->OnItemChanged.Broadcast(EntryId);
+        if (OwnerComp)
+        {
+            OwnerComp->OnItemChanged.Broadcast(EntryId);
+            if (OwnerComp->IsHasAuthority())
+            {
+                OwnerComp->GetOwner()->ForceNetUpdate();
+            }
+        }
         return true;
     }
 
@@ -323,7 +332,14 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
 
         MarkItemDirty(*Other);
         MarkItemDirty(*Me);
-        if (OwnerComp) OwnerComp->OnItemChanged.Broadcast(EntryId);
+        if (OwnerComp)
+        {
+            OwnerComp->OnItemChanged.Broadcast(EntryId);
+            if (OwnerComp->IsHasAuthority())
+            {
+                OwnerComp->GetOwner()->ForceNetUpdate();
+            }
+        }
         return true;
     }
 
