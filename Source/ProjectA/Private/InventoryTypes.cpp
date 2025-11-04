@@ -184,6 +184,7 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
                 if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
                 {
                     MarkItemDirty(E); 
+                    OwnerComp->GetOwner()->ForceNetUpdate();
                 }
                 else
                 {
@@ -386,7 +387,11 @@ bool FInventoryGrid::RemoveById(int32 EntryId)
     if (Idx == INDEX_NONE) return false;
     Entries.RemoveAt(Idx);
     MarkArrayDirty();
-    if (OwnerComp) OwnerComp->OnItemRemoved.Broadcast(EntryId);
+    if (OwnerComp)
+    {
+        OwnerComp->OnItemRemoved.Broadcast(EntryId);
+        OwnerComp->GetOwner()->ForceNetUpdate();
+    }
     return true;
 }
 

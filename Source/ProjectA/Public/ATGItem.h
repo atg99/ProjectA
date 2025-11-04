@@ -28,6 +28,9 @@ public:
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	UATGPickupComponent* PickupCompoent;
+	TObjectPtr<UATGPickupComponent> PickupComp;
+
+public:
+	FORCEINLINE class UATGPickupComponent* GetPickupComp() const { return PickupComp; }
 
 };

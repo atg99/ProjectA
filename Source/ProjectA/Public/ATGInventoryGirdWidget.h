@@ -90,7 +90,7 @@ protected:
 	UATGInventoryItemWidget* CreateItemWidget(const FInventoryEntry& E);
 	void UpdateItemSlot(UATGInventoryItemWidget* W, const FInventoryEntry& E);
 	FIntPoint CellFromLocal(const FVector2D& Local) const;
-
+	bool CheckIsOutGrid(const FVector2D& Local) const;
 	// ¼¿ ¹è°æ »ý¼º
 	void BuildCellBackground();
 

@@ -7,6 +7,7 @@
 #include "InventoryTypes.h"
 #include "ATGInventoryComponent.generated.h"
 
+class AATGItem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridEvent, int32, EntryId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridPreEvent, FInventoryEntry, PreE);
@@ -78,6 +79,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRemoveItem(int32 EntryId);
 
+	UFUNCTION(Server, Reliable)
+	void ServerSpawnItem(int32 EntryId);
+
 	//Client CallBack
 	UFUNCTION(Client, Reliable)
 	void ClientAddItemResult(FInventoryChangeResult Result);
@@ -92,6 +96,12 @@ public:
 	UFUNCTION()
 	void TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 
+	UFUNCTION()
+	void TryDropItem(int32 EntryId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerDropItem(int32 EntryId);
+
 	// Blueprint Helpers
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
 	const TArray<FInventoryEntry>& GetEntries() const { return Inventory.Entries; }
@@ -105,6 +115,9 @@ public:
 	bool IsHasAuthority();
 
 	bool IsLocallyOwned() const;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
+	TSubclassOf<AATGItem> ItemBPClass;
 
 protected:
 

@@ -5,7 +5,10 @@
 #include "Net/UnrealNetwork.h"
 #include "InventoryTypes.h"
 #include "ATGItemData.h"
+#include "ATGItem.h"
 #include "GameFramework/PlayerState.h"
+#include "ATGPickupComponent.h"
+#include <Kismet/GameplayStatics.h>
 
 // Sets default values for this component's properties
 UATGInventoryComponent::UATGInventoryComponent()
@@ -80,7 +83,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& Clien
 	//Qty 참조 반환
 	while (Qty >= 1) //수량이 0이 될때 까지 반복
 	{
-		OutX = -1; 
+		OutX = -1;
 		OutY = -1;
 		if (!Inventory.FindFirstFit(W, H, OutX, OutY)) //다시 자리 검색, 존재하는 스택 저장 X 
 		{
@@ -93,7 +96,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& Clien
 		}
 		EntryIds.Add(Id);
 	}
-	
+
 	return EntryIds;
 }
 
@@ -193,6 +196,17 @@ void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int3
 	ServerMoveOrSwap(EntryId, NewX, NewY, bIsRotate);
 }
 
+void UATGInventoryComponent::TryDropItem(int32 EntryId)
+{
+	ServerDropItem(EntryId);
+}
+
+void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId)
+{
+	ServerSpawnItem(EntryId);
+	ServerRemoveItem(EntryId);
+}
+
 void UATGInventoryComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
 {
 	bool bIsSuccessful = Inventory.MoveOrSwap(EntryId, NewX, NewY, bIsRotate);
@@ -224,6 +238,45 @@ void UATGInventoryComponent::ServerRemoveItem_Implementation(int32 EntryId)
 {
 	Inventory.RemoveById(EntryId);
 		//OnItemRemoved.Broadcast(EntryId);
+}
+
+void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId)
+{
+	FInventoryEntry* Entry = Inventory.GetById(EntryId);
+	if (Entry->Item.Get()) // load
+	{
+		Entry->Item.LoadSynchronous();
+	}
+
+	if (APlayerState* PS = Cast<APlayerState>(GetOwner()))
+	{
+		FVector SpawnLoc =  PS->GetPawn()->GetActorLocation() + FVector(100, 0, 0);
+
+		FTransform SpawnTransform = { FRotator::ZeroRotator, SpawnLoc, FVector(1.f) };
+
+		FActorSpawnParameters SpawnParam;
+		SpawnParam.Owner = PS->GetPawn();
+
+		AATGItem* ItemActor = GetWorld()->SpawnActorDeferred<AATGItem>(ItemBPClass, SpawnTransform, PS->GetPawn(), nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn, ESpawnActorScaleMethod::OverrideRootScale);
+		if (ItemActor)
+		{
+			if (ItemActor->GetPickupComp())
+			{
+				ItemActor->GetPickupComp()->ItemDef = Entry->Item;
+				ItemActor->GetPickupComp()->ItemQty = Entry->Quantity;
+				UGameplayStatics::FinishSpawningActor(ItemActor, SpawnTransform);
+				UE_LOG(LogTemp, Warning, TEXT("Spawn Item ItemActor->GetPickupComp() Is Valid"));
+			}
+			else
+			{
+				ItemActor->Destroy();
+				UE_LOG(LogTemp, Warning, TEXT("Spawn Item ItemActor->GetPickupComp() == nullptr"));
+			}
+	
+			
+		}
+	}
 }
 
 void UATGInventoryComponent::HandleReplicatedAdd(int32 EntryId)

@@ -185,6 +185,23 @@ FIntPoint UATGInventoryGirdWidget::CellFromLocal(const FVector2D& Local) const
 	return FIntPoint(X, Y);
 }
 
+bool UATGInventoryGirdWidget::CheckIsOutGrid(const FVector2D& Local) const
+{
+	if (Local.X < 0.f || Local.Y < 0.f)
+	{
+		return true;
+	}
+	const float Pitch = float(CellSize + 2 * CellPadding);
+	float HSize = float(Pitch * InventoryComp->GetGridWidth());
+	float WSize = float(Pitch * InventoryComp->GetGridHeight());
+	if (Local.X > WSize || Local.Y > HSize)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 
 bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
@@ -193,13 +210,23 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
 	{
 		const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
+
 		const FGeometry PanelGeo = GridPanel->GetTickSpaceGeometry();
+		
+		const FVector2D PanelSize = PanelGeo.GetLocalSize(); // 인벤토리 크기
+		
 		const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
+
+		if (CheckIsOutGrid(Local))
+		{
+			InventoryComp->TryDropItem(Dragged->EntryId);
+		}
+
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local")+Local.ToString());
+			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local")+ Local.ToString());
 		FIntPoint Cell = CellFromLocal(Local);
 		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+Cell.ToString());
+			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+ Cell.ToString());
 
 		// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
 		Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);

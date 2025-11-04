@@ -34,14 +34,17 @@ protected:
 
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Item")
 	TSoftObjectPtr<UATGItemData> ItemDef;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Item")
 	int32 ItemQty = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	EInteractionType InteractionType = EInteractionType::Inventory;
+
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 

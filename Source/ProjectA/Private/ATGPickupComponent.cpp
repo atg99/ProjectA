@@ -2,6 +2,7 @@
 
 
 #include "ATGPickupComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "ATGItemData.h"
 
 // Sets default values for this component's properties
@@ -11,6 +12,7 @@ UATGPickupComponent::UATGPickupComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 
+	SetIsReplicated(true);
 	// ...
 }
 
@@ -42,6 +44,14 @@ void UATGPickupComponent::PlayerInteract(FInteractionData& InteractionData)
 	InteractionData.ItemQty = ItemQty;
 }
 
+void UATGPickupComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(UATGPickupComponent, ItemDef, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(UATGPickupComponent, ItemQty, COND_InitialOnly);
+}
+
 void UATGPickupComponent::SetItemMesh()
 {
 	if (!GetOwner())
@@ -52,17 +62,28 @@ void UATGPickupComponent::SetItemMesh()
 	}
 	UStaticMeshComponent* ItemMeshComp = GetOwner()->GetComponentByClass<UStaticMeshComponent>();
 	if (ItemMeshComp)
-	{
-		UATGItemData* Data = ItemDef.LoadSynchronous();
+	{	
+		if (!ItemDef.Get())
+		{
+			ItemDef.LoadSynchronous();
+		}
+		UATGItemData* Data = ItemDef.Get();
+		bool b = GetOwner()->HasAuthority();
 		if (Data)
 		{
 			if (GEngine)
-				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Can't LoadData ATGPickupComp"));
+				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("LoadData ATGPickupComp ") + LexToString(b));
 			if (Data->Mesh)
 			{
 				ItemMeshComp->SetStaticMesh(Data->Mesh);
 			}
 		}
+		else
+		{
+			if (GEngine)
+				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("Can't LoadData ATGPickupComp ") + LexToString(b));
+		}
 	}
+
 }
 
