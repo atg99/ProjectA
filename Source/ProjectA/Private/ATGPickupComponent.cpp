@@ -44,12 +44,33 @@ void UATGPickupComponent::PlayerInteract(FInteractionData& InteractionData)
 	InteractionData.ItemQty = ItemQty;
 }
 
+void UATGPickupComponent::DecreaseQty(int32 Amount)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	if (Amount < 0)
+	{
+		return;
+	}
+
+	//수량 감소
+	ItemQty -= Amount;
+
+	if (ItemQty <= 0)
+	{
+		GetOwner()->Destroy();
+	}
+}
+
 void UATGPickupComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(UATGPickupComponent, ItemDef, COND_InitialOnly);
-	DOREPLIFETIME_CONDITION(UATGPickupComponent, ItemQty, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(UATGPickupComponent, ItemQty, COND_None);
 }
 
 void UATGPickupComponent::SetItemMesh()

@@ -269,7 +269,6 @@ void AATGPlayerCharacter::ToggleInventory(const FInputActionValue& Value)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Can't Find HUDComponent at HUD"));
 	}
-	
 }
 
 void AATGPlayerCharacter::RotateHeldItem(const FInputActionValue& Value)
@@ -291,7 +290,8 @@ void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InteractionData)
 	/*	if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("InventoryComp Found"));*/
 		//load asset  InterationData.ItemDef.LoadSynchronous()
-		InventoryComp->TryPickupClient(InteractionData.ItemDef, InteractionData.ItemQty);
+		
+		InventoryComp->TryPickupClient(InteractionData.ItemDef, InteractionData.ItemQty, InteractionData.InteractedActor);
 	}
 }
 

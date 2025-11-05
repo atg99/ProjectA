@@ -8,6 +8,7 @@
 #include "ATGInventoryComponent.generated.h"
 
 class AATGItem;
+class UATGPickupComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridEvent, int32, EntryId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridPreEvent, FInventoryEntry, PreE);
@@ -62,10 +63,10 @@ public:
 
 	// Server RPCs
 	UFUNCTION(Server, Reliable)
-	void ServerAddItemAuto(FClientAddRequest ClientAddRequest);
+	void ServerAddItemAuto(FClientAddRequest ClientAddRequest, AActor* InteractedActor);
 
 	UFUNCTION()
-	TArray<int32> AddItemAuto(const FClientAddRequest& ClientAddRequest);
+	TArray<int32> AddItemAuto(const FClientAddRequest& ClientAddRequest, AActor* InteractActor);
 
 	UFUNCTION(Server, Reliable)
 	void ServerAddItemAt(UATGItemData* ItemDef, int32 Quantity, int32 X, int32 Y, bool bRotated);
@@ -80,7 +81,7 @@ public:
 	void ServerRemoveItem(int32 EntryId);
 
 	UFUNCTION(Server, Reliable)
-	void ServerSpawnItem(int32 EntryId);
+	void ServerSpawnItem(int32 EntryId, int32 SplitNum = -1);
 
 	//Client CallBack
 	UFUNCTION(Client, Reliable)
@@ -91,16 +92,21 @@ public:
 
 	// Client Preview + ServerRPC
 	UFUNCTION()
-	void TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity);
+	void TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor);
 
 	UFUNCTION()
 	void TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 
 	UFUNCTION()
-	void TryDropItem(int32 EntryId);
+	void TryDropItem(int32 EntryId, int32 SplitNum = -1);
 
 	UFUNCTION(Server, Reliable)
-	void ServerDropItem(int32 EntryId);
+	void ServerDropItem(int32 EntryId, int32 SplitNum = -1);
+
+	void TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
 
 	// Blueprint Helpers
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
@@ -115,6 +121,8 @@ public:
 	bool IsHasAuthority();
 
 	bool IsLocallyOwned() const;
+
+	UATGPickupComponent* GetPickupComp(AActor* InteractedActor);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
 	TSubclassOf<AATGItem> ItemBPClass;

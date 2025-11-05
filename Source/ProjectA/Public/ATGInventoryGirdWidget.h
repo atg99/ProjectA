@@ -13,6 +13,7 @@ class UGridSlot;
 class UATGInventoryItemWidget;
 class UATGInventoryComponent;
 class UTexture2D;
+class UATGStackSplitWidget;
 
 /**
  * 
@@ -57,6 +58,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TSubclassOf<UATGInventoryItemWidget> InventoryItemWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	TSubclassOf<UATGStackSplitWidget> StackSplitWidgetClass;
+
 public:
 	// 소유자 기준으로 인벤토리 찾아 자동 초기화(또는 BP에서 직접 Set 해도 됨)
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -91,6 +95,8 @@ protected:
 	void UpdateItemSlot(UATGInventoryItemWidget* W, const FInventoryEntry& E);
 	FIntPoint CellFromLocal(const FVector2D& Local) const;
 	bool CheckIsOutGrid(const FVector2D& Local) const;
+	void DoNativeOnDrop(UATGInventoryItemWidget* Dragged, FVector2D Screen);
+	void DoNativeOnDrop(UATGInventoryItemWidget* Dragged, FVector2D Screen, int32 SplitNum);
 	// 셀 배경 생성
 	void BuildCellBackground();
 

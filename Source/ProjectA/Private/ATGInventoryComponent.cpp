@@ -52,7 +52,7 @@ void UATGInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME_CONDITION(UATGInventoryComponent, Inventory, COND_OwnerOnly);
 }
 
-TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& ClientAddRequest)
+TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& ClientAddRequest, AActor* InteractedActor = nullptr)
 {
 	TArray<int32> EntryIds;
 	EntryIds.Empty();
@@ -66,6 +66,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& Clien
 	int32 W = ClientAddRequest.ItemDef->Width;
 	int32 H = ClientAddRequest.ItemDef->Height;
 	int32 OutX = -1, OutY = -1;
+	int32 OriginQty = ClientAddRequest.Quantity;
 	int32 Qty = ClientAddRequest.Quantity;
 
 	if (!Inventory.FindFirstFit(ClientAddRequest.ItemDef, W, H, OutX, OutY, Qty)) //여기서 존재하는 스택에 저장 남은 값 Qty 참조로 반환
@@ -75,6 +76,13 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& Clien
 
 	if (Qty <= 0) //수량이 0이 된경우 
 	{
+		if (IsHasAuthority()) // Decrease WorldItem Qty
+		{
+			if (auto Comp = GetPickupComp(InteractedActor))
+			{
+				Comp->DecreaseQty(OriginQty - Qty);
+			}
+		}
 		return EntryIds;
 	}
 
@@ -97,10 +105,18 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& Clien
 		EntryIds.Add(Id);
 	}
 
+	if (IsHasAuthority()) // Decrease WorldItem Qty 
+	{
+		if (auto Comp = GetPickupComp(InteractedActor))
+		{
+			Comp->DecreaseQty(OriginQty - Qty);
+		}
+	}
+
 	return EntryIds;
 }
 
-void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity)
+void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor)
 {
 	if (!IsLocallyOwned())
 	{
@@ -125,13 +141,13 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 	//	return;
 	//}
 
-	ServerAddItemAuto(ClientAddRequest);
+	ServerAddItemAuto(ClientAddRequest, InteractActor);
 }
 
-void UATGInventoryComponent::ServerAddItemAuto_Implementation(FClientAddRequest ClientAddRequest)
+void UATGInventoryComponent::ServerAddItemAuto_Implementation(FClientAddRequest ClientAddRequest, AActor* InteractedActor)
 {
 	FInventoryChangeResult InventoryChangeResult;
-	TArray<int32> EntryIds = AddItemAuto(ClientAddRequest);
+	TArray<int32> EntryIds = AddItemAuto(ClientAddRequest, InteractedActor);
 	if (!EntryIds.IsEmpty())
 	{
 		InventoryChangeResult.Status = EInventoryChangeStatus::Success;
@@ -196,14 +212,38 @@ void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int3
 	ServerMoveOrSwap(EntryId, NewX, NewY, bIsRotate);
 }
 
-void UATGInventoryComponent::TryDropItem(int32 EntryId)
+
+
+void UATGInventoryComponent::TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum)
 {
-	ServerDropItem(EntryId);
+	ServerSplitStack(EntryId, NewX, NewY, bIsRotate, SplitNum);
 }
 
-void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId)
+void UATGInventoryComponent::ServerSplitStack_Implementation(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum)
 {
-	ServerSpawnItem(EntryId);
+	int32 Qty = SplitNum;
+	FInventoryEntry* E = Inventory.GetById(EntryId);
+
+	if (Inventory.AddItemAt(E->Item, Qty, NewX, NewY, E->Width, E->Height, bIsRotate, -1))
+	{
+		Inventory.DecreaseQty(EntryId, SplitNum-Qty);
+	}
+}
+
+void UATGInventoryComponent::TryDropItem(int32 EntryId, int32 SplitNum)
+{
+	ServerDropItem(EntryId, SplitNum);
+}
+
+void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId, int32 SplitNum)
+{
+	ServerSpawnItem(EntryId, SplitNum);
+	if (SplitNum > 0)
+	{
+		//아이템 수량감소
+		Inventory.DecreaseQty(EntryId, SplitNum);
+		return;
+	}
 	ServerRemoveItem(EntryId);
 }
 
@@ -240,7 +280,7 @@ void UATGInventoryComponent::ServerRemoveItem_Implementation(int32 EntryId)
 		//OnItemRemoved.Broadcast(EntryId);
 }
 
-void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId)
+void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId, int32 SplitNum)
 {
 	FInventoryEntry* Entry = Inventory.GetById(EntryId);
 	if (Entry->Item.Get()) // load
@@ -264,7 +304,7 @@ void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId)
 			if (ItemActor->GetPickupComp())
 			{
 				ItemActor->GetPickupComp()->ItemDef = Entry->Item;
-				ItemActor->GetPickupComp()->ItemQty = Entry->Quantity;
+				ItemActor->GetPickupComp()->ItemQty = SplitNum > 0 ? SplitNum : Entry->Quantity;
 				UGameplayStatics::FinishSpawningActor(ItemActor, SpawnTransform);
 				UE_LOG(LogTemp, Warning, TEXT("Spawn Item ItemActor->GetPickupComp() Is Valid"));
 			}
@@ -322,4 +362,17 @@ bool UATGInventoryComponent::IsLocallyOwned() const
 		return PC->IsLocalController();
 
 	return false;
+}
+
+UATGPickupComponent* UATGInventoryComponent::GetPickupComp(AActor* InteractedActor)
+{
+	if (InteractedActor)
+	{
+		if (UActorComponent* Comp = InteractedActor->GetComponentByClass(UATGPickupComponent::StaticClass()))
+		{
+			return Cast<UATGPickupComponent>(Comp);
+		}
+	}
+
+	return nullptr;
 }

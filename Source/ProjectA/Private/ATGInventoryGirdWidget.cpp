@@ -5,13 +5,15 @@
 
 #include "ATGInventoryItemWidget.h"
 #include "ATGInventoryComponent.h"
-
+#include "InventoryTypes.h"
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h" // 고정 셀 크기
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "ATGStackSplitWidget.h"
+#include "Components/TextBlock.h"
 
 void UATGInventoryGirdWidget::NativeConstruct()
 {
@@ -89,9 +91,9 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		InventoryComp->OnItemRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
 		InventoryComp->OnItemRotated.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
 		//preview
-		InventoryComp->OnItemPreAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreAdded);
-		InventoryComp->OnItemPreChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreChanged);
-		InventoryComp->OnItemPreRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreRemoved);
+		//InventoryComp->OnItemPreAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreAdded);
+		//InventoryComp->OnItemPreChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreChanged);
+		//InventoryComp->OnItemPreRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreRemoved);
 	}
 	RebuildAll();
 }
@@ -202,41 +204,87 @@ bool UATGInventoryGirdWidget::CheckIsOutGrid(const FVector2D& Local) const
 	return false;
 }
 
+void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, FVector2D Screen)
+{
+	const FGeometry PanelGeo = GridPanel->GetTickSpaceGeometry();
+
+	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
+
+	if (CheckIsOutGrid(Local))
+	{
+		InventoryComp->TryDropItem(Dragged->EntryId);
+	}
+
+	FIntPoint Cell = CellFromLocal(Local);
+	//if (GEngine)
+	//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+ Cell.ToString());
+	//if (GEngine)
+	//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local") + Local.ToString());
+
+	// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
+	Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
+	Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
+
+	//InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
+	InventoryComp->TryMoveOrSwapClient(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
+
+	Operation = nullptr;
+	bIsRotate = false;
+}
+
+// Split Version Overload
+void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, FVector2D Screen, int32 SplitNum)
+{
+	const FGeometry PanelGeo = GridPanel->GetTickSpaceGeometry();
+
+	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
+
+	if (CheckIsOutGrid(Local))
+	{
+		InventoryComp->TryDropItem(Dragged->EntryId, SplitNum);
+	}
+
+	FIntPoint Cell = CellFromLocal(Local);
+
+	Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
+	Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
+
+	InventoryComp->TrySplitStack(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate, SplitNum);
+
+	Operation = nullptr;
+	bIsRotate = false;
+}
+
 
 bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
+
 	if (!InventoryComp || !GridPanel) return false;
 
 	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
 	{
 		const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
 
-		const FGeometry PanelGeo = GridPanel->GetTickSpaceGeometry();
-		
-		const FVector2D PanelSize = PanelGeo.GetLocalSize(); // 인벤토리 크기
-		
-		const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
-		if (CheckIsOutGrid(Local))
+		if (InDragDropEvent.IsControlDown() && Dragged->QuantityText->GetText().ToString() != "1")
 		{
-			InventoryComp->TryDropItem(Dragged->EntryId);
+			auto SplitUI = CreateWidget<UATGStackSplitWidget>(GetWorld(), StackSplitWidgetClass);
+
+			int32 Qty = 1;
+			LexTryParseString(Qty, *Dragged->QuantityText->GetText().ToString());
+			SplitUI->InitSplit(Qty);
+
+			SplitUI->OnSplitConfirmed.AddLambda([this, Dragged, Screen](int32 SplitNum)
+				{
+					//서버에 분할 요청
+					DoNativeOnDrop(Dragged, Screen, SplitNum);
+				});
+			SplitUI->AddToViewport();
+
+			return true;
 		}
 
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local")+ Local.ToString());
-		FIntPoint Cell = CellFromLocal(Local);
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+ Cell.ToString());
-
-		// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
-		Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
-		Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
-
-		//InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
-		InventoryComp->TryMoveOrSwapClient(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
-
-		Operation = nullptr;
-		bIsRotate = false;
+		DoNativeOnDrop(Dragged, Screen);
 
 		return true;
 	}

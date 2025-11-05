@@ -183,7 +183,7 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
                 OwnerComp->OnItemChanged.Broadcast(E.Id);
                 if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
                 {
-                    MarkItemDirty(E); 
+                    MarkItemDirty(E);
                     OwnerComp->GetOwner()->ForceNetUpdate();
                 }
                 else
@@ -211,7 +211,7 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
 {
     
     if (!ItemDef || Qty <= 0) return 0;
-    if (!CanPlaceRect(X, Y, W, H)) return 0;
+    if (!CanPlaceRect(X, Y, bRotated ? H : W, bRotated ? W : H)) return 0;
 
     int32 RemainQty = Qty;
     
@@ -223,7 +223,10 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
 
     NewE.Quantity = QtyStack;
     NewE.X = X; NewE.Y = Y;
-    NewE.Width = W; NewE.Height = H;
+
+    NewE.Width = bRotated ? H : W; 
+    NewE.Height = bRotated ? W : H;
+
     NewE.bRotated = bRotated;
 
     Qty = RemainQty;
@@ -393,6 +396,26 @@ bool FInventoryGrid::RemoveById(int32 EntryId)
         OwnerComp->GetOwner()->ForceNetUpdate();
     }
     return true;
+}
+
+bool FInventoryGrid::DecreaseQty(int32 EntryId, int32 Num)
+{
+    FInventoryEntry* E = GetById(EntryId);
+    if (E->Quantity - Num > 0)
+    {
+        E->Quantity -= Num;
+        if (OwnerComp)
+        {
+            OwnerComp->OnItemChanged.Broadcast(E->Id);
+            if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+            {
+                MarkItemDirty(*E);
+                OwnerComp->GetOwner()->ForceNetUpdate();
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 bool FInventoryGrid::PreviewRemoveById(int32 PreviewId)

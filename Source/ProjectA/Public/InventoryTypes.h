@@ -10,6 +10,12 @@ class UATGItemData;
 class UATGInventoryComponent;
 
 // InventoryTypes.h
+
+struct FGridActionInfo
+{
+    int32 EntryId; int32 NewX; int32 NewY; bool bIsRotate; int32 SplitNum = -1;
+};
+
 USTRUCT(BlueprintType)
 struct FClientAddRequest
 {
@@ -201,11 +207,13 @@ struct FInventoryGrid : public FFastArraySerializer
 
     int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey);
 
-    bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate); // ��� �ڸ��� �̵�, �� ������ ����
+    bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 
     bool Rotate(int32 EntryId); 
 
     bool RemoveById(int32 EntryId);
+
+    bool DecreaseQty(int32 EntryId, int32 Num);
 
     const FInventoryEntry* GetById(int32 EntryId) const;
 
