@@ -39,6 +39,9 @@ protected:
 	FInventoryGrid Inventory;
 
 public:
+
+	//FORCEINLINE FInventoryGrid* GetInventory() { return &Inventory; }
+
 	// client UI
 	UPROPERTY(BlueprintAssignable) 
 	FOnGridEvent OnItemAdded;
@@ -102,6 +105,8 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void ServerDropItem(int32 EntryId, int32 SplitNum = -1);
+
+	bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1);
 
 	void TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
 

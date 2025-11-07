@@ -208,6 +208,11 @@ void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int3
 
 
 
+bool UATGInventoryComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId)
+{
+	return Inventory.CanPlaceRect(StartX, StartY, W, H, IgnoreId);
+}
+
 void UATGInventoryComponent::TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum)
 {
 	ServerSplitStack(EntryId, NewX, NewY, bIsRotate, SplitNum);
@@ -312,8 +317,6 @@ void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId, int32
 				ItemActor->Destroy();
 				UE_LOG(LogTemp, Warning, TEXT("Spawn Item ItemActor->GetPickupComp() == nullptr"));
 			}
-	
-			
 		}
 	}
 }

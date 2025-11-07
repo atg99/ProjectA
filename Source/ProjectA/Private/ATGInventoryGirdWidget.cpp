@@ -126,9 +126,10 @@ void UATGInventoryGirdWidget::BuildCellBackground()
 			{
 				Cell->SetColorAndOpacity(BGColor);
 			}
+			DefaultColor = Cell->GetColorAndOpacity();
 			CellBox->AddChild(Cell);
 
-
+			//GridPanel->GetSlots()
 			UGridSlot* CellSlot = GridPanel->AddChildToGrid(CellBox, y, x);
 			CellSlot->SetPadding(FMargin(CellPadding));
 		}
@@ -258,13 +259,20 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
+	// 이 스코프 끝날 때 무조건 호출됨
+	ON_SCOPE_EXIT
+	{
+		SetAllGridDefaultColor();
+	};
 
-	if (!InventoryComp || !GridPanel) return false;
+	if (!InventoryComp || !GridPanel)
+	{
+		return false;
+	}
 
 	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
 	{
 		const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
-
 
 		if (InDragDropEvent.IsControlDown() && Dragged->QuantityText->GetText().ToString() != "1")
 		{
@@ -292,7 +300,7 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 	Operation = nullptr;
 	bIsRotate = false;
 
-	return false;
+	return true;
 }
 
 
@@ -311,9 +319,129 @@ void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDrop
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragLeave"));
 	Operation = nullptr;
-	bIsRotate = false;
+	//bIsRotate = false;
 }
 
+bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	if (!InventoryComp || !GridPanel) return true;
+
+	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
+	{
+		if (!Dragged->Entry)
+		{
+			return true;
+		}
+
+		const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
+
+		const FGeometry PanelGeo = GridPanel->GetTickSpaceGeometry();
+
+		const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
+
+		if (CheckIsOutGrid(Local))
+		{
+			return true;
+		}
+
+		FIntPoint Cell = CellFromLocal(Local);
+		//if (GEngine)
+		//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+ Cell.ToString());
+		//if (GEngine)
+		//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local") + Local.ToString());
+
+		// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
+		Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
+		Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
+
+		//InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
+		int32 W = bIsRotate ? Dragged->Entry->Height : Dragged->Entry->Width;
+		int32 H = bIsRotate ? Dragged->Entry->Width : Dragged->Entry->Height;
+		bool bCanMove = InventoryComp->CheckCanMove(Cell.X, Cell.Y, W, H, Dragged->Entry->Id);
+	/*	FString s = bCanMove ? TEXT("True") : TEXT("False");
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, TEXT("CanMove : ") + s);
+		}*/
+
+		for (auto Child : GridPanel->GetAllChildren())
+		{
+			USizeBox* CellBox = Cast<USizeBox>(Child);
+			if (!CellBox)
+			{
+				continue;
+			}
+
+			if (!Child || !Child->Slot)
+			{
+				continue;
+			}
+				
+			if (UGridSlot* CellSlot = Cast<UGridSlot>(Child->Slot))
+			{
+				bool bIsTargetGrid = false;
+				for (int X = 0; X < W; ++X)
+				{
+					for (int Y = 0; Y < H; ++Y)
+					{
+						if (CellSlot->GetColumn() == Cell.X+X && CellSlot->GetRow() == Cell.Y+Y)
+						{
+							bIsTargetGrid = true;
+							
+							for (auto WG : CellBox->GetAllChildren())
+							{
+								if (UImage* Img = Cast<UImage>(WG))
+								{
+									FLinearColor PreviewColor = bCanMove ? FLinearColor(0, 0.5f, 0, 1.f) : FLinearColor(0.5f, 0, 0, 1.f);
+									Img->SetColorAndOpacity(PreviewColor);
+									break;
+								}
+							}
+						
+							break;
+						}
+					}
+					if (bIsTargetGrid)
+					{
+						break;
+					}
+				}
+				if (bIsTargetGrid)
+				{
+					continue;
+				}
+				
+				for (auto WG : CellBox->GetAllChildren())
+				{
+					if (UImage* Img = Cast<UImage>(WG))
+					{
+						Img->SetColorAndOpacity(DefaultColor);
+						break;
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
+	return true;
+}
+
+void UATGInventoryGirdWidget::SetAllGridDefaultColor()
+{
+	for (auto Child : GridPanel->GetAllChildren())
+	{
+		if (USizeBox* CellBox = Cast<USizeBox>(Child))
+		{
+			for (auto WG : CellBox->GetAllChildren())
+			{
+				UImage* Img = Cast<UImage>(WG);
+				Img->SetColorAndOpacity(DefaultColor);
+			}
+		}
+	}
+}
 
 // ===== 델리게이트 핸들러 =====
 void UATGInventoryGirdWidget::HandleItemAdded(int32 EntryId)

@@ -37,6 +37,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
 	FLinearColor BGColor = { 128, 128, 128, 0.5 };
 
+	FLinearColor DefaultColor;
+
 	// 셀 배경 텍스처(옵션)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
 	UTexture2D* DefaultCellBg = nullptr;
@@ -76,7 +78,7 @@ protected:
 	virtual bool NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
-
+	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
 	// 델리게이트 핸들러
 	UFUNCTION() void HandleItemAdded(int32 EntryId);
@@ -104,4 +106,6 @@ protected:
 	//드래그관련
 	UDragDropOperation* Operation;
 	bool bIsRotate = false;
+
+	void SetAllGridDefaultColor();
 };

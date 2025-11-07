@@ -214,7 +214,6 @@ struct FInventoryGrid : public FFastArraySerializer
     bool Rotate(int32 EntryId); 
 
     bool RemoveById(int32 EntryId);
-    bool RemoveByRef(FInventoryEntry& Entry);
 
     bool DecreaseQtyById(int32 EntryId, int32 Num);
     bool DecreaseQtyByRef(FInventoryEntry& E, int32 Num);

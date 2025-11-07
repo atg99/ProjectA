@@ -54,6 +54,11 @@ public:
 	//UFUNCTION(BlueprintCallable, Category = "Inventory")
 	//void SetQuantityText(int32 Qty);
 
+	const FInventoryEntry* Entry;
+
+	float WidthPx = 0;
+	float HeightPx = 0;
+
 protected:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeo, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeo, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
