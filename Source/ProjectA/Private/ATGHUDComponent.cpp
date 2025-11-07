@@ -60,6 +60,7 @@ void UATGHUDComponent::ToggleInventoryUI()
 {
 	if (!InventoryWidget)
 	{
+		UE_LOG(LogTemp, Error, TEXT("!!InventoryWidget"));
 		return;
 	}
 	switch (InventoryWidget->GetVisibility())

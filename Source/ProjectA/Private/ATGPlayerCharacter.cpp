@@ -260,7 +260,7 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 
 void AATGPlayerCharacter::ToggleInventory(const FInputActionValue& Value)
 {
-	
+	UE_LOG(LogTemp, Error, TEXT("ToggleInventory"));
 	if (UATGHUDComponent* HUDComp = Cast<AATGPlayerController>(GetController())->GetHUD()->FindComponentByClass<UATGHUDComponent>())
 	{
 		HUDComp->ToggleInventoryUI();

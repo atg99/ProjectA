@@ -209,11 +209,20 @@ struct FInventoryGrid : public FFastArraySerializer
 
     bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 
+    bool MergeStackAtAndDecrease(FInventoryEntry& Entry, int32 Qty, int32 NewX, int32 NewY, bool bIsRotate);
+
     bool Rotate(int32 EntryId); 
 
     bool RemoveById(int32 EntryId);
+    bool RemoveByRef(FInventoryEntry& Entry);
 
-    bool DecreaseQty(int32 EntryId, int32 Num);
+    bool DecreaseQtyById(int32 EntryId, int32 Num);
+    bool DecreaseQtyByRef(FInventoryEntry& E, int32 Num);
+
+    bool IncreaseQtyById(int32 EntryId, int32 Num);
+    bool IncreaseQtyByRef(FInventoryEntry& E, int32 Num);
+
+    bool CheckFitStack(int32 EntryId);
 
     const FInventoryEntry* GetById(int32 EntryId) const;
 
@@ -222,6 +231,9 @@ struct FInventoryGrid : public FFastArraySerializer
     bool PreviewRemoveById(int32 EntryId);
 
     bool PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
+
+private:
+    static int32 GlobalEntryIdCounter;
 };
 
 

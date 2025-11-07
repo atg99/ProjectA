@@ -36,6 +36,8 @@ protected:
 
 	virtual void OnRep_PlayerState() override;
 
+	void StartInitInventoryWidget();
+
 protected:
 
 	//UPROPERTY(EditDefaultsOnly, Category = "UI")

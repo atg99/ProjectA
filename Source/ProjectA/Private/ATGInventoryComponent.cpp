@@ -135,12 +135,6 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 
 	TArray<int32> EntryIds = AddItemAuto(ClientAddRequest);
 
-	//if (EntryIds.IsEmpty()) //클라에서 판정실패시 서버요청 안함
-	//{
-
-	//	return;
-	//}
-
 	ServerAddItemAuto(ClientAddRequest, InteractActor);
 }
 
@@ -204,10 +198,10 @@ void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int3
 		return;
 	}
 
-	if (!Inventory.PreviewMoveOrSwap(EntryId, NewX, NewY, bIsRotate))
-	{
-		return; // 놓을 수 없으면 서버 호출 안함
-	}
+	//if (!Inventory.PreviewMoveOrSwap(EntryId, NewX, NewY, bIsRotate))
+	//{
+	//	return; // 놓을 수 없으면 서버 호출 안함
+	//}
 	
 	ServerMoveOrSwap(EntryId, NewX, NewY, bIsRotate);
 }
@@ -226,7 +220,12 @@ void UATGInventoryComponent::ServerSplitStack_Implementation(int32 EntryId, int3
 
 	if (Inventory.AddItemAt(E->Item, Qty, NewX, NewY, E->Width, E->Height, bIsRotate, -1))
 	{
-		Inventory.DecreaseQty(EntryId, SplitNum-Qty);
+		Inventory.DecreaseQtyById(EntryId, SplitNum-Qty);
+	}
+	else
+	{
+		//MergeStackAt에서 수량감소처리 포함됨
+		Inventory.MergeStackAtAndDecrease(*E, SplitNum, NewX, NewY, bIsRotate);
 	}
 }
 
@@ -241,7 +240,7 @@ void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId, int32 
 	if (SplitNum > 0)
 	{
 		//아이템 수량감소
-		Inventory.DecreaseQty(EntryId, SplitNum);
+		Inventory.DecreaseQtyById(EntryId, SplitNum);
 		return;
 	}
 	ServerRemoveItem(EntryId);

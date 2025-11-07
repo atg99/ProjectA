@@ -35,10 +35,9 @@ void AATGPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsLocalController())
+	if (HasAuthority() && IsLocalController())
 	{
-		
-		
+		StartInitInventoryWidget();
 	}
 }
 
@@ -46,6 +45,13 @@ void AATGPlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
+	//GridWidget이 PlayerState의 InventoryComponet가 필요하므로 클라는 PlayeerState가 복제되는 시점에 위젯 생성
+	UE_LOG(LogTemp, Error, TEXT("OnRep_PlayerStateOnRep_PlayerState"));
+	StartInitInventoryWidget();
+}
+
+void AATGPlayerController::StartInitInventoryWidget()
+{
 	if (!IsLocalController()) return;
 	if (!GetHUD())
 	{

@@ -5,6 +5,8 @@
 #include "ATGInventoryComponent.h"
 #include "ATGItemData.h"
 
+int32 FInventoryGrid::GlobalEntryIdCounter = 0;
+
 void FInventoryEntry::PreReplicatedRemove(const FInventoryGrid& InArraySerializer)
 {
     if (InArraySerializer.OwnerComp)
@@ -233,7 +235,7 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
 
     if (OwnerComp && OwnerComp->IsHasAuthority())
     {
-        NewE.Id = Entries.Num() ? (Entries.Last().Id + 1) : 1;
+        NewE.Id = ++GlobalEntryIdCounter;
         NewE.PredictionKey = PreKey;
         Entries.Add(NewE);
         MarkItemDirty(Entries.Last());
@@ -248,7 +250,7 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
         // 클라: 프리뷰는 Id 자체를 PredKey로 쓴다 (고유키)
         NewE.Id = PreKey;
 
-        PreviewEntries.Add(NewE); // 복제 안하는 로컬 배열에 추가
+        //PreviewEntries.Add(NewE); // 복제 안하는 로컬 배열에 추가
 
         OwnerComp->OnItemPreAdded.Broadcast(NewE);
 
@@ -263,11 +265,11 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
     FInventoryEntry* Me = GetById(EntryId);
     if (!Me) return false;
 
-    // 1) 이번 이동/스왑에서 사용할 "검사용" 치수
+    // 이번 이동/스왑에서 사용할 "검사용" 치수
     const int32 NewW = bIsRotate ? Me->Height : Me->Width;
     const int32 NewH = bIsRotate ? Me->Width : Me->Height;
 
-    // 2) 빈 자리면 이동 (검사는 NewW/NewH로)
+    // 빈 자리면 이동
     if (CanPlaceRect(NewX, NewY, NewW, NewH, Me->Id))
     {
         Me->X = NewX;
@@ -291,7 +293,7 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         return true;
     }
 
-    // 3) 스왑 후보 찾기 (겹침 판정도 NewW/NewH로)
+    // 스왑 후보 찾기
     FInventoryEntry* Other = nullptr;
     for (auto& E : Entries)
     {
@@ -303,11 +305,31 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         const int32 EY2 = E.Y + E.Height - 1;
 
         const bool bHit = !(NX2 < E.X || EX2 < NewX || NY2 < E.Y || EY2 < NewY);
-        if (bHit) { Other = &E; break; }
+        if (bHit) 
+        { 
+            Other = &E;
+            break; 
+        }
     }
     if (!Other) return false;
+     
+    // 아이템 종류가 같을 때
+    if (Other->Item->ItemId == Me->Item->ItemId)
+    {
+        const int32 Remaining = Other->Item->MaxStack - Other->Quantity;
+        if (Remaining <= 0)
+        {
+            return false;
+        }
+        const int32 StackNum = FMath::Min(Remaining, Me->Quantity);
 
-    // 4) 스왑 가능성 검사
+        IncreaseQtyByRef(*Other, StackNum);
+        DecreaseQtyByRef(*Me, StackNum);
+        
+        return true;
+    }
+
+    // 스왑 가능성 검사
     const int32 MeOldX = Me->X;
     const int32 MeOldY = Me->Y;
     const int32 OtOldX = Other->X;
@@ -344,6 +366,50 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
                 OwnerComp->GetOwner()->ForceNetUpdate();
             }
         }
+        return true;
+    }
+
+    return false;
+}
+
+bool FInventoryGrid::MergeStackAtAndDecrease(FInventoryEntry& Entry, int32 Qty, int32 NewX, int32 NewY, bool bIsRotate)
+{
+
+    const int32 NewW = bIsRotate ? Entry.Height : Entry.Width;
+    const int32 NewH = bIsRotate ? Entry.Width : Entry.Height;
+
+    FInventoryEntry* Other = nullptr;
+    for (auto& E : Entries)
+    {
+        if (E.Id == Entry.Id) continue;
+
+        const int32 NX2 = NewX + NewW - 1;
+        const int32 NY2 = NewY + NewH - 1;
+        const int32 EX2 = E.X + E.Width - 1;
+        const int32 EY2 = E.Y + E.Height - 1;
+
+        const bool bHit = !(NX2 < E.X || EX2 < NewX || NY2 < E.Y || EY2 < NewY);
+        if (bHit)
+        {
+            Other = &E;
+            break;
+        }
+    }
+    if (!Other) return false;
+
+    // 아이템 종류가 같을 때
+    if (Other->Item->ItemId == Entry.Item->ItemId)
+    {
+        const int32 Remain = Other->Item->MaxStack - Other->Quantity;
+        if (Remain <= 0)
+        {
+            return false;
+        }
+        const int32 StackNum = FMath::Min(Remain, Qty);
+
+        IncreaseQtyByRef(*Other, StackNum);
+        DecreaseQtyByRef(Entry, StackNum);
+
         return true;
     }
 
@@ -398,7 +464,7 @@ bool FInventoryGrid::RemoveById(int32 EntryId)
     return true;
 }
 
-bool FInventoryGrid::DecreaseQty(int32 EntryId, int32 Num)
+bool FInventoryGrid::DecreaseQtyById(int32 EntryId, int32 Num)
 {
     FInventoryEntry* E = GetById(EntryId);
     if (E->Quantity - Num > 0)
@@ -415,8 +481,86 @@ bool FInventoryGrid::DecreaseQty(int32 EntryId, int32 Num)
         }
         return true;
     }
+    //0이하 일 때 삭제
+    else
+    {
+        RemoveById(EntryId);
+    }
     return false;
 }
+
+bool FInventoryGrid::DecreaseQtyByRef(FInventoryEntry& E, int32 Num)
+{
+    if (E.Quantity - Num > 0)
+    {
+        E.Quantity -= Num;
+        if (OwnerComp)
+        {
+            OwnerComp->OnItemChanged.Broadcast(E.Id);
+            if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+            {
+                MarkItemDirty(E);
+                OwnerComp->GetOwner()->ForceNetUpdate();
+            }
+        }
+        return true;
+    }
+    //0이하 일 때 삭제
+    else
+    {
+        RemoveById(E.Id);
+    }
+    return false;
+}
+
+bool FInventoryGrid::IncreaseQtyById(int32 EntryId, int32 Num)
+{
+    if (Num <= 0)
+    {
+        return false;
+    }
+    FInventoryEntry* E = GetById(EntryId);
+    if (E->Quantity + Num <= E->Item->MaxStack)
+    {
+        E->Quantity += Num;
+        if (OwnerComp)
+        {
+            OwnerComp->OnItemChanged.Broadcast(E->Id);
+            if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+            {
+                MarkItemDirty(*E);
+                OwnerComp->GetOwner()->ForceNetUpdate();
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool FInventoryGrid::IncreaseQtyByRef(FInventoryEntry& E, int32 Num)
+{
+    if (Num <= 0)
+    {
+        return false;
+    }
+
+    if (E.Quantity + Num <= E.Item->MaxStack)
+    {
+        E.Quantity += Num;
+        if (OwnerComp)
+        {
+            OwnerComp->OnItemChanged.Broadcast(E.Id);
+            if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+            {
+                MarkItemDirty(E);
+                OwnerComp->GetOwner()->ForceNetUpdate();
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
 
 bool FInventoryGrid::PreviewRemoveById(int32 PreviewId)
 {
@@ -496,108 +640,3 @@ bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bo
 }
 
 
-//bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
-//{
-//    const FInventoryEntry* Me = GetById(EntryId);
-//    if (!Me || !OwnerComp) return false;
-//    if (!OwnerComp->IsLocallyOwned()) return false;
-//
-//    const int32 NewW = bIsRotate ? Me->Height : Me->Width;
-//    const int32 NewH = bIsRotate ? Me->Width : Me->Height;
-//
-//    auto RectOverlaps = [](int32 AX, int32 AY, int32 AW, int32 AH,
-//        int32 BX, int32 BY, int32 BW, int32 BH) -> bool
-//        {
-//            // [AX, AX+AW) x [AY, AY+AH) 규칙(반열림)으로 겹침 체크
-//            const bool NoOverlap =
-//                (AX + AW) <= BX || (BX + BW) <= AX ||
-//                (AY + AH) <= BY || (BY + BH) <= AY;
-//            return !NoOverlap;
-//        };
-//
-//    // 프리뷰/실제 모두 포함한 충돌 체크에서 특정 두 Id를 제외
-//    auto CanPlaceExcept = [&](int32 PX, int32 PY, int32 PW, int32 PH, int32 IgnoreA, int32 IgnoreB) -> bool
-//        {
-//            // 실제 엔트리와의 충돌
-//            for (const FInventoryEntry& E : Entries)
-//            {
-//                if (E.Id == IgnoreA || E.Id == IgnoreB) continue;
-//                if (RectOverlaps(PX, PY, PW, PH, E.X, E.Y, E.Width, E.Height))
-//                    return false;
-//            }
-//            // 현재 떠 있는 프리뷰와의 충돌도 방지 (내/상대 프리뷰는 곧 갱신 예정이므로 제외)
-//            for (const FInventoryEntry& P : PreviewEntries)
-//            {
-//                if (P.Id == IgnoreA || P.Id == IgnoreB) continue;
-//                if (RectOverlaps(PX, PY, PW, PH, P.X, P.Y, P.Width, P.Height))
-//                    return false;
-//            }
-//            return true;
-//        };
-//
-//    // 1) 단순 이동 프리뷰 시도
-//    if (CanPlaceExcept(NewX, NewY, NewW, NewH, Me->Id, -1))
-//    {
-//        // 이전 프리뷰 정리 후 내 프리뷰만 생성
-//        PreviewRemoveById(Me->Id);
-//
-//        FInventoryEntry Pre = *Me;
-//        Pre.X = NewX;  Pre.Y = NewY;
-//        Pre.Width = NewW;  Pre.Height = NewH;
-//        Pre.bRotated = bIsRotate;
-//
-//        PreviewEntries.Add(Pre);
-//        OwnerComp->OnItemPreAdded.Broadcast(Pre);
-//        return true;
-//    }
-//
-//    // 2) 스왑 후보 찾기(새 자리와 겹치는 상대)
-//    const FInventoryEntry* Other = nullptr;
-//    for (const FInventoryEntry& E : Entries)
-//    {
-//        if (E.Id == Me->Id) continue;
-//        if (RectOverlaps(NewX, NewY, NewW, NewH, E.X, E.Y, E.Width, E.Height))
-//        {
-//            Other = &E;
-//            break;
-//        }
-//    }
-//    if (!Other) return false;
-//
-//    const int32 MeOldX = Me->X, MeOldY = Me->Y;
-//    const int32 OtOldX = Other->X, OtOldY = Other->Y;
-//
-//    // 3) 스왑 가능성 검사
-//    //    - 나는 새 자리(NewX/NewY/NewW/NewH)로, Other는 내 기존 자리(MeOldX/MeOldY)로
-//    //    - 두 검사 모두에서 서로(Me/Other) **둘 다 제외**해야 함
-//    const bool bMeFitInNew = CanPlaceExcept(NewX, NewY, NewW, NewH, Me->Id, Other->Id);
-//    const bool bOtherFitInMy = CanPlaceExcept(MeOldX, MeOldY, Other->Width, Other->Height, Me->Id, Other->Id);
-//
-//    if (!bMeFitInNew || !bOtherFitInMy)
-//        return false;
-//
-//    // 4) 스왑 프리뷰 생성 (기존 프리뷰 정리 → 두 엔트리 모두 프리뷰 추가)
-//    PreviewRemoveById(Me->Id);
-//    PreviewRemoveById(Other->Id);
-//
-//    // 내 프리뷰(회전 반영)
-//    {
-//        FInventoryEntry PreA = *Me;
-//        PreA.X = NewX;  PreA.Y = NewY;
-//        PreA.Width = NewW;  PreA.Height = NewH;
-//        PreA.bRotated = bIsRotate;
-//        PreviewEntries.Add(PreA);
-//        OwnerComp->OnItemPreAdded.Broadcast(PreA);
-//    }
-//
-//    // 상대 프리뷰(회전 유지: 필요 시 정책에 맞게 수정)
-//    {
-//        FInventoryEntry PreB = *Other;
-//        PreB.X = MeOldX;  PreB.Y = MeOldY;
-//        // PreB.Width/Height/bRotated는 그대로 유지
-//        PreviewEntries.Add(PreB);
-//        OwnerComp->OnItemPreAdded.Broadcast(PreB);
-//    }
-//
-//    return true;
-//}
