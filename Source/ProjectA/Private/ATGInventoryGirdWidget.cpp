@@ -15,6 +15,7 @@
 #include "ATGStackSplitWidget.h"
 #include "Components/TextBlock.h"
 
+
 void UATGInventoryGirdWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -328,10 +329,6 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 
 	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
 	{
-		if (!Dragged->Entry)
-		{
-			return true;
-		}
 
 		const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
 
@@ -354,15 +351,23 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
 		Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
 
+		const FInventoryEntry* E = InventoryComp->GetInventory().GetById(Dragged->EntryId);
+		if (!E)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Dragged->Entry is invalid!"));
+			return true;
+		}
 		//InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
-		int32 W = bIsRotate ? Dragged->Entry->Height : Dragged->Entry->Width;
-		int32 H = bIsRotate ? Dragged->Entry->Width : Dragged->Entry->Height;
-		bool bCanMove = InventoryComp->CheckCanMove(Cell.X, Cell.Y, W, H, Dragged->Entry->Id);
-	/*	FString s = bCanMove ? TEXT("True") : TEXT("False");
+	
+		int32 W = bIsRotate ? E->Height : E->Width;
+		int32 H = bIsRotate ? E->Width : E->Height;
+		
+		bool bCanMove = InventoryComp->CheckCanMove(Cell.X, Cell.Y, W, H, E->Id);
+		FString s = bCanMove ? TEXT("True") : TEXT("False");
 		if (GEngine)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, TEXT("CanMove : ") + s);
-		}*/
+			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, FString::Printf(TEXT("W : %d H : %d ID : %d"), W, H, E->Id));
+		}
 
 		for (auto Child : GridPanel->GetAllChildren())
 		{
@@ -392,8 +397,9 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 							{
 								if (UImage* Img = Cast<UImage>(WG))
 								{
-									FLinearColor PreviewColor = bCanMove ? FLinearColor(0, 0.5f, 0, 1.f) : FLinearColor(0.5f, 0, 0, 1.f);
+									FLinearColor PreviewColor = bCanMove ? CheckTrueColor : CheckFalseColor;
 									Img->SetColorAndOpacity(PreviewColor);
+									CellSlot->SetLayer(1);
 									break;
 								}
 							}
@@ -416,6 +422,7 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 					if (UImage* Img = Cast<UImage>(WG))
 					{
 						Img->SetColorAndOpacity(DefaultColor);
+						CellSlot->SetLayer(0);
 						break;
 					}
 				}
@@ -436,8 +443,13 @@ void UATGInventoryGirdWidget::SetAllGridDefaultColor()
 		{
 			for (auto WG : CellBox->GetAllChildren())
 			{
-				UImage* Img = Cast<UImage>(WG);
-				Img->SetColorAndOpacity(DefaultColor);
+				if (UImage* Img = Cast<UImage>(WG))
+				{
+					Img->SetColorAndOpacity(DefaultColor);
+					UGridSlot* CellSlot = Cast<UGridSlot>(Child->Slot);
+					if (CellSlot) CellSlot->SetLayer(0);
+					break;
+				}
 			}
 		}
 	}

@@ -174,8 +174,8 @@ void UATGInventoryComponent::ClientAddItemResult_Implementation(FInventoryChange
 		// 실패 → 프리뷰 즉시 제거
 		if (Result.PredictionKey != 0)
 		{
-			Inventory.PreviewRemoveById(Result.PredictionKey);
-			OnItemPreRemoved.Broadcast(Result.PredictionKey);
+			//Inventory.PreviewRemoveById(Result.PredictionKey);
+			//OnItemPreRemoved.Broadcast(Result.PredictionKey);
 		}
 	}
 }
@@ -265,8 +265,8 @@ void UATGInventoryComponent::ClientMoveResult_Implementation(const FInventoryCha
 {
 	if (Result.Status == EInventoryChangeStatus::Rejected)
 	{
-		Inventory.PreviewRemoveById(Result.NewEntryIds[0]);
-		OnItemPreRemoved.Broadcast(Result.NewEntryIds[0]);
+		//Inventory.PreviewRemoveById(Result.NewEntryIds[0]);
+		//OnItemPreRemoved.Broadcast(Result.NewEntryIds[0]);
 		if (GEngine)
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! ClientMoveResult : Rejected"));
 	}
@@ -326,8 +326,8 @@ void UATGInventoryComponent::HandleReplicatedAdd(int32 EntryId)
 	const FInventoryEntry* E = Inventory.GetById(EntryId);
 	if (E && E->PredictionKey != 0)
 	{
-		Inventory.PreviewRemoveById(E->PredictionKey); // PredKey로 직접 제거
-		OnItemPreRemoved.Broadcast(E->PredictionKey);  // 위젯에게도 알려 제거
+		//Inventory.PreviewRemoveById(E->PredictionKey); // PredKey로 직접 제거
+		//OnItemPreRemoved.Broadcast(E->PredictionKey);  // 위젯에게도 알려 제거
 	}
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! InventComp HandleReplicatedAddp"));

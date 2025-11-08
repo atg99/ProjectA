@@ -177,8 +177,8 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
         int32 RemainCapacity = E.Item->MaxStack - E.Quantity;
         if (E.Item->ItemId == ItemDef->ItemId && RemainCapacity >= 1) // 아이템 아이디 같고 스텍 남은 자리가 1이상일때
         {
-            int32 AddedQty = FMath::Min(RemainCapacity, Qty);
-            RemainQty = RemainQty - AddedQty; //스택에 넣고 남은 아이템 수량
+            int32 AddedQty = FMath::Min(RemainCapacity, RemainQty);
+            RemainQty -= AddedQty; //스택에 넣고 남은 아이템 수량
             E.Quantity += AddedQty;
             if (OwnerComp)
             {   
@@ -564,13 +564,14 @@ bool FInventoryGrid::IncreaseQtyByRef(FInventoryEntry& E, int32 Num)
 
 bool FInventoryGrid::PreviewRemoveById(int32 PreviewId)
 {
-    int32 Num = PreviewEntries.RemoveAll(
+  /*  int32 Num = PreviewEntries.RemoveAll(
         [&](const FInventoryEntry& P) 
         {
             return P.Id == PreviewId; 
         });
-
-    return Num > 0;
+    if (GEngine)
+        GEngine->AddOnScreenDebugMessage(-1, 30.0f, FColor::Cyan, TEXT("PreviewRemoveById"));*/
+    return 0;
 }
 
 bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)

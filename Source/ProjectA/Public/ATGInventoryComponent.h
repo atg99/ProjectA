@@ -118,6 +118,9 @@ public:
 	const TArray<FInventoryEntry>& GetEntries() const { return Inventory.Entries; }
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
+	const FInventoryGrid& GetInventory() const { return Inventory; }
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
 	int32 GetGridWidth() const { return Inventory.GridWidth; }
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")

@@ -39,6 +39,12 @@ public:
 
 	FLinearColor DefaultColor;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
+	FLinearColor CheckFalseColor = { 0.5f, 0, 0, 0.5f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
+	FLinearColor CheckTrueColor = { 0, 0.5f, 0, 0.5f };
+
 	// 셀 배경 텍스처(옵션)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
 	UTexture2D* DefaultCellBg = nullptr;

@@ -15,7 +15,6 @@
 
 void UATGInventoryItemWidget::SetupFromEntry(const FInventoryEntry& InEntry, UATGInventoryComponent* InComp, int32 InCellSize, int32 InCellPadding)
 {
-	Entry = &InEntry;
 	EntryId = InEntry.Id;
 	InventoryComp = InComp;
 	CachedEntry = InEntry;
@@ -33,8 +32,8 @@ void UATGInventoryItemWidget::SetupFromEntry(const FInventoryEntry& InEntry, UAT
 	}
 
 	const float Pitch = float(InCellSize + 2 * InCellPadding);
-	WidthPx = InEntry.Width * Pitch - 2 * InCellPadding;
-	HeightPx = InEntry.Height * Pitch - 2 * InCellPadding;
+	const float WidthPx = InEntry.Width * Pitch - 2 * InCellPadding;
+	const float HeightPx = InEntry.Height * Pitch - 2 * InCellPadding;
 
 	if (RootSizeBox)
 	{
@@ -55,8 +54,8 @@ void UATGInventoryItemWidget::RefreshFromEntry(const FInventoryEntry& InEntry, i
 	CachedCellPadding = InCellPadding;
 
 	const float Pitch = float(InCellSize + 2 * InCellPadding);
-	WidthPx = InEntry.Width * Pitch - 2 * InCellPadding;
-	HeightPx = InEntry.Height * Pitch - 2 * InCellPadding;
+	const float WidthPx = InEntry.Width * Pitch - 2 * InCellPadding;
+	const float HeightPx = InEntry.Height * Pitch - 2 * InCellPadding;
 
 	if (RootSizeBox)
 	{
