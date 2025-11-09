@@ -209,6 +209,8 @@ struct FInventoryGrid : public FFastArraySerializer
 
     bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 
+    bool CheckMoveOrSwap(int32 StartX, int32 StartY, int32 W, int32 H, int32 Id);
+
     bool MergeStackAtAndDecrease(FInventoryEntry& Entry, int32 Qty, int32 NewX, int32 NewY, bool bIsRotate);
 
     bool Rotate(int32 EntryId); 

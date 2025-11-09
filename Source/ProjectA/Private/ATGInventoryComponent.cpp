@@ -208,9 +208,9 @@ void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int3
 
 
 
-bool UATGInventoryComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId)
+bool UATGInventoryComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 Id)
 {
-	return Inventory.CanPlaceRect(StartX, StartY, W, H, IgnoreId);
+	return Inventory.CheckMoveOrSwap(StartX, StartY, W, H, Id);
 }
 
 void UATGInventoryComponent::TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum)

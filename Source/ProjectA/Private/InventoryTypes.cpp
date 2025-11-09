@@ -317,23 +317,21 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
     if (Other->Item->ItemId == Me->Item->ItemId)
     {
         const int32 Remaining = Other->Item->MaxStack - Other->Quantity;
-        if (Remaining <= 0)
+        if (Remaining > 0)
         {
-            return false;
-        }
-        const int32 StackNum = FMath::Min(Remaining, Me->Quantity);
+            const int32 StackNum = FMath::Min(Remaining, Me->Quantity);
 
-        IncreaseQtyByRef(*Other, StackNum);
-        DecreaseQtyByRef(*Me, StackNum);
-        
-        return true;
+            IncreaseQtyByRef(*Other, StackNum);
+            DecreaseQtyByRef(*Me, StackNum);
+
+            return true;
+        }
+
     }
 
     // 스왑 가능성 검사
     const int32 MeOldX = Me->X;
     const int32 MeOldY = Me->Y;
-    const int32 OtOldX = Other->X;
-    const int32 OtOldY = Other->Y;
 
     // Other가 내 기존 자리로 들어갈 수 있는가 (Other는 회전 없음)
     const bool bOtherFitInMy = CanPlaceRect(MeOldX, MeOldY, Other->Width, Other->Height, Me->Id);
@@ -366,6 +364,66 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
                 OwnerComp->GetOwner()->ForceNetUpdate();
             }
         }
+        return true;
+    }
+
+    return false;
+}
+
+bool FInventoryGrid::CheckMoveOrSwap(int32 StartX, int32 StartY, int32 W, int32 H, int32 Id)
+{
+    FInventoryEntry* Me = GetById(Id);
+    if (!Me) return false;
+
+    if (CanPlaceRect(StartX, StartY, W, H, Id))
+    {
+        return true;
+    }
+
+    // 스왑 후보 찾기
+    FInventoryEntry* Other = nullptr;
+    for (auto& E : Entries)
+    {
+        if (E.Id == Id) continue;
+
+        const int32 NX2 = StartX + W - 1;
+        const int32 NY2 = StartY + H - 1;
+        const int32 EX2 = E.X + E.Width - 1;
+        const int32 EY2 = E.Y + E.Height - 1;
+
+        const bool bHit = !(NX2 < E.X || EX2 < StartX || NY2 < E.Y || EY2 < StartY);
+        if (bHit)
+        {
+            Other = &E;
+            break;
+        }
+    }
+    if (!Other) return false;
+
+    // 아이템 종류가 같을 때
+    /*if (Other->Item->ItemId == Me->Item->ItemId)
+    {
+        const int32 Remaining = Other->Item->MaxStack - Other->Quantity;
+        if (Remaining <= 0)
+        {
+            return false;
+        }
+        const int32 StackNum = FMath::Min(Remaining, Me->Quantity);
+
+        IncreaseQtyByRef(*Other, StackNum);
+        DecreaseQtyByRef(*Me, StackNum);
+
+        return true;
+    }*/
+  
+    // Other가 내 기존 자리로 들어갈 수 있는가
+    const bool bOtherFitInMy = CanPlaceRect(Me->X, Me->Y, Other->Width, Other->Height, Id);
+
+    // 나는 새 자리에 들어갈 수 있는가
+    const bool bMeFitInNew = CanPlaceRect(StartX, StartY, W, H, Other->Id);
+
+    if (bMeFitInNew && bOtherFitInMy)
+    {
         return true;
     }
 

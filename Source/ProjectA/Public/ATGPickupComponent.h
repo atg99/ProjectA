@@ -41,7 +41,7 @@ public:
 	int32 ItemQty = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
-	EInteractionType InteractionType = EInteractionType::Inventory;
+	EInteractionType InteractionType = EInteractionType::PickUpItem;
 
 	void DecreaseQty(int32 Amount);
 

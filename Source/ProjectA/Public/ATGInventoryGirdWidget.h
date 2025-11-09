@@ -49,6 +49,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
 	UTexture2D* DefaultCellBg = nullptr;
 
+	UATGStackSplitWidget* SplitUI;
+
+	FIntPoint PrevCell;
 
 	// 인벤토리 소스
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")

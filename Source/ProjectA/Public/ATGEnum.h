@@ -11,8 +11,9 @@
 UENUM(BlueprintType)
 enum class EInteractionType : uint8
 {
-	Inventory	UMETA(DisplayName = "Inventory"),
-	Equipment	UMETA(DisplayName = "Equipment"),
+	PickUpItem		UMETA(DisplayName = "PickUpItem"),
+	OpenItemGrid	UMETA(DisplayName = "OpenItemGrid"),
+	Equipment		UMETA(DisplayName = "Equipment"),
 };
 
 class UATGItemData;

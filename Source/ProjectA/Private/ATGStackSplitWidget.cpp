@@ -48,10 +48,15 @@ void UATGStackSplitWidget::OnConfirmClicked()
 {
     int32 SplitNum = FMath::RoundToInt(SplitSlider->GetValue());
     OnSplitConfirmed.Broadcast(SplitNum);
-    RemoveFromParent();
+    RemoveSplitWidget();
 }
 
 void UATGStackSplitWidget::OnCancelClicked()
 {
-    RemoveFromParent();
+    RemoveSplitWidget();
+}
+
+void UATGStackSplitWidget::RemoveSplitWidget()
+{
+    SetVisibility(ESlateVisibility::Collapsed);
 }

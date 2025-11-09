@@ -241,8 +241,10 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 
 		switch (InteractionData.InteractionType)
 		{
-		case EInteractionType::Inventory:
+		case EInteractionType::PickUpItem:
 			PutInAtInventory(InteractionData);
+			break;
+		case  EInteractionType::OpenItemGrid:
 			break;
 		case EInteractionType::Equipment:
 			break;

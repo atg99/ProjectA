@@ -31,7 +31,15 @@ public:
     virtual void NativeConstruct() override;
 
     void InitSplit(int32 InMaxCount);
-    UFUNCTION() void OnSliderChanged(float Value);
-    UFUNCTION() void OnConfirmClicked();
-    UFUNCTION() void OnCancelClicked();
+
+    UFUNCTION() 
+    void OnSliderChanged(float Value);
+    UFUNCTION() 
+    void OnConfirmClicked();
+
+    UFUNCTION() 
+    void OnCancelClicked();
+
+    UFUNCTION(BlueprintCallable)
+    void RemoveSplitWidget();
 };

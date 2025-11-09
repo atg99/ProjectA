@@ -277,19 +277,25 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 
 		if (InDragDropEvent.IsControlDown() && Dragged->QuantityText->GetText().ToString() != "1")
 		{
-			auto SplitUI = CreateWidget<UATGStackSplitWidget>(GetWorld(), StackSplitWidgetClass);
-
-			int32 Qty = 1;
-			LexTryParseString(Qty, *Dragged->QuantityText->GetText().ToString());
-			SplitUI->InitSplit(Qty);
-
+			if (!SplitUI)
+			{
+				SplitUI = CreateWidget<UATGStackSplitWidget>(GetWorld(), StackSplitWidgetClass);
+		
+				SplitUI->AddToViewport();
+			}
+			SplitUI->OnSplitConfirmed.Clear();
 			SplitUI->OnSplitConfirmed.AddLambda([this, Dragged, Screen](int32 SplitNum)
 				{
 					//서버에 분할 요청
 					DoNativeOnDrop(Dragged, Screen, SplitNum);
 				});
-			SplitUI->AddToViewport();
 
+			SplitUI->SetVisibility(ESlateVisibility::Visible);
+			
+			int32 Qty = 1;
+			LexTryParseString(Qty, *Dragged->QuantityText->GetText().ToString());
+			SplitUI->InitSplit(Qty);
+			
 			return true;
 		}
 
@@ -350,6 +356,13 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
 		Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
 		Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
+
+		//같은 칸이면 넘김
+		if (PrevCell == Cell)
+		{
+			return true;
+		}
+		PrevCell = Cell;
 
 		const FInventoryEntry* E = InventoryComp->GetInventory().GetById(Dragged->EntryId);
 		if (!E)
@@ -437,6 +450,7 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 
 void UATGInventoryGirdWidget::SetAllGridDefaultColor()
 {
+	PrevCell = FIntPoint(-1);
 	for (auto Child : GridPanel->GetAllChildren())
 	{
 		if (USizeBox* CellBox = Cast<USizeBox>(Child))
