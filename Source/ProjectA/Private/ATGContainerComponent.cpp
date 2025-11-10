@@ -1,7 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "ATGContainerComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
 UATGContainerComponent::UATGContainerComponent()
@@ -20,7 +21,7 @@ void UATGContainerComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+	//ContainerInventory.OwnerComp = this;
 }
 
 
@@ -30,5 +31,21 @@ void UATGContainerComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+}
+
+void UATGContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(UATGContainerComponent, ContainerInventory, COND_None);
+}
+
+void UATGContainerComponent::PlayerInteract(FInteractionData& InteractionData)
+{
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("UATGContainerComponent PlayerInteract"));
+	InteractionData.InteractedActor = GetOwner();
+	InteractionData.InteractedComponent = this;
+	InteractionData.InteractionType = InteractionType;
 }
 

@@ -114,6 +114,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void PutInAtInventory(FInteractionData& InteractionData);
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void OpenItemBox(FInteractionData& InteractionData);
+
 //Helper
 protected:
 	UATGInventoryComponent* GetInventoryComponent();

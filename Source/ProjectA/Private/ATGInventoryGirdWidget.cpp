@@ -57,6 +57,8 @@ void UATGInventoryGirdWidget::RebuildAll()
 
 
 	GridPanel->ClearChildren();
+	GridPanel->InvalidateLayoutAndVolatility(); // 레이아웃 새로 계산 강제
+
 	IdToWidget.Empty();
 
 
@@ -133,9 +135,11 @@ void UATGInventoryGirdWidget::BuildCellBackground()
 			//GridPanel->GetSlots()
 			UGridSlot* CellSlot = GridPanel->AddChildToGrid(CellBox, y, x);
 			CellSlot->SetPadding(FMargin(CellPadding));
+			
 		}
 	}
 }
+
 
 UATGInventoryItemWidget* UATGInventoryGirdWidget::CreateItemWidget(const FInventoryEntry& E)
 {

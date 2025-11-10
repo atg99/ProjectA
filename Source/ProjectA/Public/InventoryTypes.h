@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Net/Serialization/FastArraySerializer.h"
+#include "ATGInventoryOwnerInterface.h"
 #include "InventoryTypes.generated.h"
+
 
 class UATGItemData;
 class UATGInventoryComponent;
@@ -136,23 +138,23 @@ struct FInventoryEntry : public FFastArraySerializerItem
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TSoftObjectPtr<UATGItemData> Item;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int32 Quantity = 0;
 
     // grid placement
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(BlueprintReadWrite)
     int32 X = 0;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(BlueprintReadWrite)
     int32 Y = 0;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(BlueprintReadOnly)
     int32 Width = 1;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(BlueprintReadOnly)
     int32 Height = 1;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -175,15 +177,18 @@ struct FInventoryGrid : public FFastArraySerializer
 {
     GENERATED_BODY()
 
-    UPROPERTY()
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TArray<FInventoryEntry> Entries;
 
     //preview 전용 복제안하는 배열
     UPROPERTY(NotReplicated)
     TArray<FInventoryEntry> PreviewEntries;
 
+    //UPROPERTY(NotReplicated)
+    //UATGInventoryComponent* OwnerComp = nullptr;
+
     UPROPERTY(NotReplicated)
-    UATGInventoryComponent* OwnerComp = nullptr;
+    TScriptInterface<IATGInventoryOwnerInterface> Owner = nullptr;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     int32 GridWidth = 10;
@@ -232,6 +237,13 @@ struct FInventoryGrid : public FFastArraySerializer
     bool PreviewRemoveById(int32 EntryId);
 
     bool PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
+
+    bool OwnerHasAuthority();
+
+    //sort function
+    void SortEntryById();
+
+   
 
 private:
     static int32 GlobalEntryIdCounter;

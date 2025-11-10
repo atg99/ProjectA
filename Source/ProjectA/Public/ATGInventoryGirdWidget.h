@@ -35,7 +35,7 @@ public:
 	int32 CellPadding = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
-	FLinearColor BGColor = { 128, 128, 128, 0.5 };
+	FLinearColor BGColor = FLinearColor(0.5f, 0.5f, 0.5f, 1.f);
 
 	FLinearColor DefaultColor;
 

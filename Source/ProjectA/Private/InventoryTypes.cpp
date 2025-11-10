@@ -4,32 +4,36 @@
 #include "InventoryTypes.h"
 #include "ATGInventoryComponent.h"
 #include "ATGItemData.h"
+#include "Algo/Sort.h"
 
 int32 FInventoryGrid::GlobalEntryIdCounter = 0;
 
 void FInventoryEntry::PreReplicatedRemove(const FInventoryGrid& InArraySerializer)
 {
-    if (InArraySerializer.OwnerComp)
-        InArraySerializer.OwnerComp->OnItemRemoved.Broadcast(Id);
+    if (InArraySerializer.Owner)
+        InArraySerializer.Owner->ItemRemoved(Id);
 }
 
 void FInventoryEntry::PostReplicatedAdd(const FInventoryGrid& InArraySerializer)
 {
-    if (InArraySerializer.OwnerComp)
+    UE_LOG(LogTemp, Display, TEXT("!!! FInventoryEntry::PostReplicatedAdd 1110"));
+    if (InArraySerializer.Owner)
     {
-        InArraySerializer.OwnerComp->OnItemAdded.Broadcast(Id);
+        UE_LOG(LogTemp, Display, TEXT("!!! PostReplicatedAdd Owner"));
+        InArraySerializer.Owner->ItemAdded(Id);
     }
     else
     {
-        if (GEngine)
-            GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! FInventoryEntry::PostReplicatedAdd"));
+      /*  if (GEngine)
+            GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! FInventoryEntry::PostReplicatedAdd"));*/
+        UE_LOG(LogTemp, Display, TEXT("!!! PostReplicatedAdd !Owner"));
     }
 }
 
 void FInventoryEntry::PostReplicatedChange(const FInventoryGrid& InArraySerializer)
 {
-    if (InArraySerializer.OwnerComp)
-        InArraySerializer.OwnerComp->OnItemChanged.Broadcast(Id);
+    if (InArraySerializer.Owner)
+        InArraySerializer.Owner->ItemChanged(Id);
 }
 
 //void FInventoryGrid::AddOrStack(UATGItemData* Def, int32 Qty)
@@ -102,7 +106,7 @@ bool FInventoryGrid::CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, 
         if (bOverlap) return false;
     }
 
-    if (OwnerComp->IsLocallyOwned()) //Local 판정일 때 프리뷰아이템도 고려
+    if (Owner->IsLocallyOwned()) //Local 판정일 때 프리뷰아이템도 고려
     {
         for (const auto& E : PreviewEntries)
         {
@@ -180,18 +184,18 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
             int32 AddedQty = FMath::Min(RemainCapacity, RemainQty);
             RemainQty -= AddedQty; //스택에 넣고 남은 아이템 수량
             E.Quantity += AddedQty;
-            if (OwnerComp)
+            if (Owner)
             {   
-                OwnerComp->OnItemChanged.Broadcast(E.Id);
-                if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+                Owner->ItemChanged(E.Id);
+                if (OwnerHasAuthority())    //서버에만 배열 마크
                 {
                     MarkItemDirty(E);
-                    OwnerComp->GetOwner()->ForceNetUpdate();
+                    Owner->InventoryForceNetUpdate();
                 }
                 else
                 {
                     //프리뷰 위젯 변경 브로드케스트
-                    OwnerComp->OnItemPreChanged.Broadcast(E);
+                    //Owner->OnItemPreChanged.Broadcast(E);
                 }
             }
         }
@@ -211,7 +215,8 @@ FInventoryEntry* FInventoryGrid::GetById(int32 EntryId)
 
 int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey)
 {
-    
+    UE_LOG(LogTemp, Display, TEXT("!!! FInventoryGrid::AddItemAt"));
+
     if (!ItemDef || Qty <= 0) return 0;
     if (!CanPlaceRect(X, Y, bRotated ? H : W, bRotated ? W : H)) return 0;
 
@@ -233,26 +238,27 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
 
     Qty = RemainQty;
 
-    if (OwnerComp && OwnerComp->IsHasAuthority())
+    if (Owner && OwnerHasAuthority())
     {
+        UE_LOG(LogTemp, Display, TEXT("!!! OwnerHasAuthority"));
         NewE.Id = ++GlobalEntryIdCounter;
         NewE.PredictionKey = PreKey;
         Entries.Add(NewE);
         MarkItemDirty(Entries.Last());
 
-        OwnerComp->GetOwner()->ForceNetUpdate();
+        Owner->InventoryForceNetUpdate();
 
-        OwnerComp->OnItemAdded.Broadcast(NewE.Id);
+        Owner->ItemAdded(NewE.Id);
         return NewE.Id;
     }
-    else if (OwnerComp && !OwnerComp->IsHasAuthority())
+    else if (Owner && !OwnerHasAuthority())
     {
         // 클라: 프리뷰는 Id 자체를 PredKey로 쓴다 (고유키)
         NewE.Id = PreKey;
 
         //PreviewEntries.Add(NewE); // 복제 안하는 로컬 배열에 추가
 
-        OwnerComp->OnItemPreAdded.Broadcast(NewE);
+        //Owner->OnItemPreAdded.Broadcast(NewE);
 
         return NewE.Id;
     }
@@ -282,12 +288,12 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         }
 
         MarkItemDirty(*Me);
-        if (OwnerComp)
+        if (Owner)
         {
-            OwnerComp->OnItemChanged.Broadcast(EntryId);
-            if (OwnerComp->IsHasAuthority())
+            Owner->ItemChanged(EntryId);
+            if (OwnerHasAuthority())
             {
-                OwnerComp->GetOwner()->ForceNetUpdate();
+                Owner->InventoryForceNetUpdate();
             }
         }
         return true;
@@ -356,12 +362,12 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
 
         MarkItemDirty(*Other);
         MarkItemDirty(*Me);
-        if (OwnerComp)
+        if (Owner)
         {
-            OwnerComp->OnItemChanged.Broadcast(EntryId);
-            if (OwnerComp->IsHasAuthority())
+            Owner->ItemChanged(EntryId);
+            if (OwnerHasAuthority())
             {
-                OwnerComp->GetOwner()->ForceNetUpdate();
+                Owner->InventoryForceNetUpdate();
             }
         }
         return true;
@@ -489,7 +495,7 @@ bool FInventoryGrid::Rotate(int32 EntryId)
         Me->Height = NewH;
         Me->bRotated = !Me->bRotated;
         MarkItemDirty(*Me);
-        if (OwnerComp) OwnerComp->OnItemChanged.Broadcast(EntryId);
+        if (Owner) Owner->ItemChanged(EntryId);
         return true;
     }
 
@@ -501,7 +507,7 @@ bool FInventoryGrid::Rotate(int32 EntryId)
         Me->Width = NewW; Me->Height = NewH;
         Me->bRotated = !Me->bRotated;
         MarkItemDirty(*Me);
-        if (OwnerComp) OwnerComp->OnItemChanged.Broadcast(EntryId);
+        if (Owner) Owner->ItemChanged(EntryId);
         return true;
     }
 
@@ -514,10 +520,10 @@ bool FInventoryGrid::RemoveById(int32 EntryId)
     if (Idx == INDEX_NONE) return false;
     Entries.RemoveAt(Idx);
     MarkArrayDirty();
-    if (OwnerComp)
+    if (Owner)
     {
-        OwnerComp->OnItemRemoved.Broadcast(EntryId);
-        OwnerComp->GetOwner()->ForceNetUpdate();
+        Owner->ItemRemoved(EntryId);
+        Owner->InventoryForceNetUpdate();
     }
     return true;
 }
@@ -528,13 +534,13 @@ bool FInventoryGrid::DecreaseQtyById(int32 EntryId, int32 Num)
     if (E->Quantity - Num > 0)
     {
         E->Quantity -= Num;
-        if (OwnerComp)
+        if (Owner)
         {
-            OwnerComp->OnItemChanged.Broadcast(E->Id);
-            if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+            Owner->ItemChanged(E->Id);
+            if (OwnerHasAuthority())    //서버에만 배열 마크
             {
                 MarkItemDirty(*E);
-                OwnerComp->GetOwner()->ForceNetUpdate();
+                Owner->InventoryForceNetUpdate();
             }
         }
         return true;
@@ -552,13 +558,13 @@ bool FInventoryGrid::DecreaseQtyByRef(FInventoryEntry& E, int32 Num)
     if (E.Quantity - Num > 0)
     {
         E.Quantity -= Num;
-        if (OwnerComp)
+        if (Owner)
         {
-            OwnerComp->OnItemChanged.Broadcast(E.Id);
-            if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+            Owner->ItemChanged(E.Id);
+            if (OwnerHasAuthority())    //서버에만 배열 마크
             {
                 MarkItemDirty(E);
-                OwnerComp->GetOwner()->ForceNetUpdate();
+                Owner->InventoryForceNetUpdate();
             }
         }
         return true;
@@ -581,13 +587,13 @@ bool FInventoryGrid::IncreaseQtyById(int32 EntryId, int32 Num)
     if (E->Quantity + Num <= E->Item->MaxStack)
     {
         E->Quantity += Num;
-        if (OwnerComp)
+        if (Owner)
         {
-            OwnerComp->OnItemChanged.Broadcast(E->Id);
-            if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+            Owner->ItemChanged(E->Id);
+            if (OwnerHasAuthority())    //서버에만 배열 마크
             {
                 MarkItemDirty(*E);
-                OwnerComp->GetOwner()->ForceNetUpdate();
+                Owner->InventoryForceNetUpdate();
             }
         }
         return true;
@@ -605,13 +611,13 @@ bool FInventoryGrid::IncreaseQtyByRef(FInventoryEntry& E, int32 Num)
     if (E.Quantity + Num <= E.Item->MaxStack)
     {
         E.Quantity += Num;
-        if (OwnerComp)
+        if (Owner)
         {
-            OwnerComp->OnItemChanged.Broadcast(E.Id);
-            if (OwnerComp->IsHasAuthority())    //서버에만 배열 마크
+            Owner->ItemChanged(E.Id);
+            if (OwnerHasAuthority())    //서버에만 배열 마크
             {
                 MarkItemDirty(E);
-                OwnerComp->GetOwner()->ForceNetUpdate();
+                Owner->InventoryForceNetUpdate();
             }
         }
         return true;
@@ -635,8 +641,8 @@ bool FInventoryGrid::PreviewRemoveById(int32 PreviewId)
 bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
 {
     const FInventoryEntry* Me = GetById(EntryId);
-    if (!Me || !OwnerComp) return false;
-    if (!OwnerComp->IsLocallyOwned()) return false;
+    if (!Me || !Owner) return false;
+    //if (!Owner->IsLocallyOwned()) return false;
 
     const int32 NewW = bIsRotate ? Me->Height : Me->Width;
     const int32 NewH = bIsRotate ? Me->Width : Me->Height;
@@ -652,7 +658,7 @@ bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bo
         Pre.bRotated = bIsRotate;
 
         PreviewEntries.Add(Pre);
-        OwnerComp->OnItemPreAdded.Broadcast(Pre);
+        //Owner->OnItemPreAdded.Broadcast(Pre);
         return true;
     }
 
@@ -688,14 +694,45 @@ bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bo
     PreA.Width = NewW;  PreA.Height = NewH;
     PreA.bRotated = bIsRotate;
     PreviewEntries.Add(PreA);
-    OwnerComp->OnItemPreAdded.Broadcast(PreA);
+    //OwnerComp->OnItemPreAdded.Broadcast(PreA);
 
     FInventoryEntry PreB = *Other;
     PreB.X = MeOldX;  PreB.Y = MeOldY; // 회전/사이즈 유지
     PreviewEntries.Add(PreB);
-    OwnerComp->OnItemPreAdded.Broadcast(PreB);
+    //OwnerComp->OnItemPreAdded.Broadcast(PreB);
 
     return true;
+}
+
+bool FInventoryGrid::OwnerHasAuthority()
+{
+    if (!Owner.GetObject())
+    {
+        UE_LOG(LogTemp, Display, TEXT("!!! !Owner.GetObject()"));
+        return false;
+    }
+    UActorComponent* OnwerComp = Cast<UActorComponent>(Owner.GetObject());
+    if (!OnwerComp)
+    {
+        UE_LOG(LogTemp, Display, TEXT("!OnwerComp"));
+        return false;
+    }
+    if (OnwerComp->GetOwner()->HasAuthority())
+    {
+        return true;
+    }
+    UE_LOG(LogTemp, Display, TEXT("!OnwerComp->GetOwner()->HasAuthority()"));
+    return false;
+}
+
+void FInventoryGrid::SortEntryById()
+{
+    Entries;
+    Algo::StableSort(Entries, [](const FInventoryEntry& A, const FInventoryEntry& B) { return A.Id < B.Id; });
+    for (FInventoryEntry& Entry : Entries)
+    {
+
+    }
 }
 
 

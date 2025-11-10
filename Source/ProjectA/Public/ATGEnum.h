@@ -11,8 +11,9 @@
 UENUM(BlueprintType)
 enum class EInteractionType : uint8
 {
+	None			UMETA(DisplayName = "None"),
 	PickUpItem		UMETA(DisplayName = "PickUpItem"),
-	OpenItemGrid	UMETA(DisplayName = "OpenItemGrid"),
+	ItemGridBox	UMETA(DisplayName = "OpenItemGrid"),
 	Equipment		UMETA(DisplayName = "Equipment"),
 };
 
@@ -23,8 +24,19 @@ struct FInteractionData
 {
 	GENERATED_BODY()
 
+	FInteractionData()
+		: InteractedActor(nullptr)
+		, InteractedComponent(nullptr)
+		, InteractionType(EInteractionType::None)
+		, ItemQty(0)
+	{
+	}
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	AActor* InteractedActor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UActorComponent* InteractedComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EInteractionType InteractionType;

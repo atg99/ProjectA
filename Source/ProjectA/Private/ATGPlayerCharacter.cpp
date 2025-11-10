@@ -244,7 +244,8 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 		case EInteractionType::PickUpItem:
 			PutInAtInventory(InteractionData);
 			break;
-		case  EInteractionType::OpenItemGrid:
+		case  EInteractionType::ItemGridBox:
+			OpenItemBox(InteractionData);
 			break;
 		case EInteractionType::Equipment:
 			break;
@@ -294,6 +295,15 @@ void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InteractionData)
 		//load asset  InterationData.ItemDef.LoadSynchronous()
 		
 		InventoryComp->TryPickupClient(InteractionData.ItemDef, InteractionData.ItemQty, InteractionData.InteractedActor);
+	}
+}
+
+void AATGPlayerCharacter::OpenItemBox(FInteractionData& InteractionData)
+{
+	UATGInventoryComponent* InventoryComp = GetInventoryComponent();
+	if (InventoryComp)
+	{
+		InventoryComp->OpenItemContainerGrid(InteractionData.InteractedComponent);
 	}
 }
 

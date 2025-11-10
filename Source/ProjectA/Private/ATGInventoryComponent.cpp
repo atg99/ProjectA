@@ -9,6 +9,7 @@
 #include "GameFramework/PlayerState.h"
 #include "ATGPickupComponent.h"
 #include <Kismet/GameplayStatics.h>
+#include "ATGContainerComponent.h"
 
 // Sets default values for this component's properties
 UATGInventoryComponent::UATGInventoryComponent()
@@ -17,7 +18,8 @@ UATGInventoryComponent::UATGInventoryComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 
-	Inventory.OwnerComp = this;
+	//Inventory.OwnerComp = this;
+	Inventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
 
 	SetIsReplicatedByDefault(true);
 	// ...
@@ -29,7 +31,8 @@ void UATGInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Inventory.OwnerComp = this;
+	//Inventory.OwnerComp = this;
+	Inventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
 
 	OnItemAdded.AddDynamic(this, &UATGInventoryComponent::HandleReplicatedAdd);
 	//OnItemChanged.AddDynamic(this, &UATGInventoryComponent::HandleReplicatedChange);
@@ -52,8 +55,29 @@ void UATGInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME_CONDITION(UATGInventoryComponent, Inventory, COND_OwnerOnly);
 }
 
+void UATGInventoryComponent::ItemAdded(int32 EntryId)
+{
+	OnItemAdded.Broadcast(EntryId);
+}
+
+void UATGInventoryComponent::ItemChanged(int32 EntryId)
+{
+	OnItemChanged.Broadcast(EntryId);
+}
+
+void UATGInventoryComponent::InventoryForceNetUpdate()
+{
+	GetOwner()->ForceNetUpdate();
+}
+
+void UATGInventoryComponent::ItemRemoved(int32 EntryId)
+{
+	OnItemRemoved.Broadcast(EntryId);
+}
+
 TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& ClientAddRequest, AActor* InteractedActor = nullptr)
 {
+
 	TArray<int32> EntryIds;
 	EntryIds.Empty();
 	if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0) return EntryIds;
@@ -208,6 +232,18 @@ void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int3
 
 
 
+void UATGInventoryComponent::OpenItemContainerGrid(UActorComponent* InteractedComp)
+{
+	UATGContainerComponent* ContainerComp = InteractedComp ? Cast<UATGContainerComponent>(InteractedComp) : nullptr;
+	if (!ContainerComp)
+	{
+		return;
+	}
+
+	FInventoryGrid& ContainerInven = ContainerComp->GetContainerInventory();
+}
+
+
 bool UATGInventoryComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 Id)
 {
 	return Inventory.CheckMoveOrSwap(StartX, StartY, W, H, Id);
@@ -350,7 +386,7 @@ bool UATGInventoryComponent::IsHasAuthority()
 	return false;
 }
 
-bool UATGInventoryComponent::IsLocallyOwned() const
+bool UATGInventoryComponent::IsLocallyOwned()
 {
 	if (const APlayerState* PS = Cast<APlayerState>(GetOwner()))
 	{

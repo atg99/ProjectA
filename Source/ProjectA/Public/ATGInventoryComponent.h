@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "InventoryTypes.h"
+#include "ATGInventoryOwnerInterface.h"
 #include "ATGInventoryComponent.generated.h"
 
 class AATGItem;
@@ -14,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridEvent, int32, EntryId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridPreEvent, FInventoryEntry, PreE);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class PROJECTA_API UATGInventoryComponent : public UActorComponent
+class PROJECTA_API UATGInventoryComponent : public UActorComponent, public IATGInventoryOwnerInterface
 {
 	GENERATED_BODY()
 
@@ -37,6 +38,18 @@ protected:
 	// FastArray 
 	UPROPERTY(EditAnywhere ,Replicated)
 	FInventoryGrid Inventory;
+
+public:
+	//Interface Override
+	virtual void ItemRemoved(int32 EntryId) override;
+
+	virtual void ItemAdded(int32 EntryId) override;
+
+	virtual void ItemChanged(int32 EntryId) override;
+
+	virtual void InventoryForceNetUpdate() override;
+
+	virtual bool IsLocallyOwned() override;
 
 public:
 
@@ -94,6 +107,7 @@ public:
 	void ClientMoveResult(const FInventoryChangeResult& Result);
 
 	// Client Preview + ServerRPC
+
 	UFUNCTION()
 	void TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor);
 
@@ -105,6 +119,9 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void ServerDropItem(int32 EntryId, int32 SplitNum = -1);
+
+	UFUNCTION()
+	void OpenItemContainerGrid(class UActorComponent* InteractedComp);
 
 	bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1);
 
@@ -127,8 +144,6 @@ public:
 	int32 GetGridHeight() const { return Inventory.GridHeight; }
 
 	bool IsHasAuthority();
-
-	bool IsLocallyOwned() const;
 
 	UATGPickupComponent* GetPickupComp(AActor* InteractedActor);
 
