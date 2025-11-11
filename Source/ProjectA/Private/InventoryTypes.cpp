@@ -127,6 +127,30 @@ bool FInventoryGrid::CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, 
     return true;
 }
 
+bool FInventoryGrid::SortCanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId) const
+{
+
+    if (StartX < 0 || StartY < 0 || StartX + W > GridWidth || StartY + H > GridHeight)
+        return false;
+
+    for (const auto& E : TempEntries)
+    {
+        if (E->Id == IgnoreId) continue;
+
+        const int32 EX2 = E->X + E->Width - 1;
+        const int32 EY2 = E->Y + E->Height - 1;
+        const int32 NX2 = StartX + W - 1;
+        const int32 NY2 = StartY + H - 1;
+
+        //조건중 하나라도 만족하면 겹치지 않음
+        const bool bOverlap = !(NX2 < E->X || EX2 < StartX || NY2 < E->Y || EY2 < StartY);
+
+        if (bOverlap) return false;
+    }
+
+    return true;
+}
+
 bool FInventoryGrid::FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, int32 IgnoreId)
 {
     for (int32 y = 0; y <= GridHeight - H; ++y)
@@ -204,6 +228,76 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
     return RemainQty;
 }
 
+bool FInventoryGrid::SortFindFirstFit(TSoftObjectPtr<UATGItemData> ItemDef, int32 W, int32 H, int32& OutX, int32& OutY, int32& Qty, int32 IgnoreId)
+{
+    //int32 TempQty = Qty;
+    Qty = SortFindAddFitStack(ItemDef, Qty, IgnoreId); //채울수 있는 스택 검색 후 채움
+
+    for (int32 y = 0; y <= GridHeight - H; ++y)
+    {
+        for (int32 x = 0; x <= GridWidth - W; ++x)
+        {
+            if (SortCanPlaceRect(x, y, W, H))
+            {
+                OutX = x; OutY = y;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+int32 FInventoryGrid::SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 IgnoreId)
+{
+    if (!ItemDef.Get())
+    {
+        ItemDef.LoadSynchronous();
+    }
+    int32 RemainQty = Qty;
+    for (auto E : TempEntries)
+    {
+        if (!E)
+        {
+            continue;
+        }
+
+        if (E->Id == IgnoreId) continue; //자기 자신 무시
+
+        if (RemainQty == 0) //스텍 찾으면서 순회하다 남은 수량 0되면 종료
+        {
+            return RemainQty;
+        }
+
+        int32 RemainCapacity = E->Item->MaxStack - E->Quantity;
+        if (E->Item->ItemId == ItemDef->ItemId && RemainCapacity >= 1) // 아이템 아이디 같고 스텍 남은 자리가 1이상일때
+        {
+            int32 AddedQty = FMath::Min(RemainCapacity, RemainQty);
+            RemainQty -= AddedQty; //스택에 넣고 남은 아이템 수량
+
+            E->Quantity += AddedQty;
+            
+            if (Owner)
+            {
+                MarkItemDirty(*E);
+                Owner->ItemChanged(E->Id);
+                //if (OwnerHasAuthority())    //서버에만 배열 마크
+                //{
+                //    MarkItemDirty(E);
+                //    Owner->InventoryForceNetUpdate();
+                //}
+                //else
+                //{
+                //    //프리뷰 위젯 변경 브로드케스트
+                //    //Owner->OnItemPreChanged.Broadcast(E);
+                //}
+            }
+        }
+    }
+
+    return RemainQty;
+}
+
 const FInventoryEntry* FInventoryGrid::GetById(int32 EntryId) const
 {
     return Entries.FindByPredicate([&](const FInventoryEntry& E) { return E.Id == EntryId; });
@@ -271,7 +365,7 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
     FInventoryEntry* Me = GetById(EntryId);
     if (!Me) return false;
 
-    // 이번 이동/스왑에서 사용할 "검사용" 치수
+    // 이번 이동/스왑에서 사용할 검사용 치수
     const int32 NewW = bIsRotate ? Me->Height : Me->Width;
     const int32 NewH = bIsRotate ? Me->Width : Me->Height;
 
@@ -369,6 +463,38 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
             {
                 Owner->InventoryForceNetUpdate();
             }
+        }
+        return true;
+    }
+
+    return false;
+}
+
+bool FInventoryGrid::SortMove(int32 EntryId, int32 NewX, int32 NewY)
+{
+    FInventoryEntry* Me = GetById(EntryId);
+    if (!Me) return false;
+
+    //UE_LOG(LogTemp, Display, TEXT("SortMove"));
+
+    // 이번 이동/스왑에서 사용할 검사용 치수
+    const int32 NewW = Me->Width;
+    const int32 NewH = Me->Height;
+
+    // 빈 자리면 이동
+    if (SortCanPlaceRect(NewX, NewY, NewW, NewH, Me->Id))
+    {
+        Me->X = NewX;
+        Me->Y = NewY;
+    
+        if (Owner)
+        {
+            MarkItemDirty(*Me);
+            Owner->ItemChanged(EntryId);
+            //if (OwnerHasAuthority())
+            //{
+            //    Owner->InventoryForceNetUpdate();
+            //}
         }
         return true;
     }
@@ -725,14 +851,57 @@ bool FInventoryGrid::OwnerHasAuthority()
     return false;
 }
 
-void FInventoryGrid::SortEntryById()
+void FInventoryGrid::SortEntryByItemId()
 {
-    Entries;
-    Algo::StableSort(Entries, [](const FInventoryEntry& A, const FInventoryEntry& B) { return A.Id < B.Id; });
+    //서버에서 실행되는 함수
+    if (!Owner || !OwnerHasAuthority()) 
+    {
+        return;
+    }
+
+    UE_LOG(LogTemp, Display, TEXT("FInventoryGrid::SortEntryByItemId"));
+
+    Algo::StableSort(Entries, [](const FInventoryEntry& A, const FInventoryEntry& B) { return A.Item->ItemId < B.Item->ItemId; });
+    
+    TempEntries.Empty();
+
+    TArray<int32> DeleteIds;
     for (FInventoryEntry& Entry : Entries)
     {
+        int32 OutX = -1;
+        int32 OutY = -1;
+        int32 RemainQty = Entry.Quantity;
+        SortFindFirstFit(Entry.Item, Entry.Width, Entry.Height, OutX, OutY, RemainQty, Entry.Id);
 
+        if (RemainQty <= 0)
+        {
+            DeleteIds.Add(Entry.Id);
+            continue;
+        }
+
+        Entry.Quantity = RemainQty;
+        
+        if (SortMove(Entry.Id, OutX, OutY))
+        {
+            TempEntries.Add(&Entry);
+        }
     }
+
+    //  MarkArrayDirty() MarkItemDirty() 동시에 실행하면 FRepLayout::DeltaSerializeFastArrayProperty() 크러시 
+    Owner.GetObject()->GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this, DeleteIds]() {
+        for (int32 DeleteId : DeleteIds)
+        {
+            const int32 Idx = Entries.IndexOfByPredicate([&](const FInventoryEntry& E) { return E.Id == DeleteId; });
+            if (Idx == INDEX_NONE) continue;
+            Entries.RemoveAt(Idx);
+        }
+        MarkArrayDirty();
+        Owner->InventoryForceNetUpdate();
+        }));
+  
+    TempEntries.Empty();
+    
+    return;
 }
 
 

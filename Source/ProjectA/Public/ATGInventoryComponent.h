@@ -117,6 +117,12 @@ public:
 	UFUNCTION()
 	void TryDropItem(int32 EntryId, int32 SplitNum = -1);
 
+	UFUNCTION()
+	void TrySortByItemId();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSortByItemId();
+
 	UFUNCTION(Server, Reliable)
 	void ServerDropItem(int32 EntryId, int32 SplitNum = -1);
 

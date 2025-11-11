@@ -14,6 +14,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "ATGStackSplitWidget.h"
 #include "Components/TextBlock.h"
+#include "Components/Button.h"
 
 
 void UATGInventoryGirdWidget::NativeConstruct()
@@ -22,6 +23,18 @@ void UATGInventoryGirdWidget::NativeConstruct()
 
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Red, TEXT("InvenGridWidget NativeConstruct"));
+
+
+	if (Btn_Sort)
+	{
+		UE_LOG(LogTemp, Display, TEXT("Valid Btn_Sort"));
+
+		Btn_Sort->OnClicked.AddDynamic(this, &UATGInventoryGirdWidget::OnSortBtnClicked);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Display, TEXT("Invalid Btn_Sort"));
+	}
 
 }
 
@@ -346,11 +359,6 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 
 		const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
-		if (CheckIsOutGrid(Local))
-		{
-			return true;
-		}
-
 		FIntPoint Cell = CellFromLocal(Local);
 		//if (GEngine)
 		//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+ Cell.ToString());
@@ -360,6 +368,12 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
 		Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
 		Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
+
+		if (CheckIsOutGrid(Local))
+		{
+			SetAllGridDefaultColor();
+			return true;
+		}
 
 		//같은 칸이면 넘김
 		if (PrevCell == Cell)
@@ -589,4 +603,10 @@ void UATGInventoryGirdWidget::HandleItemPreRemoved(int32 PreEId)
 
 		PreviewIdToWidget.Remove(PreEId);
 	}
+}
+
+void UATGInventoryGirdWidget::OnSortBtnClicked()
+{
+	UE_LOG(LogTemp, Display, TEXT("OnSortBtnClicked"));
+	InventoryComp->TrySortByItemId();
 }

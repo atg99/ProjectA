@@ -7,6 +7,7 @@
 #include "InventoryTypes.h"
 #include "ATGInventoryGirdWidget.generated.h"
 
+class UButton;
 class UGridPanel;
 class UImage;
 class UGridSlot;
@@ -24,6 +25,9 @@ class PROJECTA_API UATGInventoryGirdWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
+	UButton* Btn_Sort = nullptr;
+
 	// 디자이너에서 GridPanel 바인드 (Named Slot: GridPanel)
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
 	UGridPanel* GridPanel = nullptr;
@@ -117,4 +121,7 @@ protected:
 	bool bIsRotate = false;
 
 	void SetAllGridDefaultColor();
+
+	UFUNCTION()
+	void OnSortBtnClicked();
 };

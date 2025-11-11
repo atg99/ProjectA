@@ -171,14 +171,19 @@ struct FInventoryEntry : public FFastArraySerializerItem
     void PostReplicatedChange(const struct FInventoryGrid& InArraySerializer);
 };
 
+//https://zhuanlan.zhihu.com/p/1904701948810224669
 //https://corma642.tistory.com/565
 USTRUCT(BlueprintType)
 struct FInventoryGrid : public FFastArraySerializer
 {
     GENERATED_BODY()
 
+public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TArray<FInventoryEntry> Entries;
+
+    //서버에서 아이템 정렬할때 사용할 임시
+    TArray<FInventoryEntry*> TempEntries;
 
     //preview 전용 복제안하는 배열
     UPROPERTY(NotReplicated)
@@ -204,15 +209,23 @@ struct FInventoryGrid : public FFastArraySerializer
 
     bool CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) const;
 
+    bool SortCanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) const;
+
     bool FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, int32 IgnoreId = -1);
 
     bool FindFirstFit(TSoftObjectPtr<UATGItemData> ItemDef, int32 W, int32 H, int32& OutX, int32& OutY, int32& Qty, int32 IgnoreId = -1);
 
+    bool SortFindFirstFit(TSoftObjectPtr<UATGItemData> ItemDef, int32 W, int32 H, int32& OutX, int32& OutY, int32& Qty, int32 IgnoreId = -1);
+
     int32 FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 IgnoreId = -1);
+
+    int32 SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 IgnoreId = -1);
 
     int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey);
 
     bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
+
+    bool SortMove(int32 EntryId, int32 NewX, int32 NewY);
 
     bool CheckMoveOrSwap(int32 StartX, int32 StartY, int32 W, int32 H, int32 Id);
 
@@ -240,8 +253,10 @@ struct FInventoryGrid : public FFastArraySerializer
 
     bool OwnerHasAuthority();
 
+public:
+
     //sort function
-    void SortEntryById();
+    void SortEntryByItemId();
 
    
 

@@ -275,6 +275,16 @@ void UATGInventoryComponent::TryDropItem(int32 EntryId, int32 SplitNum)
 	ServerDropItem(EntryId, SplitNum);
 }
 
+void UATGInventoryComponent::TrySortByItemId()
+{
+	ServerSortByItemId();
+}
+
+void UATGInventoryComponent::ServerSortByItemId_Implementation()
+{
+	Inventory.SortEntryByItemId();
+}
+
 void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId, int32 SplitNum)
 {
 	ServerSpawnItem(EntryId, SplitNum);
