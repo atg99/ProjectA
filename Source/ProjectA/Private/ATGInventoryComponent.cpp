@@ -340,7 +340,7 @@ void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId, int32
 
 	if (APlayerState* PS = Cast<APlayerState>(GetOwner()))
 	{
-		FVector SpawnLoc =  PS->GetPawn()->GetActorLocation() + FVector(100, 0, 0);
+		FVector SpawnLoc =  PS->GetPawn()->GetActorLocation() + FVector(100.f, 0, -50.f);
 
 		FTransform SpawnTransform = { FRotator::ZeroRotator, SpawnLoc, FVector(1.f) };
 

@@ -232,6 +232,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 	if (CheckIsOutGrid(Local))
 	{
 		InventoryComp->TryDropItem(Dragged->EntryId);
+		return;
 	}
 
 	FIntPoint Cell = CellFromLocal(Local);
@@ -249,6 +250,8 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	Operation = nullptr;
 	bIsRotate = false;
+
+	return;
 }
 
 // Split Version Overload
@@ -261,6 +264,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 	if (CheckIsOutGrid(Local))
 	{
 		InventoryComp->TryDropItem(Dragged->EntryId, SplitNum);
+		return;
 	}
 
 	FIntPoint Cell = CellFromLocal(Local);
@@ -272,6 +276,8 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	Operation = nullptr;
 	bIsRotate = false;
+
+	return;
 }
 
 
