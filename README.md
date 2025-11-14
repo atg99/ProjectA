@@ -1,72 +1,44 @@
-#그리드 인벤토리 시스템
+# 그리드 인벤토리 시스템
 
 
 ![ProjectADemoResize](./Document/ProjectADemoResize.gif)
 
 UE5 그리드 인벤토리 시스템입니다.
--온라인 플레이 지원 (데디케이트 서버)
--FastArray 사용 네트워크 최적화
+- 온라인 플레이 지원 (데디케이트 서버)
+- FastArray 사용 네트워크 최적화
 - C++ 로 작성
 - 블루프린트 지원
 
 ```mermaid
-graph LR
-  %% =========================
-  %% Game / Player Framework
-  %% =========================
-  subgraph GameFramework
-    GM[AATGGameModeBase]
-    PC[AATGPlayerController]
-    PS[AATGPlayerState]
-    CH[AATGPlayerCharacter]
-  end
+sequenceDiagram
+    autonumber
+    participant PC as AATGPlayerController
+    participant HUD as UATGHUDComponent
+    participant UI as UATGInventoryGirdWidget
+    participant InvC as UATGInventoryComponent (Client)
+    participant InvS as UATGInventoryComponent (Server)
+    participant Grid as FInventoryGrid
+    participant Char as AATGPlayerCharacter
+    participant Pick as UATGPickupComponent
 
-  %% =========================
-  %% Inventory / World Objects
-  %% =========================
-  subgraph InventoryRuntime
-    INV[UATGInventoryComponent]
-    GRID[FInventoryGrid<br/>+ FInventoryEntry]
-    DATA[UATGItemData]
-    PICK[AATGItem<br/>+ UATGPickupComponent]
-    CONT[UATGContainerComponent]
-  end
+    note over PC,InvC: PlayerState builds the shared UATGInventoryComponent that PC fetches during StartInitInventoryWidget.
+    PC->>HUD: StartInitInventoryWidget()
+    HUD-->>PC: EnsureWidgetCreated()
+    PC->>UI: Assign InventoryComp & BindInventoryComp()
+    UI->>InvC: Subscribe to OnItemAdded/Changed/Removed
 
-  %% =========================
-  %% UI
-  %% =========================
-  subgraph UI_Layer
-    UI[UATGInventoryGirdWidget]
-    ITEMW[UATGInventoryItemWidget]
-    SPLIT[UATGStackSplitWidget]
-  end
+    Char->>Pick: PlayerInteract()
+    Pick-->>Char: FInteractionData(PickUpItem, ItemDef, Qty)
+    Char->>InvC: TryPickupClient(data)
 
-  %% -------------------------
-  %% Game / Player Wiring
-  %% -------------------------
-  GM --> PC
-  PC --> PS
-  PC --> CH
-  PC --> UI
+    InvC->>Grid: AddItemAuto() prediction\n(FindFirstFit + AddItemAt)
+    InvC->>InvS: ServerAddItemAuto(request, actor)
 
-  %% Player State / Character ↔ Inventory
-  PS --> INV
-  CH --> INV
-  CH --> PICK
-
-  %% Inventory ↔ Data / World Objects
-  INV --> GRID
-  GRID --> DATA
-  PICK --> DATA
-
-  INV --> PICK
-  INV --> CONT
-  CONT --> GRID
-
-  %% Inventory ↔ UI
-  INV --> UI
-  UI --> ITEMW
-  UI --> SPLIT
+    InvS->>Grid: AddItemAuto() authoritative
+    InvS->>Pick: GetPickupComp()->DecreaseQty()
+    InvS-->>InvC: ClientAddItemResult()
+    InvS-->>InvC: Replicate inventory -> OnItemAdded()
+    InvC-->>UI: HandleItemAdded/Changed/Removed() -> Update cells
 ```
 
 ## 핵심 흐름 요약
