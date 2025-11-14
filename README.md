@@ -11,20 +11,25 @@ UE5 그리드 인벤토리 시스템입니다.
 
 ## 주요 기능
 
-<img width="1032" height="773" alt="image" src="https://github.com/user-attachments/assets/f3199749-459a-46b3-bc86-fe9036f6e6c7" />
+<img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/f3199749-459a-46b3-bc86-fe9036f6e6c7" />
+
 월드 아이템 줍기
 
-<img width="481" height="464" alt="image" src="https://github.com/user-attachments/assets/e92a92de-34c4-4109-a7b2-a63b353fc402" />
+<img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/e92a92de-34c4-4109-a7b2-a63b353fc402" />
+
 아이템 이동
 
-<img width="819" height="480" alt="image" src="https://github.com/user-attachments/assets/8a3f3ba1-2469-4d89-9d0f-fc2330d788d4" />
+<img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/8a3f3ba1-2469-4d89-9d0f-fc2330d788d4" />
+
 아이템 스택 분할
 
-<img width="481" height="472" alt="image" src="https://github.com/user-attachments/assets/08bc331c-8fdb-4e2c-9caf-68183899f9b5" />
-<img width="481" height="474" alt="image" src="https://github.com/user-attachments/assets/305eafa1-267b-4479-9ba9-dbcb16fb3655" />
+<img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/08bc331c-8fdb-4e2c-9caf-68183899f9b5" />
+<img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/305eafa1-267b-4479-9ba9-dbcb16fb3655" />
+
 아이템 스택 병합
 
-<img width="857" height="572" alt="image" src="https://github.com/user-attachments/assets/bc108180-57e0-4dc1-84c1-e63683a714fd" />
+<img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/bc108180-57e0-4dc1-84c1-e63683a714fd" />
+
 아이템 월드 드랍
 
 
