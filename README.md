@@ -1,1 +1,1 @@
-![demo](./Document/ProjectADemoResize.gif)
+![ProjectADemoResize](./Document/ProjectADemoResize.gif)
