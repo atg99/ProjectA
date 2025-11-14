@@ -21,7 +21,7 @@ sequenceDiagram
     participant Char as AATGPlayerCharacter
     participant Pick as UATGPickupComponent
 
-    note over PC,InvC: PlayerState builds the shared UATGInventoryComponent that PC fetches during StartInitInventoryWidget.
+    note over PC,InvC: After PlayerState builds the shared UATGInventoryComponent, PC Run StartInitInventoryWidget Function.
     PC->>HUD: StartInitInventoryWidget()
     HUD-->>PC: EnsureWidgetCreated()
     PC->>UI: Assign InventoryComp & BindInventoryComp()
