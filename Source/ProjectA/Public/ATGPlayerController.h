@@ -8,10 +8,13 @@
 
 class UInputMappingContext;
 class UATGInventoryGirdWidget;
-
+class UATGInventoryComponent;
 /**
  * 
  */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInitOnInventoryComponent, UATGInventoryComponent*, InvenComponent);
+
+
 UCLASS()
 class PROJECTA_API AATGPlayerController : public APlayerController
 {
@@ -53,6 +56,9 @@ protected:
 	
 
 public:
+	FInitOnInventoryComponent InitInventoryComponent;
+
+	class UATGInventoryComponent* InvenComp = nullptr;
 
 	void ToggleInventoryInputMapping(bool bIsInvent);
 

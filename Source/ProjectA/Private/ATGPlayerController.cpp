@@ -6,12 +6,14 @@
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
 #include "ATGPlayerState.h"
-#include "ATGInventoryGirdWidget.h"
+
 #include "GameFramework/PlayerState.h"
 #include "ATGInventoryComponent.h"
 #include "GameFramework/HUD.h"
 #include "ATGHUDComponent.h"
-
+#include "ATGHUDWidget.h"
+#include "ATGInventoryWidget.h"
+#include "ATGInventoryGirdWidget.h"
 
 void AATGPlayerController::SetupInputComponent()
 {
@@ -62,17 +64,19 @@ void AATGPlayerController::StartInitInventoryWidget()
 	if (HUDComp)
 	{
 		HUDComp->EnsureWidgetCreated(this);
+		//HUDComp->OnInventToggle.AddDynamic()
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("Can't Find HUDComponent at HUD"));
 	}
 
-	UATGInventoryComponent* Comp = GetPlayerState<APlayerState>()->FindComponentByClass<UATGInventoryComponent>();
-	if (Comp)
+	InvenComp = GetPlayerState<APlayerState>()->FindComponentByClass<UATGInventoryComponent>();
+	if (InvenComp)
 	{
-		HUDComp->InventoryWidget->InventoryComp = Comp;
-		HUDComp->InventoryWidget->BindInventoryComp();
+		InitInventoryComponent.Broadcast(InvenComp);
+		//HUDComp->HUDWidget->InventoryWidget->PlayerGrid->InventoryComp = Comp;
+		//HUDComp->HUDWidget->InventoryWidget->PlayerGrid->BindInventoryComp();
 	}
 	else
 	{

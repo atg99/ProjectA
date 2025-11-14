@@ -2,6 +2,7 @@
 
 
 #include "ATGContainerComponent.h"
+#include "ATGItemData.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
@@ -20,6 +21,21 @@ void UATGContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ContainerInventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
+
+	for (auto& Entry : ContainerInventory.Entries)
+	{
+		if (!Entry.Item.Get())
+		{
+			Entry.Item.LoadSynchronous();
+		}
+	}
+
+	if (GetOwner()->HasAuthority())
+	{
+		ContainerInventory.SortEntryByItemId();
+	}
+	
 	// ...
 	//ContainerInventory.OwnerComp = this;
 }

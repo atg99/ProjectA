@@ -7,8 +7,11 @@
 
 #include "ATGHUDComponent.generated.h"
 
-class UATGInventoryGirdWidget;
+//class UATGInventoryGirdWidget;
 class AATGPlayerController;
+class UATGHUDWidget;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryToggle, bool, bIsVisible);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PROJECTA_API UATGHUDComponent : public UActorComponent
@@ -30,14 +33,20 @@ public:
 protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UATGInventoryGirdWidget> InventoryWidgetClass;
+	TSubclassOf<UATGHUDWidget> HUDWidgetClass;
 
 	APlayerController* GetHUDOwnerPC() const;
 
+	bool bInvenVisible = false;
+
 public:
+
+	UPROPERTY(BlueprintAssignable)
+	FOnInventoryToggle OnInventToggle;
+
 	//저장(세이브)하거나 리셋(에디터 재시작) 시 보존되지 않아야 하는 변수
 	UPROPERTY(Transient)
-	UATGInventoryGirdWidget* InventoryWidget = nullptr;
+	UATGHUDWidget* HUDWidget = nullptr;
 
 	void EnsureWidgetCreated(APlayerController* PC);
 	void ToggleInventoryUI();

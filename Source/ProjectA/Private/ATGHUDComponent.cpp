@@ -3,6 +3,7 @@
 
 #include "ATGHUDComponent.h"
 #include "ATGInventoryGirdWidget.h"
+#include "ATGHUDWidget.h"
 #include "GameFramework/HUD.h"
 #include "ATGPlayerController.h"
 
@@ -36,7 +37,7 @@ void UATGHUDComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 void UATGHUDComponent::EnsureWidgetCreated(APlayerController* PC)
 {
-	if (InventoryWidget || !InventoryWidgetClass)
+	if (HUDWidget || !HUDWidgetClass)
 	{
 		return;
 	}
@@ -45,11 +46,12 @@ void UATGHUDComponent::EnsureWidgetCreated(APlayerController* PC)
 
 	}
 
-	InventoryWidget = CreateWidget<UATGInventoryGirdWidget>(PC, InventoryWidgetClass);
-	if (InventoryWidget)
+	HUDWidget = CreateWidget<UATGHUDWidget>(PC, HUDWidgetClass);
+	if (HUDWidget)
 	{
-		InventoryWidget->AddToViewport();
-		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
+		HUDWidget->HUDComp = this;
+		HUDWidget->AddToViewport();
+		HUDWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 
 	if (GEngine)
@@ -58,30 +60,15 @@ void UATGHUDComponent::EnsureWidgetCreated(APlayerController* PC)
 
 void UATGHUDComponent::ToggleInventoryUI()
 {
-	if (!InventoryWidget)
-	{
-		UE_LOG(LogTemp, Error, TEXT("!!InventoryWidget"));
-		return;
-	}
-	switch (InventoryWidget->GetVisibility())
-	{
-	case ESlateVisibility::Visible:
-		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
-		break;
-	case ESlateVisibility::Collapsed:
-		InventoryWidget->SetVisibility(ESlateVisibility::Visible);
-		break;
-	default:
-		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
-		break;
-	}
+	bInvenVisible = !bInvenVisible;
 
-	if (InventoryWidget->GetVisibility() == ESlateVisibility::Visible)
+	OnInventToggle.Broadcast(bInvenVisible);
+
+	if (bInvenVisible)
 	{
 		GetHUDOwnerPC()->SetShowMouseCursor(true);
 	
 		Cast<AATGPlayerController>(GetHUDOwnerPC())->ToggleInventoryInputMapping(true);
-		
 		
 	}
 	else

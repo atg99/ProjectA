@@ -15,6 +15,8 @@
 #include "ATGStackSplitWidget.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
+#include "Kismet/GameplayStatics.h"
+#include "ATGPlayerController.h"
 
 
 void UATGInventoryGirdWidget::NativeConstruct()
@@ -23,7 +25,6 @@ void UATGInventoryGirdWidget::NativeConstruct()
 
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Red, TEXT("InvenGridWidget NativeConstruct"));
-
 
 	if (Btn_Sort)
 	{
@@ -37,6 +38,31 @@ void UATGInventoryGirdWidget::NativeConstruct()
 	}
 
 }
+
+void UATGInventoryGirdWidget::InitPlayerGrid()
+{
+	AATGPlayerController* PC = Cast<AATGPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+	if (PC)
+	{
+		if (PC->InvenComp)
+		{
+			InventoryComp = PC->InvenComp;
+			BindInventoryComp();
+		}
+		else
+		{
+			PC->InitInventoryComponent.AddDynamic(this, &UATGInventoryGirdWidget::HandleInitInventoryComp);
+		}
+	}
+}
+
+void UATGInventoryGirdWidget::HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent)
+{
+	InventoryComp = GetInventoryComponent;
+	BindInventoryComp();
+}
+
+
 
 void UATGInventoryGirdWidget::InitializeFromOwner()
 {
@@ -213,8 +239,8 @@ bool UATGInventoryGirdWidget::CheckIsOutGrid(const FVector2D& Local) const
 		return true;
 	}
 	const float Pitch = float(CellSize + 2 * CellPadding);
-	float HSize = float(Pitch * InventoryComp->GetGridWidth());
-	float WSize = float(Pitch * InventoryComp->GetGridHeight());
+	float WSize = float(Pitch * InventoryComp->GetGridWidth());
+	float HSize = float(Pitch * InventoryComp->GetGridHeight());
 	if (Local.X > WSize || Local.Y > HSize)
 	{
 		return true;
@@ -229,13 +255,14 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
-	if (CheckIsOutGrid(Local))
+	if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
 	{
 		InventoryComp->TryDropItem(Dragged->EntryId);
 		return;
 	}
 
 	FIntPoint Cell = CellFromLocal(Local);
+	
 	//if (GEngine)
 	//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+ Cell.ToString());
 	//if (GEngine)
@@ -261,7 +288,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
-	if (CheckIsOutGrid(Local))
+	if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
 	{
 		InventoryComp->TryDropItem(Dragged->EntryId, SplitNum);
 		return;
@@ -338,7 +365,10 @@ void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FD
 {
 	//Super::NativeOnDragEnter(InGeo, InDragDropEvent, InOperation);
 	// TODO: 클라 미리보기(가능/불가 하이라이트) 구현 시 여기서 셀 강조 처리
-	Operation = InOperation;
+	//Operation = InOperation;
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragEnter"));
+	bIsDragLeave = false;
 }
  
 
@@ -348,7 +378,8 @@ void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDrop
 	// TODO: 하이라이트 해제
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragLeave"));
-	Operation = nullptr;
+	bIsDragLeave = true;
+	//Operation = nullptr;
 	//bIsRotate = false;
 }
 
@@ -375,7 +406,7 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
 		Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
 
-		if (CheckIsOutGrid(Local))
+		if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
 		{
 			SetAllGridDefaultColor();
 			return true;
