@@ -59,7 +59,7 @@ sequenceDiagram
 
 ---
 
-**`FastArray` 데이터 모델**: `FInventoryGrid`는 각 `FInventoryEntry`를 `FastArray` 방식으로 복제해 네트워크 트레픽을 감소 시켰습니다. `FastArray`는 배열에서 변경된 데이터만 부분적으로 전송합니다. 배열이 변경된 경우 `MarkItemDirty()` `MarkArrayDirty()`를 호출해 `ReplicationKey`를 증가시킵니다. 
+**`FastArray` 데이터 모델**: `FInventoryGrid`는 각 `FInventoryEntry`를 `FastArray` 방식으로 복제해 네트워크 트래픽을 최적화합니다. `FastArray`는 Dirty 기반의 Diff Replication 최적화를 통해 트래픽을 줄입니다. 배열이 변경된 경우 `MarkItemDirty()` `MarkArrayDirty()`를 호출해 `ReplicationKey`를 증가시킵니다. 
 
 ---
 
