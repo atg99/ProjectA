@@ -1,7 +1,7 @@
 # 그리드 인벤토리 시스템
 
 
-![ProjectADemoResize](./Document/ProjectADemoResize.gif)
+![ProjectADemo2](./Document/ProjectADemo2.gif)
 
 UE5 그리드 인벤토리 시스템입니다.
 - 온라인 플레이 지원 (데디케이트 서버)
