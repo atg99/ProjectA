@@ -10,12 +10,12 @@
 #include "Components/GridSlot.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h" // 고정 셀 크기
+
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "ATGStackSplitWidget.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
-#include "Kismet/GameplayStatics.h"
 #include "ATGPlayerController.h"
 
 
@@ -38,31 +38,6 @@ void UATGInventoryGirdWidget::NativeConstruct()
 	}
 
 }
-
-void UATGInventoryGirdWidget::InitPlayerGrid()
-{
-	AATGPlayerController* PC = Cast<AATGPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
-	if (PC)
-	{
-		if (PC->InvenComp)
-		{
-			InventoryComp = PC->InvenComp;
-			BindInventoryComp();
-		}
-		else
-		{
-			PC->InitInventoryComponent.AddDynamic(this, &UATGInventoryGirdWidget::HandleInitInventoryComp);
-		}
-	}
-}
-
-void UATGInventoryGirdWidget::HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent)
-{
-	InventoryComp = GetInventoryComponent;
-	BindInventoryComp();
-}
-
-
 
 void UATGInventoryGirdWidget::InitializeFromOwner()
 {
@@ -255,11 +230,11 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
-	if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
-	{
-		InventoryComp->TryDropItem(Dragged->EntryId);
-		return;
-	}
+	//if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
+	//{
+	//	InventoryComp->TryDropItem(Dragged->EntryId);
+	//	return;
+	//}
 
 	FIntPoint Cell = CellFromLocal(Local);
 	
@@ -288,11 +263,11 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
-	if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
-	{
-		InventoryComp->TryDropItem(Dragged->EntryId, SplitNum);
-		return;
-	}
+	//if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
+	//{
+	//	InventoryComp->TryDropItem(Dragged->EntryId, SplitNum);
+	//	return;
+	//}
 
 	FIntPoint Cell = CellFromLocal(Local);
 
@@ -310,6 +285,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
+	UE_LOG(LogTemp, Display,TEXT("UATGInventoryGirdWidget::NativeOnDrop"));
 	// 이 스코프 끝날 때 무조건 호출됨
 	ON_SCOPE_EXIT
 	{
@@ -360,15 +336,15 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 	return true;
 }
 
-
 void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	//Super::NativeOnDragEnter(InGeo, InDragDropEvent, InOperation);
 	// TODO: 클라 미리보기(가능/불가 하이라이트) 구현 시 여기서 셀 강조 처리
-	//Operation = InOperation;
+	
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragEnter"));
-	bIsDragLeave = false;
+	//bIsDragLeave = false;
+	Operation = InOperation;
 }
  
 
@@ -378,7 +354,8 @@ void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDrop
 	// TODO: 하이라이트 해제
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragLeave"));
-	bIsDragLeave = true;
+	SetAllGridDefaultColor();
+	//bIsDragLeave = true;
 	//Operation = nullptr;
 	//bIsRotate = false;
 }

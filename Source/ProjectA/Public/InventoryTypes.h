@@ -182,7 +182,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TArray<FInventoryEntry> Entries;
 
-    //서버에서 아이템 정렬할때 사용할 임시
+    //재정렬시 ID기반 정렬 임시배열
+    TArray<FInventoryEntry*> TempSortEntries;
+
+    //재정렬시 검사용 임시배열
     TArray<FInventoryEntry*> TempEntries;
 
     //preview 전용 복제안하는 배열

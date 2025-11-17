@@ -61,8 +61,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	UATGInventoryComponent* InventoryComp = nullptr;
 
-	void InitPlayerGrid();
-
 protected:
 	// Id -> ItemWidget 맵(부분 갱신용)
 	UPROPERTY(Transient)
@@ -96,7 +94,7 @@ protected:
 	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
 	// 델리게이트 핸들러
-	UFUNCTION() void HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent);
+	//UFUNCTION() void HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent);
 
 	UFUNCTION() void HandleItemAdded(int32 EntryId);
 	UFUNCTION() void HandleItemChanged(int32 EntryId);

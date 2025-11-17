@@ -91,6 +91,7 @@ void UATGInventoryItemWidget::NativeOnDragDetected(const FGeometry& InGeo, const
 		Visual->SetVisibility(ESlateVisibility::HitTestInvisible);
 		Visual->SetRenderOpacity(0.4f);
 		Op->DefaultDragVisual = Visual;
+		Op->Pivot = EDragPivot::TopLeft;
 	}
 
 	Op->Payload = this; // 원본 위젯 참조로 EntryId 접근

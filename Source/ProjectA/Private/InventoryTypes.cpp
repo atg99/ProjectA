@@ -276,10 +276,10 @@ int32 FInventoryGrid::SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, 
             RemainQty -= AddedQty; //스택에 넣고 남은 아이템 수량
 
             E->Quantity += AddedQty;
-            
+            MarkItemDirty(*E);
             if (Owner)
             {
-                MarkItemDirty(*E);
+                
                 Owner->ItemChanged(E->Id);
                 //if (OwnerHasAuthority())    //서버에만 배열 마크
                 //{
@@ -380,15 +380,13 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         {
             Swap(Me->Width, Me->Height); // 또는 Orientation 토글
         }
-
-        MarkItemDirty(*Me);
-        if (Owner)
+        if (Owner && OwnerHasAuthority())
         {
+            MarkItemDirty(*Me);
+
             Owner->ItemChanged(EntryId);
-            if (OwnerHasAuthority())
-            {
-                Owner->InventoryForceNetUpdate();
-            }
+
+            Owner->InventoryForceNetUpdate();
         }
         return true;
     }
@@ -454,16 +452,17 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
             Swap(Me->Width, Me->Height); // 또는 Orientation 토글
         }
 
-        MarkItemDirty(*Other);
-        MarkItemDirty(*Me);
-        if (Owner)
+        if (Owner && OwnerHasAuthority())
         {
+            MarkItemDirty(*Other);
+            MarkItemDirty(*Me);
+
             Owner->ItemChanged(EntryId);
-            if (OwnerHasAuthority())
-            {
-                Owner->InventoryForceNetUpdate();
-            }
+           
+            Owner->InventoryForceNetUpdate();
+           
         }
+        
         return true;
     }
 
@@ -486,10 +485,10 @@ bool FInventoryGrid::SortMove(int32 EntryId, int32 NewX, int32 NewY)
     {
         Me->X = NewX;
         Me->Y = NewY;
-    
+        MarkItemDirty(*Me);
         if (Owner)
         {
-            MarkItemDirty(*Me);
+            
             Owner->ItemChanged(EntryId);
             //if (OwnerHasAuthority())
             //{
@@ -860,34 +859,47 @@ void FInventoryGrid::SortEntryByItemId()
     }
 
     UE_LOG(LogTemp, Display, TEXT("FInventoryGrid::SortEntryByItemId"));
-
-    Algo::StableSort(Entries, [](const FInventoryEntry& A, const FInventoryEntry& B) { return A.Item->ItemId < B.Item->ItemId; });
     
+    //Engine\Source\Runtime\Engine\Private\RepLayout.cpp] [Line: 7821] 
+    // We found the element in the shadow array, so there must have been a swap.
+    // Sanity check that the invalid element can only possibly later in our lines.
+    //Algo::StableSort(Entries, [](const FInventoryEntry& A, const FInventoryEntry& B) { return A.Item->ItemId < B.Item->ItemId; });
+    
+    TempSortEntries.Empty();
     TempEntries.Empty();
 
+    //배열 얕은 복사
+    for (auto& Entry : Entries)
+    {
+        TempSortEntries.Add(&Entry);
+    }
+    
+    Algo::StableSort(TempSortEntries, [](const FInventoryEntry* A, const FInventoryEntry* B) { return A->Item->ItemId < B->Item->ItemId; });
+
     TArray<int32> DeleteIds;
-    for (FInventoryEntry& Entry : Entries)
+    for (FInventoryEntry* Entry : TempSortEntries)
     {
         int32 OutX = -1;
         int32 OutY = -1;
-        int32 RemainQty = Entry.Quantity;
-        SortFindFirstFit(Entry.Item, Entry.Width, Entry.Height, OutX, OutY, RemainQty, Entry.Id);
+        int32 RemainQty = Entry->Quantity;
+        SortFindFirstFit(Entry->Item, Entry->Width, Entry->Height, OutX, OutY, RemainQty, Entry->Id);
 
         if (RemainQty <= 0)
         {
-            DeleteIds.Add(Entry.Id);
+            DeleteIds.Add(Entry->Id);
             continue;
         }
 
-        Entry.Quantity = RemainQty;
+        Entry->Quantity = RemainQty;
         
-        if (SortMove(Entry.Id, OutX, OutY))
+        if (SortMove(Entry->Id, OutX, OutY))
         {
-            TempEntries.Add(&Entry);
+            TempEntries.Add(Entry);
         }
     }
 
-    //  MarkArrayDirty() MarkItemDirty() 동시에 실행하면 FRepLayout::DeltaSerializeFastArrayProperty() 크러시 
+    //  MarkArrayDirty() MarkItemDirty() 동시에 실행하면 FRepLayout::DeltaSerializeFastArrayProperty() 크러시
+    //id기반 삭제
     Owner.GetObject()->GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this, DeleteIds]() {
         for (int32 DeleteId : DeleteIds)
         {

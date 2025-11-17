@@ -7,8 +7,7 @@
 #include "ATGInventoryWidget.generated.h"
 
 class UATGInventoryGirdWidget;
-
-
+class UATGInventoryComponent;
 
 /**
  * 
@@ -29,9 +28,22 @@ public:
 
 protected:
 
+	// 인벤토리 소스
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	UATGInventoryComponent* InventoryComponent = nullptr;
+
+	UFUNCTION() 
+	void HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent);
+
+
+protected:
+
 	virtual void NativeConstruct() override;
+	virtual bool NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
 
 	void TogglePlayerGrid(bool bIsVisibie);
 	
+
+	void InjectInvenComp(UATGInventoryComponent* GetInventoryComponent);
 };
