@@ -868,7 +868,7 @@ void FInventoryGrid::SortEntryByItemId()
     TempSortEntries.Empty();
     TempEntries.Empty();
 
-    //배열 얕은 복사
+    //Shallow Copy
     for (auto& Entry : Entries)
     {
         TempSortEntries.Add(&Entry);

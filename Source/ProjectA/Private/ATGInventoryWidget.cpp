@@ -46,12 +46,12 @@ bool UATGInventoryWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEv
 {
 	UE_LOG(LogTemp, Display, TEXT("UATGInventoryWidget::NativeOnDrop"));
 
-	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
-	{
-		//InOperation->OnDragCancelled
-		InventoryComponent->TryDropItem(Dragged->EntryId);
-	}
-	
+	PlayerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
+
+	//if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
+	//{
+	//	InventoryComponent->TryDropItem(Dragged->EntryId);
+	//}
 
 	return false;
 }

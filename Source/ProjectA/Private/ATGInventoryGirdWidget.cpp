@@ -230,11 +230,11 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
-	//if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
-	//{
-	//	InventoryComp->TryDropItem(Dragged->EntryId);
-	//	return;
-	//}
+	if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
+	{
+		InventoryComp->TryDropItem(Dragged->EntryId);
+		return;
+	}
 
 	FIntPoint Cell = CellFromLocal(Local);
 	
@@ -263,11 +263,11 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
-	//if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
-	//{
-	//	InventoryComp->TryDropItem(Dragged->EntryId, SplitNum);
-	//	return;
-	//}
+	if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
+	{
+		InventoryComp->TryDropItem(Dragged->EntryId, SplitNum);
+		return;
+	}
 
 	FIntPoint Cell = CellFromLocal(Local);
 
@@ -343,7 +343,7 @@ void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FD
 	
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragEnter"));
-	//bIsDragLeave = false;
+	bIsDragLeave = false;
 	Operation = InOperation;
 }
  
@@ -355,7 +355,7 @@ void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDrop
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragLeave"));
 	SetAllGridDefaultColor();
-	//bIsDragLeave = true;
+	bIsDragLeave = true;
 	//Operation = nullptr;
 	//bIsRotate = false;
 }
