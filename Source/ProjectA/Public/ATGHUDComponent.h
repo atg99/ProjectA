@@ -10,8 +10,10 @@
 //class UATGInventoryGirdWidget;
 class AATGPlayerController;
 class UATGHUDWidget;
+class UATGContainerComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryToggle, bool, bIsVisible);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnContainerToggle, UATGContainerComponent*, ContainerComponent);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PROJECTA_API UATGHUDComponent : public UActorComponent
@@ -43,6 +45,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryToggle OnInventToggle;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnContainerToggle OnContainerToggle;
 
 	//저장(세이브)하거나 리셋(에디터 재시작) 시 보존되지 않아야 하는 변수
 	UPROPERTY(Transient)

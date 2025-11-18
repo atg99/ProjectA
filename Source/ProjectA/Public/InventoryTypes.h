@@ -138,10 +138,10 @@ struct FInventoryEntry : public FFastArraySerializerItem
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    UPROPERTY(BlueprintReadOnly)
     TSoftObjectPtr<UATGItemData> Item;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(BlueprintReadOnly)
     int32 Quantity = 0;
 
     // grid placement

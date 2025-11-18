@@ -67,9 +67,9 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnGridEvent OnItemRotated;
 
+	//Pre
 	UPROPERTY(BlueprintAssignable)
 	FOnGridPreEvent OnItemPreAdded;
-
 
 	UPROPERTY(BlueprintAssignable)
 	FOnGridPreEvent OnItemPreChanged;
@@ -112,13 +112,13 @@ public:
 	void TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor);
 
 	UFUNCTION()
-	void TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
+	virtual void TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate) override;
 
 	UFUNCTION()
-	void TryDropItem(int32 EntryId, int32 SplitNum = -1);
+	virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) override;
 
 	UFUNCTION()
-	void TrySortByItemId();
+	virtual void TrySortByItemId() override;
 
 	UFUNCTION(Server, Reliable)
 	void ServerSortByItemId();
@@ -126,28 +126,28 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerDropItem(int32 EntryId, int32 SplitNum = -1);
 
-	UFUNCTION()
-	void OpenItemContainerGrid(class UActorComponent* InteractedComp);
+	//UFUNCTION()
+	//void OpenItemContainerGrid(class UActorComponent* InteractedComp);
 
-	bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1);
+	virtual bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) override;
 
-	void TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
+	virtual void TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
 
 	// Blueprint Helpers
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
-	const TArray<FInventoryEntry>& GetEntries() const { return Inventory.Entries; }
+	//UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
+	virtual const TArray<FInventoryEntry>& GetEntries() override { return Inventory.Entries; } 
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
-	const FInventoryGrid& GetInventory() const { return Inventory; }
+	virtual const FInventoryGrid& GetInventory() override { return Inventory; }
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
-	int32 GetGridWidth() const { return Inventory.GridWidth; }
+	//UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
+	virtual int32 GetGridWidth() const override { return Inventory.GridWidth; }
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
-	int32 GetGridHeight() const { return Inventory.GridHeight; }
+	//UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
+	virtual int32 GetGridHeight() const override { return Inventory.GridHeight; }
 
 	bool IsHasAuthority();
 

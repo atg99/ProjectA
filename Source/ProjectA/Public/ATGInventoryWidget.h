@@ -8,6 +8,7 @@
 
 class UATGInventoryGirdWidget;
 class UATGInventoryComponent;
+class UATGHUDComponent;
 
 /**
  * 
@@ -26,7 +27,13 @@ public:
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
 	UATGInventoryGirdWidget* ContainerGrid = nullptr;
 
+	void SetHUDComp(UATGHUDComponent* InHUDComp);
+
 protected:
+	UATGHUDComponent* HUDComp = nullptr;
+
+	UFUNCTION()
+	void HandleContainerToggle(class UATGContainerComponent* ContainerComp);
 
 	// 인벤토리 소스
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")

@@ -230,20 +230,6 @@ void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int3
 	ServerMoveOrSwap(EntryId, NewX, NewY, bIsRotate);
 }
 
-
-
-void UATGInventoryComponent::OpenItemContainerGrid(UActorComponent* InteractedComp)
-{
-	UATGContainerComponent* ContainerComp = InteractedComp ? Cast<UATGContainerComponent>(InteractedComp) : nullptr;
-	if (!ContainerComp)
-	{
-		return;
-	}
-
-	FInventoryGrid& ContainerInven = ContainerComp->GetContainerInventory();
-}
-
-
 bool UATGInventoryComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 Id)
 {
 	return Inventory.CheckMoveOrSwap(StartX, StartY, W, H, Id);

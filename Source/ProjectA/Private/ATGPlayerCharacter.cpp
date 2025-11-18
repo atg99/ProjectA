@@ -20,6 +20,7 @@
 
 #include "ATGInterface.h"
 #include "ATGInventoryComponent.h"
+#include "ATGContainerComponent.h"
 #include "GameFramework/PlayerState.h"
 
 #include "ATGEnum.h"
@@ -300,10 +301,12 @@ void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InteractionData)
 
 void AATGPlayerCharacter::OpenItemBox(FInteractionData& InteractionData)
 {
-	UATGInventoryComponent* InventoryComp = GetInventoryComponent();
-	if (InventoryComp)
+	if (UATGContainerComponent* ContainerComp = Cast<UATGContainerComponent>(InteractionData.InteractedComponent))
 	{
-		InventoryComp->OpenItemContainerGrid(InteractionData.InteractedComponent);
+		if (UATGHUDComponent* HUDComp = Cast<AATGPlayerController>(GetController())->GetHUD()->FindComponentByClass<UATGHUDComponent>())
+		{
+			HUDComp->OnContainerToggle.Broadcast(ContainerComp);
+		}
 	}
 }
 

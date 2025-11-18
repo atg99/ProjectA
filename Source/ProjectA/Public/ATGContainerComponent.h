@@ -7,11 +7,25 @@
 #include "ATGInterface.h"
 #include "ATGEnum.h"
 #include "InventoryTypes.h"
+#include "ATGInventoryOwnerInterface.h"
 #include "ATGContainerComponent.generated.h"
 
+USTRUCT(BlueprintType)
+struct FContainerItem
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UATGItemData> ItemDef;
+
+	UPROPERTY(EditAnywhere)
+	int32 Quantity = 1;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnContainerGridEvent, int32, EntryId);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class PROJECTA_API UATGContainerComponent : public UActorComponent, public IATGInterface
+class PROJECTA_API UATGContainerComponent : public UActorComponent, public IATGInterface, public IATGInventoryOwnerInterface
 {
 	GENERATED_BODY()
 
@@ -35,14 +49,57 @@ protected:
 	UPROPERTY(EditAnywhere, Replicated)
 	FInventoryGrid ContainerInventory;
 
-	virtual void PlayerInteract(FInteractionData& InteractionData) override;
+	UPROPERTY(EditAnywhere, meta=(ToolTip = "Init Container Value"))
+	TArray<FContainerItem> ContainerItems;
 
 public:
 
-	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	EInteractionType InteractionType = EInteractionType::ItemGridBox;
 
 	FORCEINLINE FInventoryGrid& GetContainerInventory() { return ContainerInventory; }
 
-		
+public:
+	UPROPERTY(BlueprintAssignable)
+	FOnContainerGridEvent OnContainerAdded;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnContainerGridEvent OnContainerRemoved;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnContainerGridEvent OnContainerChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnContainerGridEvent OnContainerRotated;
+
+	void InitContainerItem();
+
+	//RPCs
+
+protected:
+
+	//인터페이스 상속
+	virtual void PlayerInteract(FInteractionData& InteractionData) override;
+
+	virtual void ItemRemoved(int32 EntryId) override;
+
+	virtual void ItemAdded(int32 EntryId) override;
+
+	virtual void ItemChanged(int32 EntryId) override;
+
+	virtual void InventoryForceNetUpdate() override;
+
+	virtual bool IsLocallyOwned() override;
+
+	virtual const TArray<FInventoryEntry>& GetEntries() override { return ContainerInventory.Entries; }
+
+	virtual int32 GetGridWidth() const override { return ContainerInventory.GridWidth; }
+
+	virtual int32 GetGridHeight() const override { return ContainerInventory.GridHeight; }
+
+	virtual const FInventoryGrid& GetInventory() override { return ContainerInventory; }
+
+	//virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) override;
+
+
 };

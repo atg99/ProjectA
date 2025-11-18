@@ -25,8 +25,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	int32 EntryId = -1;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
-	UATGInventoryComponent* InventoryComp = nullptr;
+	//UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	//UATGInventoryComponent* InventoryComp = nullptr;
 
 	UPROPERTY(meta = (BindWidgetOptional)) 
 	UImage* ItemIcon = nullptr;
@@ -46,7 +46,7 @@ protected:
 public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void SetupFromEntry(const FInventoryEntry& InEntry, UATGInventoryComponent* InComp, int32 InCellSize, int32 InCellPadding);
+	void SetupFromEntry(const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void RefreshFromEntry(const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding);

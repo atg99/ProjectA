@@ -11,6 +11,12 @@ void UATGHUDWidget::NativeConstruct()
 	if (HUDComp)
 	{
 		HUDComp->OnInventToggle.AddDynamic(this, &UATGHUDWidget::OnToggleInvent);
+
+		//인벤토리에 주입
+		if (InventoryWidget)
+		{
+			InventoryWidget->SetHUDComp(HUDComp);
+		}
 	}
 }
 

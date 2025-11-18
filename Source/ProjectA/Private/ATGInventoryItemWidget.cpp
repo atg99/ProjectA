@@ -13,10 +13,10 @@
 #include "Blueprint/WidgetBlueprintLibrary.h" // DetectDragIfPressed
 #include "InputCoreTypes.h" // EKeys
 
-void UATGInventoryItemWidget::SetupFromEntry(const FInventoryEntry& InEntry, UATGInventoryComponent* InComp, int32 InCellSize, int32 InCellPadding)
+void UATGInventoryItemWidget::SetupFromEntry(const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding)
 {
 	EntryId = InEntry.Id;
-	InventoryComp = InComp;
+	//InventoryComp = InComp;
 	CachedEntry = InEntry;
 	CachedCellSize = InCellSize;
 	CachedCellPadding = InCellPadding;
@@ -87,7 +87,7 @@ void UATGInventoryItemWidget::NativeOnDragDetected(const FGeometry& InGeo, const
 	UATGInventoryItemWidget* Visual = CreateWidget<UATGInventoryItemWidget>(GetOwningPlayer(), GetClass());
 	if (Visual)
 	{
-		Visual->SetupFromEntry(CachedEntry, InventoryComp, CachedCellSize, CachedCellPadding);
+		Visual->SetupFromEntry(CachedEntry, CachedCellSize, CachedCellPadding);
 		Visual->SetVisibility(ESlateVisibility::HitTestInvisible);
 		Visual->SetRenderOpacity(0.4f);
 		Op->DefaultDragVisual = Visual;

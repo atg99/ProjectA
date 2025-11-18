@@ -6,8 +6,10 @@
 #include "ATGPlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "ATGInventoryComponent.h"
+#include "ATGContainerComponent.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "ATGInventoryItemWidget.h"
+#include "ATGHUDComponent.h"
 
 
 void UATGInventoryWidget::NativeConstruct()
@@ -30,6 +32,22 @@ void UATGInventoryWidget::NativeConstruct()
 	}
 }
 
+void UATGInventoryWidget::SetHUDComp(UATGHUDComponent* InHUDComp)
+{
+	HUDComp = InHUDComp;
+
+	if (HUDComp)
+	{
+		HUDComp->OnContainerToggle.AddDynamic(this, &UATGInventoryWidget::HandleContainerToggle);
+	}
+}
+
+void UATGInventoryWidget::HandleContainerToggle(UATGContainerComponent* ContainerComp)
+{
+	ContainerGrid->Inven = ContainerComp;
+	ContainerGrid->BindInventoryComp();
+}
+
 void UATGInventoryWidget::HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent)
 {
 	InjectInvenComp(GetInventoryComponent);
@@ -38,7 +56,8 @@ void UATGInventoryWidget::HandleInitInventoryComp(UATGInventoryComponent* GetInv
 void UATGInventoryWidget::InjectInvenComp(UATGInventoryComponent* GetInventoryComponent)
 {
 	InventoryComponent = GetInventoryComponent;
-	PlayerGrid->InventoryComp = GetInventoryComponent;
+	//PlayerGrid->InventoryComp = GetInventoryComponent;
+	PlayerGrid->Inven = GetInventoryComponent;
 	PlayerGrid->BindInventoryComp();
 }
 

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "InventoryTypes.h"
+#include "ATGInventoryOwnerInterface.h"
 #include "ATGInventoryGirdWidget.generated.h"
 
 class UButton;
@@ -15,6 +16,8 @@ class UATGInventoryItemWidget;
 class UATGInventoryComponent;
 class UTexture2D;
 class UATGStackSplitWidget;
+class UATGContainerComponent;
+class UAatorComponent;
 
 /**
  * 
@@ -58,8 +61,14 @@ public:
 	FIntPoint PrevCell;
 
 	// 인벤토리 소스
-	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY()
+	TScriptInterface<IATGInventoryOwnerInterface> Inven = nullptr;
+
+	/*UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	UATGInventoryComponent* InventoryComp = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	UATGContainerComponent* ContainerComp = nullptr;*/
 
 protected:
 	// Id -> ItemWidget 맵(부분 갱신용)
@@ -85,6 +94,7 @@ public:
 	// 전체 리빌드
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void RebuildAll();
+
 	void BindInventoryComp();
 
 	virtual bool NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;

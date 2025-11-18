@@ -17,6 +17,7 @@
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "ATGPlayerController.h"
+#include "ATGContainerComponent.h"
 
 
 void UATGInventoryGirdWidget::NativeConstruct()
@@ -67,19 +68,16 @@ void UATGInventoryGirdWidget::InitializeFromOwner()
 
 void UATGInventoryGirdWidget::RebuildAll()
 {
-	if (!GridPanel || !InventoryComp) return;
-
+	if (!GridPanel || !Inven) return;
 
 	GridPanel->ClearChildren();
 	GridPanel->InvalidateLayoutAndVolatility(); // 레이아웃 새로 계산 강제
 
 	IdToWidget.Empty();
 
-
 	BuildCellBackground();
 
-
-	for (const FInventoryEntry& E : InventoryComp->GetEntries())
+	for (const FInventoryEntry& E : Inven->GetEntries())
 	{
 		UATGInventoryItemWidget* W = CreateItemWidget(E);
 		UpdateItemSlot(W, E);
@@ -91,13 +89,14 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 {
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Magenta, TEXT("Widget BindComp"));
-	if (InventoryComp)
+	if (UATGInventoryComponent* InventoryComp = Cast<UATGInventoryComponent>(Inven.GetObject()))
 	{
 		// 중복 바인딩 방지 차원에서 먼저 제거 후 바인딩
 		InventoryComp->OnItemAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
 		InventoryComp->OnItemChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		InventoryComp->OnItemRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
 		InventoryComp->OnItemRotated.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
+
 		//preview
 		InventoryComp->OnItemPreAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreAdded);
 		InventoryComp->OnItemPreChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreChanged);
@@ -107,22 +106,34 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		InventoryComp->OnItemChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		InventoryComp->OnItemRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
 		InventoryComp->OnItemRotated.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
+
 		//preview
 		//InventoryComp->OnItemPreAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreAdded);
 		//InventoryComp->OnItemPreChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreChanged);
 		//InventoryComp->OnItemPreRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemPreRemoved);
 	}
+	else if (UATGContainerComponent* ContainerComp = Cast<UATGContainerComponent>(Inven.GetObject()))
+	{
+		ContainerComp->OnContainerAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
+		ContainerComp->OnContainerChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
+		ContainerComp->OnContainerRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
+		ContainerComp->OnContainerRotated.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
+
+		ContainerComp->OnContainerAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
+		ContainerComp->OnContainerChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
+		ContainerComp->OnContainerRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
+		ContainerComp->OnContainerRotated.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
+	}
+
 	RebuildAll();
 }
 
 void UATGInventoryGirdWidget::BuildCellBackground()
 {
-	if (!GridPanel || !InventoryComp) return;
+	if (!GridPanel || !Inven) return;
 
-
-	const int32 W = InventoryComp->GetGridWidth();
-	const int32 H = InventoryComp->GetGridHeight();
-
+	const int32 W = Inven->GetGridWidth();
+	const int32 H = Inven->GetGridHeight();
 
 	for (int32 y = 0; y < H; ++y)
 	{
@@ -164,7 +175,7 @@ UATGInventoryItemWidget* UATGInventoryGirdWidget::CreateItemWidget(const FInvent
 		return nullptr;
 	}
 	UATGInventoryItemWidget* W = CreateWidget<UATGInventoryItemWidget>(GetOwningPlayer(), InventoryItemWidgetClass);
-	W->SetupFromEntry(E, InventoryComp, CellSize, CellPadding);
+	W->SetupFromEntry(E, CellSize, CellPadding);
 	return W;
 }
 
@@ -190,8 +201,8 @@ void UATGInventoryGirdWidget::UpdateItemSlot(UATGInventoryItemWidget* W, const F
 
 const FInventoryEntry* UATGInventoryGirdWidget::FindEntryById(int32 EntryId) const
 {
-	if (!InventoryComp) return nullptr;
-	for (const FInventoryEntry& E : InventoryComp->GetEntries())
+	if (!Inven) return nullptr;
+	for (const FInventoryEntry& E : Inven->GetEntries())
 	{
 		if (E.Id == EntryId) return &E;
 	}
@@ -214,8 +225,8 @@ bool UATGInventoryGirdWidget::CheckIsOutGrid(const FVector2D& Local) const
 		return true;
 	}
 	const float Pitch = float(CellSize + 2 * CellPadding);
-	float WSize = float(Pitch * InventoryComp->GetGridWidth());
-	float HSize = float(Pitch * InventoryComp->GetGridHeight());
+	float WSize = float(Pitch * Inven->GetGridWidth());
+	float HSize = float(Pitch * Inven->GetGridHeight());
 	if (Local.X > WSize || Local.Y > HSize)
 	{
 		return true;
@@ -232,7 +243,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
 	{
-		InventoryComp->TryDropItem(Dragged->EntryId);
+		Inven->TryDropItem(Dragged->EntryId);
 		return;
 	}
 
@@ -244,11 +255,11 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 	//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local") + Local.ToString());
 
 	// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
-	Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
-	Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
+	Cell.X = FMath::Clamp(Cell.X, 0, Inven->GetGridWidth() - 1);
+	Cell.Y = FMath::Clamp(Cell.Y, 0, Inven->GetGridHeight() - 1);
 
 	//InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
-	InventoryComp->TryMoveOrSwapClient(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
+	Inven->TryMoveOrSwapClient(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate);
 
 	Operation = nullptr;
 	bIsRotate = false;
@@ -265,16 +276,16 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 	if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
 	{
-		InventoryComp->TryDropItem(Dragged->EntryId, SplitNum);
+		Inven->TryDropItem(Dragged->EntryId, SplitNum);
 		return;
 	}
 
 	FIntPoint Cell = CellFromLocal(Local);
 
-	Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
-	Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
+	Cell.X = FMath::Clamp(Cell.X, 0, Inven->GetGridWidth() - 1);
+	Cell.Y = FMath::Clamp(Cell.Y, 0, Inven->GetGridHeight() - 1);
 
-	InventoryComp->TrySplitStack(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate, SplitNum);
+	Inven->TrySplitStack(Dragged->EntryId, Cell.X, Cell.Y, bIsRotate, SplitNum);
 
 	Operation = nullptr;
 	bIsRotate = false;
@@ -292,7 +303,7 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 		SetAllGridDefaultColor();
 	};
 
-	if (!InventoryComp || !GridPanel)
+	if (!Inven || !GridPanel)
 	{
 		return false;
 	}
@@ -362,7 +373,7 @@ void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDrop
 
 bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
-	if (!InventoryComp || !GridPanel) return true;
+	if (!Inven || !GridPanel) return true;
 
 	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
 	{
@@ -380,8 +391,8 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local") + Local.ToString());
 
 		// 안전 클램프(서버도 판정하지만 UX용으로 선제 클램프)
-		Cell.X = FMath::Clamp(Cell.X, 0, InventoryComp->GetGridWidth() - 1);
-		Cell.Y = FMath::Clamp(Cell.Y, 0, InventoryComp->GetGridHeight() - 1);
+		Cell.X = FMath::Clamp(Cell.X, 0, Inven->GetGridWidth() - 1);
+		Cell.Y = FMath::Clamp(Cell.Y, 0, Inven->GetGridHeight() - 1);
 
 		if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
 		{
@@ -396,7 +407,7 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		}
 		PrevCell = Cell;
 
-		const FInventoryEntry* E = InventoryComp->GetInventory().GetById(Dragged->EntryId);
+		const FInventoryEntry* E = Inven->GetInventory().GetById(Dragged->EntryId);
 		if (!E)
 		{
 			UE_LOG(LogTemp, Error, TEXT("Dragged->Entry is invalid!"));
@@ -407,7 +418,7 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		int32 W = bIsRotate ? E->Height : E->Width;
 		int32 H = bIsRotate ? E->Width : E->Height;
 		
-		bool bCanMove = InventoryComp->CheckCanMove(Cell.X, Cell.Y, W, H, E->Id);
+		bool bCanMove = Inven->CheckCanMove(Cell.X, Cell.Y, W, H, E->Id);
 		FString s = bCanMove ? TEXT("True") : TEXT("False");
 		if (GEngine)
 		{
@@ -622,5 +633,5 @@ void UATGInventoryGirdWidget::HandleItemPreRemoved(int32 PreEId)
 void UATGInventoryGirdWidget::OnSortBtnClicked()
 {
 	UE_LOG(LogTemp, Display, TEXT("OnSortBtnClicked"));
-	InventoryComp->TrySortByItemId();
+	Inven->TrySortByItemId();
 }
