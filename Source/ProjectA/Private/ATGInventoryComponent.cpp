@@ -322,6 +322,11 @@ void UATGInventoryComponent::ServerRemoveItem_Implementation(int32 EntryId)
 void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId, int32 SplitNum)
 {
 	FInventoryEntry* Entry = Inventory.GetById(EntryId);
+	if (!Entry)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UATGInventoryComponent::ServerSpawnItem FInventoryEntry* Entry is Invaild"));
+		return;
+	}
 	if (Entry->Item.Get()) // load
 	{
 		Entry->Item.LoadSynchronous();

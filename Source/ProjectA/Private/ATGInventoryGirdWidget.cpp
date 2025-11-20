@@ -296,6 +296,8 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 
 bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
+	Super::NativeOnDrop(InGeo, InDragDropEvent, InOperation);
+
 	UE_LOG(LogTemp, Display,TEXT("UATGInventoryGirdWidget::NativeOnDrop"));
 	// 이 스코프 끝날 때 무조건 호출됨
 	ON_SCOPE_EXIT

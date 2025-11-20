@@ -16,6 +16,7 @@
 void UATGInventoryItemWidget::SetupFromEntry(const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding)
 {
 	EntryId = InEntry.Id;
+	ItemDef = InEntry.Item;
 	//InventoryComp = InComp;
 	CachedEntry = InEntry;
 	CachedCellSize = InCellSize;

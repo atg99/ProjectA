@@ -25,6 +25,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	int32 EntryId = -1;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	TSoftObjectPtr<UATGItemData> ItemDef;
+
 	//UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	//UATGInventoryComponent* InventoryComp = nullptr;
 

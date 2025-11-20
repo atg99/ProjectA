@@ -10,7 +10,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "ATGInventoryItemWidget.h"
 #include "ATGHUDComponent.h"
-
+#include "Components/GridPanel.h"
 
 void UATGInventoryWidget::NativeConstruct()
 {
@@ -64,6 +64,16 @@ void UATGInventoryWidget::InjectInvenComp(UATGInventoryComponent* GetInventoryCo
 bool UATGInventoryWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	UE_LOG(LogTemp, Display, TEXT("UATGInventoryWidget::NativeOnDrop"));
+
+	const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
+
+	const FGeometry PlayerPanelGeo = PlayerGrid->GridPanel->GetTickSpaceGeometry();
+	const FGeometry ContainerPanelGeo = ContainerGrid->GridPanel->GetTickSpaceGeometry();
+
+	const FVector2D PlayerLocal = PlayerPanelGeo.AbsoluteToLocal(Screen);
+	const FVector2D ContainerLocal = ContainerPanelGeo.AbsoluteToLocal(Screen);
+
+	UE_LOG(LogTemp, Display, TEXT("PlayerLocal : %f, %f \n ContainerLocal : %f, %f"), PlayerLocal.X, PlayerLocal.Y, ContainerLocal.X, ContainerLocal.Y);
 
 	PlayerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
 
