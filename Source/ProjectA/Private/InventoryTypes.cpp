@@ -106,23 +106,23 @@ bool FInventoryGrid::CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, 
         if (bOverlap) return false;
     }
 
-    if (Owner->IsLocallyOwned()) //Local 판정일 때 프리뷰아이템도 고려
-    {
-        for (const auto& E : PreviewEntries)
-        {
-            if (E.Id == IgnoreId) continue;
+    //if (Owner->IsLocallyOwned()) //Local 판정일 때 프리뷰아이템도 고려
+    //{
+    //    for (const auto& E : PreviewEntries)
+    //    {
+    //        if (E.Id == IgnoreId) continue;
 
-            const int32 EX2 = E.X + E.Width - 1;
-            const int32 EY2 = E.Y + E.Height - 1;
-            const int32 NX2 = StartX + W - 1;
-            const int32 NY2 = StartY + H - 1;
+    //        const int32 EX2 = E.X + E.Width - 1;
+    //        const int32 EY2 = E.Y + E.Height - 1;
+    //        const int32 NX2 = StartX + W - 1;
+    //        const int32 NY2 = StartY + H - 1;
 
-            //조건중 하나라도 만족하면 겹치지 않음
-            const bool bOverlap = !(NX2 < E.X || EX2 < StartX || NY2 < E.Y || EY2 < StartY);
+    //        //조건중 하나라도 만족하면 겹치지 않음
+    //        const bool bOverlap = !(NX2 < E.X || EX2 < StartX || NY2 < E.Y || EY2 < StartY);
 
-            if (bOverlap) return false;
-        }
-    }
+    //        if (bOverlap) return false;
+    //    }
+    //}
 
     return true;
 }
@@ -338,7 +338,9 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
         NewE.Id = ++GlobalEntryIdCounter;
         NewE.PredictionKey = PreKey;
         Entries.Add(NewE);
+
         MarkItemDirty(Entries.Last());
+        MarkArrayDirty();
 
         Owner->InventoryForceNetUpdate();
 

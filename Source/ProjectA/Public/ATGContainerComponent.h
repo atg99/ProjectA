@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+Ôªø// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -36,6 +36,7 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	virtual void OnRegister() override;
 
 public:	
 	// Called every frame
@@ -78,7 +79,7 @@ public:
 
 protected:
 
-	//¿Œ≈Õ∆‰¿ÃΩ∫ ªÛº”
+	//Interact
 	virtual void PlayerInteract(FInteractionData& InteractionData) override;
 
 	virtual void ItemRemoved(int32 EntryId) override;
@@ -99,6 +100,17 @@ protected:
 
 	virtual const FInventoryGrid& GetInventory() override { return ContainerInventory; }
 
+	virtual bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) override;
+
+	virtual void TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate) override;
+
+	virtual void TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum) override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
 	//virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) override;
 
 

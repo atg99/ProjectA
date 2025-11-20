@@ -11,6 +11,7 @@ UATGContainerComponent::UATGContainerComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
 
 	// ...
 }
@@ -20,9 +21,7 @@ UATGContainerComponent::UATGContainerComponent()
 void UATGContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	ContainerInventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
-
+	//ContainerInventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
 	for (auto& Item : ContainerItems)
 	{
 		if (!Item.ItemDef.Get())
@@ -34,10 +33,14 @@ void UATGContainerComponent::BeginPlay()
 	if (GetOwner()->HasAuthority())
 	{
 		InitContainerItem();
+		//ContainerInventory.SortEntryByItemId();
 	}
-	
-	// ...
-	//ContainerInventory.OwnerComp = this;
+}
+
+void UATGContainerComponent::OnRegister()
+{
+	Super::OnRegister();
+	ContainerInventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
 }
 
 void UATGContainerComponent::InitContainerItem()
@@ -133,6 +136,58 @@ void UATGContainerComponent::InventoryForceNetUpdate()
 //사용안함 일단 남김
 bool UATGContainerComponent::IsLocallyOwned()
 {
+	//get component's owner (actor) -> get actor's owner (character) -> get character's owner (playercontroller) -> is localcontroller?
+	if (APlayerController* PC = GetOwner()->GetOwner() ? Cast<APlayerController>(GetOwner()->GetOwner()->GetOwner()) : nullptr)
+	{
+		//UE_LOG(LogTemp, Display, TEXT("IsLocallyOwned : Get PC"));
+		return  PC->IsLocalController();
+	}
+	//UE_LOG(LogTemp, Display, TEXT("IsLocallyOwned : false"));
 	return false;
+}
+
+bool UATGContainerComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId)
+{
+	return ContainerInventory.CheckMoveOrSwap(StartX, StartY, W, H, IgnoreId);
+}
+
+void UATGContainerComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
+{
+	UE_LOG(LogTemp, Display, TEXT("UATGContainerComponent::TryMoveOrSwapClient"));
+
+	if (IsLocallyOwned())
+	{
+		ServerMoveOrSwap(EntryId, NewX, NewY, bIsRotate);
+	}
+}
+
+void UATGContainerComponent::TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum)
+{
+	ServerSplitStack(EntryId, NewX, NewY, bIsRotate, SplitNum);
+}
+
+void UATGContainerComponent::ServerSplitStack_Implementation(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum)
+{
+	int32 Qty = SplitNum;
+	FInventoryEntry* E = ContainerInventory.GetById(EntryId);
+
+	//해당 셀에 새 아이템 추가 시도
+	if (ContainerInventory.AddItemAt(E->Item, Qty, NewX, NewY, E->Width, E->Height, bIsRotate, -1))
+	{
+		//성공시 성공한 수량만큼 원본 스텍 감소
+		ContainerInventory.DecreaseQtyById(EntryId, SplitNum - Qty);
+	}
+	else
+	{
+		//실패시 해당 셀의 아이템과 병합 시도
+		//MergeStackAt에서 수량감소처리 포함됨
+		ContainerInventory.MergeStackAtAndDecrease(*E, SplitNum, NewX, NewY, bIsRotate);
+	}
+}
+
+void UATGContainerComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
+{
+	bool S = ContainerInventory.MoveOrSwap(EntryId, NewX, NewY, bIsRotate);
+	UE_LOG(LogTemp, Warning, TEXT("UATGContainerComponent::ServerMoveOrSwap %d"), S);
 }
 

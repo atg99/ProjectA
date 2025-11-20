@@ -257,11 +257,8 @@ public:
     bool OwnerHasAuthority();
 
 public:
-
     //sort function
     void SortEntryByItemId();
-
-   
 
 private:
     static int32 GlobalEntryIdCounter;

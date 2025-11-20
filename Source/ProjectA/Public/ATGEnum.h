@@ -32,19 +32,22 @@ struct FInteractionData
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite)
+	AActor* InteractingActor;
+
+	UPROPERTY(BlueprintReadWrite)
 	AActor* InteractedActor;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite)
 	UActorComponent* InteractedComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite)
 	EInteractionType InteractionType;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite)
 	TSoftObjectPtr<UATGItemData> ItemDef;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite)
 	int32 ItemQty;
 };
 

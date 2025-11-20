@@ -47,7 +47,7 @@ public:
 
 	virtual const struct FInventoryGrid& GetInventory() = 0;
 
-	virtual bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) { return false; }
+	virtual bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) = 0;
 
 	virtual void TrySortByItemId() {}
 };

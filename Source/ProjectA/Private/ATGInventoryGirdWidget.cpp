@@ -9,7 +9,7 @@
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
 #include "Components/Image.h"
-#include "Components/SizeBox.h" // °íÁ¤ ¼¿ Å©±â
+#include "Components/SizeBox.h" // ê³ ì • ì…€ í¬ê¸°
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -71,7 +71,7 @@ void UATGInventoryGirdWidget::RebuildAll()
 	if (!GridPanel || !Inven) return;
 
 	GridPanel->ClearChildren();
-	GridPanel->InvalidateLayoutAndVolatility(); // ·¹ÀÌ¾Æ¿ô »õ·Î °è»ê °­Á¦
+	GridPanel->InvalidateLayoutAndVolatility(); // ë ˆì´ì•„ì›ƒ ìƒˆë¡œ ê³„ì‚° ê°•ì œ
 
 	IdToWidget.Empty();
 
@@ -91,7 +91,7 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Magenta, TEXT("Widget BindComp"));
 	if (UATGInventoryComponent* InventoryComp = Cast<UATGInventoryComponent>(Inven.GetObject()))
 	{
-		// Áßº¹ ¹ÙÀÎµù ¹æÁö Â÷¿ø¿¡¼­ ¸ÕÀú Á¦°Å ÈÄ ¹ÙÀÎµù
+		// ì¤‘ë³µ ë°”ì¸ë”© ë°©ì§€ ì°¨ì›ì—ì„œ ë¨¼ì € ì œê±° í›„ ë°”ì¸ë”©
 		InventoryComp->OnItemAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
 		InventoryComp->OnItemChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		InventoryComp->OnItemRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
@@ -139,7 +139,7 @@ void UATGInventoryGirdWidget::BuildCellBackground()
 	{
 		for (int32 x = 0; x < W; ++x)
 		{
-			// SizeBox·Î ¼¿ Å©±â¸¦ °íÁ¤ÇØ Å¬¸¯/µå·¡±× ÁÂÇ¥¿Í ½Ã°¢Àû °İÀÚ °£ ¿ÀÂ÷ Á¦°Å
+			// SizeBoxë¡œ ì…€ í¬ê¸°ë¥¼ ê³ ì •í•´ í´ë¦­/ë“œë˜ê·¸ ì¢Œí‘œì™€ ì‹œê°ì  ê²©ì ê°„ ì˜¤ì°¨ ì œê±°
 			USizeBox* CellBox = NewObject<USizeBox>(this);
 			CellBox->SetWidthOverride(CellSize);
 			CellBox->SetHeightOverride(CellSize);
@@ -254,7 +254,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 	//if (GEngine)
 	//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local") + Local.ToString());
 
-	// ¾ÈÀü Å¬·¥ÇÁ(¼­¹öµµ ÆÇÁ¤ÇÏÁö¸¸ UX¿ëÀ¸·Î ¼±Á¦ Å¬·¥ÇÁ)
+	// ì•ˆì „ í´ë¨í”„(ì„œë²„ë„ íŒì •í•˜ì§€ë§Œ UXìš©ìœ¼ë¡œ ì„ ì œ í´ë¨í”„)
 	Cell.X = FMath::Clamp(Cell.X, 0, Inven->GetGridWidth() - 1);
 	Cell.Y = FMath::Clamp(Cell.Y, 0, Inven->GetGridHeight() - 1);
 
@@ -297,7 +297,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UATGInventoryItemWidget* Dragged, F
 bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	UE_LOG(LogTemp, Display,TEXT("UATGInventoryGirdWidget::NativeOnDrop"));
-	// ÀÌ ½ºÄÚÇÁ ³¡³¯ ¶§ ¹«Á¶°Ç È£ÃâµÊ
+	// ì´ ìŠ¤ì½”í”„ ëë‚  ë•Œ ë¬´ì¡°ê±´ í˜¸ì¶œë¨
 	ON_SCOPE_EXIT
 	{
 		SetAllGridDefaultColor();
@@ -323,7 +323,7 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 			SplitUI->OnSplitConfirmed.Clear();
 			SplitUI->OnSplitConfirmed.AddLambda([this, Dragged, Screen](int32 SplitNum)
 				{
-					//¼­¹ö¿¡ ºĞÇÒ ¿äÃ»
+					//ì„œë²„ì— ë¶„í•  ìš”ì²­
 					DoNativeOnDrop(Dragged, Screen, SplitNum);
 				});
 
@@ -350,7 +350,7 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	//Super::NativeOnDragEnter(InGeo, InDragDropEvent, InOperation);
-	// TODO: Å¬¶ó ¹Ì¸®º¸±â(°¡´É/ºÒ°¡ ÇÏÀÌ¶óÀÌÆ®) ±¸Çö ½Ã ¿©±â¼­ ¼¿ °­Á¶ Ã³¸®
+	// TODO: í´ë¼ ë¯¸ë¦¬ë³´ê¸°(ê°€ëŠ¥/ë¶ˆê°€ í•˜ì´ë¼ì´íŠ¸) êµ¬í˜„ ì‹œ ì—¬ê¸°ì„œ ì…€ ê°•ì¡° ì²˜ë¦¬
 	
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragEnter"));
@@ -362,7 +362,7 @@ void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FD
 void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	//Super::NativeOnDragLeave(InDragDropEvent, InOperation);
-	// TODO: ÇÏÀÌ¶óÀÌÆ® ÇØÁ¦
+	// TODO: í•˜ì´ë¼ì´íŠ¸ í•´ì œ
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragLeave"));
 	SetAllGridDefaultColor();
@@ -385,12 +385,13 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
 		FIntPoint Cell = CellFromLocal(Local);
+
 		//if (GEngine)
 		//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+ Cell.ToString());
 		//if (GEngine)
 		//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Local") + Local.ToString());
 
-		// ¾ÈÀü Å¬·¥ÇÁ(¼­¹öµµ ÆÇÁ¤ÇÏÁö¸¸ UX¿ëÀ¸·Î ¼±Á¦ Å¬·¥ÇÁ)
+		// ì•ˆì „ í´ë¨í”„(ì„œë²„ë„ íŒì •í•˜ì§€ë§Œ UXìš©ìœ¼ë¡œ ì„ ì œ í´ë¨í”„)
 		Cell.X = FMath::Clamp(Cell.X, 0, Inven->GetGridWidth() - 1);
 		Cell.Y = FMath::Clamp(Cell.Y, 0, Inven->GetGridHeight() - 1);
 
@@ -400,7 +401,7 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 			return true;
 		}
 
-		//°°Àº Ä­ÀÌ¸é ³Ñ±è
+		//ê°™ì€ ì¹¸ì´ë©´ ë„˜ê¹€
 		if (PrevCell == Cell)
 		{
 			return true;
@@ -419,11 +420,11 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		int32 H = bIsRotate ? E->Width : E->Height;
 		
 		bool bCanMove = Inven->CheckCanMove(Cell.X, Cell.Y, W, H, E->Id);
-		FString s = bCanMove ? TEXT("True") : TEXT("False");
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, FString::Printf(TEXT("W : %d H : %d ID : %d"), W, H, E->Id));
-		}
+		//FString s = bCanMove ? TEXT("True") : TEXT("False");
+		//if (GEngine)
+		//{
+		//	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, FString::Printf(TEXT("W : %d H : %d ID : %d"), W, H, E->Id));
+		//}
 
 		for (auto Child : GridPanel->GetAllChildren())
 		{
@@ -512,7 +513,7 @@ void UATGInventoryGirdWidget::SetAllGridDefaultColor()
 	}
 }
 
-// ===== µ¨¸®°ÔÀÌÆ® ÇÚµé·¯ =====
+// ===== ë¸ë¦¬ê²Œì´íŠ¸ í•¸ë“¤ëŸ¬ =====
 void UATGInventoryGirdWidget::HandleItemAdded(int32 EntryId)
 {
 	if (GEngine)
@@ -536,12 +537,12 @@ void UATGInventoryGirdWidget::HandleItemAdded(int32 EntryId)
 
 void UATGInventoryGirdWidget::HandleItemChanged(int32 EntryId)
 {
-	HandleItemPreRemoved(EntryId); //ÇÁ¸®ºä Á¦°Å
+	HandleItemPreRemoved(EntryId); //í”„ë¦¬ë·° ì œê±°
 	UATGInventoryItemWidget* W = IdToWidget.FindRef(EntryId).Get();
 	const FInventoryEntry* E = FindEntryById(EntryId);
 	if (!E)
 	{
-		// ¼­¹ö¿¡¼­ Á¦°ÅµÇ¾ú´Âµ¥ ¾ÆÁ÷ À§Á¬ÀÌ ³²¾ÆÀÖÀ» ¼ö ÀÖÀ½
+		// ì„œë²„ì—ì„œ ì œê±°ë˜ì—ˆëŠ”ë° ì•„ì§ ìœ„ì ¯ì´ ë‚¨ì•„ìˆì„ ìˆ˜ ìˆìŒ
 		if (W) { W->RemoveFromParent(); }
 		IdToWidget.Remove(EntryId);
 		return;
@@ -570,7 +571,7 @@ void UATGInventoryGirdWidget::HandleItemRotated(int32 EntryId)
 {
 	if (UWidget* Ghost = Operation ? Operation->DefaultDragVisual : nullptr)
 	{
-		//90µµ ½Ã°¢ È¸Àü
+		//90ë„ ì‹œê° íšŒì „
 		Ghost->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
 		FWidgetTransform T = Ghost->GetRenderTransform();
 		T.Angle += 90.f;
@@ -592,14 +593,14 @@ void UATGInventoryGirdWidget::HandleItemPreAdded(FInventoryEntry PreE)
 	{
 		return;
 	}
-	W->SetVisibility(ESlateVisibility::HitTestInvisible); //preview widget »óÈ£ÀÛ¿ë ºÒ°¡
+	W->SetVisibility(ESlateVisibility::HitTestInvisible); //preview widget ìƒí˜¸ì‘ìš© ë¶ˆê°€
 	W->ItemIcon->SetColorAndOpacity(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
 	UpdateItemSlot(W, PreE);
 	
-	PreviewIdToWidget.FindOrAdd(PreE.Id).Add(W); //¹è¿­¸Ê¿¡ Å°°ª °°Àº°Í ³¢¸® ÀúÀå
+	PreviewIdToWidget.FindOrAdd(PreE.Id).Add(W); //ë°°ì—´ë§µì— í‚¤ê°’ ê°™ì€ê²ƒ ë¼ë¦¬ ì €ì¥
 }
 
-//Å¬¶ó¿¡¼­ ½ÇÇà ÇÁ¸®ºäÀ§Á¬ ¼ö·® ÅØ½ºÆ® º¯°æ
+//í´ë¼ì—ì„œ ì‹¤í–‰ í”„ë¦¬ë·°ìœ„ì ¯ ìˆ˜ëŸ‰ í…ìŠ¤íŠ¸ ë³€ê²½
 void UATGInventoryGirdWidget::HandleItemPreChanged(FInventoryEntry PreE)
 {
 	if (TArray<TWeakObjectPtr<UATGInventoryItemWidget>>* Arr = PreviewIdToWidget.Find(PreE.Id))
@@ -632,6 +633,12 @@ void UATGInventoryGirdWidget::HandleItemPreRemoved(int32 PreEId)
 
 void UATGInventoryGirdWidget::OnSortBtnClicked()
 {
-	UE_LOG(LogTemp, Display, TEXT("OnSortBtnClicked"));
-	Inven->TrySortByItemId();
+	if (Inven)
+	{
+		Inven->TrySortByItemId();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Display, TEXT("UATGInventoryGirdWidget::OnSortBtnClicked Inven == nullptr"));
+	}
 }

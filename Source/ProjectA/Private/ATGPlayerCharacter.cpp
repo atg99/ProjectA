@@ -237,7 +237,11 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 	if (NearestInterfaceActorComp)
 	{
 		auto ATGInterface = Cast<IATGInterface>(NearestInterfaceActorComp);
+
 		FInteractionData InteractionData;
+
+		InteractionData.InteractingActor = this;
+
 		ATGInterface->PlayerInteract(InteractionData);
 
 		switch (InteractionData.InteractionType)
@@ -305,9 +309,15 @@ void AATGPlayerCharacter::OpenItemBox(FInteractionData& InteractionData)
 	{
 		if (UATGHUDComponent* HUDComp = Cast<AATGPlayerController>(GetController())->GetHUD()->FindComponentByClass<UATGHUDComponent>())
 		{
+			ServerSetInteractActorOwner(InteractionData.InteractedActor);
 			HUDComp->OnContainerToggle.Broadcast(ContainerComp);
 		}
 	}
+}
+
+void AATGPlayerCharacter::ServerSetInteractActorOwner_Implementation(AActor* InteractActor)
+{
+	InteractActor->SetOwner(this);
 }
 
 UATGInventoryComponent* AATGPlayerCharacter::GetInventoryComponent()

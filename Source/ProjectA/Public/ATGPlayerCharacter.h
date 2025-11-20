@@ -117,6 +117,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void OpenItemBox(FInteractionData& InteractionData);
 
+	UFUNCTION(Server, Reliable)
+	void ServerSetInteractActorOwner(AActor* InteractActor);
+
 //Helper
 protected:
 	UATGInventoryComponent* GetInventoryComponent();

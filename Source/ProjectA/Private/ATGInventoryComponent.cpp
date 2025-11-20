@@ -245,12 +245,15 @@ void UATGInventoryComponent::ServerSplitStack_Implementation(int32 EntryId, int3
 	int32 Qty = SplitNum;
 	FInventoryEntry* E = Inventory.GetById(EntryId);
 
+	//해당 셀에 새 아이템 추가 시도
 	if (Inventory.AddItemAt(E->Item, Qty, NewX, NewY, E->Width, E->Height, bIsRotate, -1))
 	{
+		//성공시 성공한 수량만큼 원본 스텍 감소
 		Inventory.DecreaseQtyById(EntryId, SplitNum-Qty);
 	}
 	else
 	{
+		//실패시 해당 셀의 아이템과 병합 시도
 		//MergeStackAt에서 수량감소처리 포함됨
 		Inventory.MergeStackAtAndDecrease(*E, SplitNum, NewX, NewY, bIsRotate);
 	}
