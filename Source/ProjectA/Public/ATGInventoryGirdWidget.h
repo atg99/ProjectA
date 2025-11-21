@@ -110,7 +110,7 @@ protected:
 	UFUNCTION() void HandleItemAdded(int32 EntryId);
 	UFUNCTION() void HandleItemChanged(int32 EntryId);
 	UFUNCTION() void HandleItemRemoved(int32 EntryId);
-	UFUNCTION() void HandleItemRotated(int32 EntryId);
+	//UFUNCTION() void HandleItemRotated(int32 EntryId);
 
 	UFUNCTION() void HandleItemPreAdded(FInventoryEntry PreE);
 	UFUNCTION() void HandleItemPreChanged(FInventoryEntry PreE);
@@ -123,18 +123,20 @@ protected:
 	void UpdateItemSlot(UATGInventoryItemWidget* W, const FInventoryEntry& E);
 	FIntPoint CellFromLocal(const FVector2D& Local) const;
 	bool CheckIsOutGrid(const FVector2D& Local) const;
-	void DoNativeOnDrop(UATGInventoryItemWidget* Dragged, FVector2D Screen);
-	void DoNativeOnDrop(UATGInventoryItemWidget* Dragged, FVector2D Screen, int32 SplitNum);
+	void DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen);
+	void DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen, int32 SplitNum);
 	// 셀 배경 생성
 	void BuildCellBackground();
 
 	bool bIsDragLeave = false;
 
+	void HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen);
+
 protected:
 	//드래그관련
 	UDragDropOperation* Operation;
-	bool bIsRotate = false;
-
+	//bool bIsRotate = false;
+	//bool bIsRKeyPressed = false;
 	void SetAllGridDefaultColor();
 
 	UFUNCTION()

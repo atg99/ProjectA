@@ -70,8 +70,8 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnContainerGridEvent OnContainerChanged;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnContainerGridEvent OnContainerRotated;
+	//UPROPERTY(BlueprintAssignable)
+	//FOnContainerGridEvent OnContainerRotated;
 
 	void InitContainerItem();
 

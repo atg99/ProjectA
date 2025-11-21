@@ -224,7 +224,7 @@ public:
 
     int32 SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 IgnoreId = -1);
 
-    int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey);
+    int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey = -1);
 
     bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 

@@ -22,8 +22,15 @@ class PROJECTA_API UATGInventoryItemWidget : public UUserWidget
 
 public:
 
+	// 인벤토리 소스
+	UPROPERTY()
+	TScriptInterface<IATGInventoryOwnerInterface> Inven = nullptr;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	int32 EntryId = -1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	int32 Quantity = -1;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Item")
 	TSoftObjectPtr<UATGItemData> ItemDef;
@@ -49,7 +56,7 @@ protected:
 public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void SetupFromEntry(const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding);
+	void SetupFromEntry(const TScriptInterface<IATGInventoryOwnerInterface> InInven, const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void RefreshFromEntry(const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding);

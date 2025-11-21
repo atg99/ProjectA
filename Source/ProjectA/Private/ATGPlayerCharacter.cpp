@@ -281,11 +281,11 @@ void AATGPlayerCharacter::ToggleInventory(const FInputActionValue& Value)
 
 void AATGPlayerCharacter::RotateHeldItem(const FInputActionValue& Value)
 {
-	UATGInventoryComponent* InventoryComp = GetInventoryComponent();
-	if (InventoryComp)
-	{
-		InventoryComp->OnItemRotated.Broadcast(-1);
-	}
+	//UATGInventoryComponent* InventoryComp = GetInventoryComponent();
+	//if (InventoryComp)
+	//{
+	//	InventoryComp->OnItemRotated.Broadcast(-1);
+	//}
 	//if (GEngine)
 	//	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("RotateItem"));
 }

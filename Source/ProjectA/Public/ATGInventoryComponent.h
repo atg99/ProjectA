@@ -64,8 +64,8 @@ public:
 	UPROPERTY(BlueprintAssignable) 
 	FOnGridEvent OnItemChanged;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnGridEvent OnItemRotated;
+	//UPROPERTY(BlueprintAssignable)
+	//FOnGridEvent OnItemRotated;
 
 	//Pre
 	UPROPERTY(BlueprintAssignable)
@@ -82,10 +82,7 @@ public:
 	void ServerAddItemAuto(FClientAddRequest ClientAddRequest, AActor* InteractedActor);
 
 	UFUNCTION()
-	TArray<int32> AddItemAuto(const FClientAddRequest& ClientAddRequest, AActor* InteractActor);
-
-	UFUNCTION(Server, Reliable)
-	void ServerAddItemAt(UATGItemData* ItemDef, int32 Quantity, int32 X, int32 Y, bool bRotated);
+	TArray<int32> AddItemAuto(FClientAddRequest& ClientAddRequest, AActor* InteractActor = nullptr);
 
 	UFUNCTION(Server, Reliable)
 	void ServerMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
@@ -106,7 +103,11 @@ public:
 	UFUNCTION(Client, Reliable)
 	void ClientMoveResult(const FInventoryChangeResult& Result);
 
+	UFUNCTION(Server, Reliable)
+	void ServerAddItemAt(FClientAddRequest ClientAddRequest, const TScriptInterface<IATGInventoryOwnerInterface>& Inven);
+
 	// Client Preview + ServerRPC
+	virtual void TryAddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotated = false, TScriptInterface<IATGInventoryOwnerInterface> Inven = nullptr) override;
 
 	UFUNCTION()
 	void TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor);

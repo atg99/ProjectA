@@ -18,6 +18,9 @@ void UATGInventoryWidget::NativeConstruct()
 
 	//PlayerGrid->InitPlayerGrid();
 
+	//SetKeyboardFocus();
+	
+	UE_LOG(LogTemp, Log, TEXT("Keyboard focus set on widget"));
 	AATGPlayerController* PC = Cast<AATGPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 	if (PC)
 	{
@@ -31,6 +34,29 @@ void UATGInventoryWidget::NativeConstruct()
 		}
 	}
 }
+
+UATGInventoryWidget::UATGInventoryWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+	//SetIsFocusable(true);
+}
+
+//FReply UATGInventoryWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+//{
+//	if (InKeyEvent.GetKey() == EKeys::R)
+//	{
+//		return FReply::Handled();
+//	}
+//	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+//}
+//
+//FReply UATGInventoryWidget::NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+//{
+//	if (InKeyEvent.GetKey() == EKeys::R)
+//	{
+//		return FReply::Handled();
+//	}
+//	return Super::NativeOnKeyUp(InGeometry, InKeyEvent);
+//}
 
 void UATGInventoryWidget::SetHUDComp(UATGHUDComponent* InHUDComp)
 {
@@ -75,7 +101,7 @@ bool UATGInventoryWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEv
 
 	UE_LOG(LogTemp, Display, TEXT("PlayerLocal : %f, %f \n ContainerLocal : %f, %f"), PlayerLocal.X, PlayerLocal.Y, ContainerLocal.X, ContainerLocal.Y);
 
-	PlayerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
+	//PlayerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
 
 	//if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
 	//{
@@ -83,6 +109,24 @@ bool UATGInventoryWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEv
 	//}
 
 	return false;
+}
+
+bool UATGInventoryWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	return false;
+}
+
+void UATGInventoryWidget::NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragEnter(InGeo, InDragDropEvent, InOperation);
+}
+
+void UATGInventoryWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+}
+
+void UATGInventoryWidget::NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
 }
 
 void UATGInventoryWidget::TogglePlayerGrid(bool bIsVisibie)

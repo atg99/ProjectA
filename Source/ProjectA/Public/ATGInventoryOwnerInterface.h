@@ -50,4 +50,6 @@ public:
 	virtual bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) = 0;
 
 	virtual void TrySortByItemId() {}
+
+	virtual void TryAddItemAt(TSoftObjectPtr<class UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, bool bRotate = false, TScriptInterface<IATGInventoryOwnerInterface> Inven = nullptr) {}
 };

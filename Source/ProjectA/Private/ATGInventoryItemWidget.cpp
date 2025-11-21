@@ -2,7 +2,7 @@
 
 
 #include "ATGInventoryItemWidget.h"
-
+#include "ATGDragDropOperation.h"
 #include "ATGInventoryComponent.h"
 #include "ATGItemData.h"
 
@@ -13,15 +13,15 @@
 #include "Blueprint/WidgetBlueprintLibrary.h" // DetectDragIfPressed
 #include "InputCoreTypes.h" // EKeys
 
-void UATGInventoryItemWidget::SetupFromEntry(const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding)
+void UATGInventoryItemWidget::SetupFromEntry(const TScriptInterface<IATGInventoryOwnerInterface> InInven, const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding)
 {
 	EntryId = InEntry.Id;
 	ItemDef = InEntry.Item;
-	//InventoryComp = InComp;
+	Inven = InInven;
 	CachedEntry = InEntry;
 	CachedCellSize = InCellSize;
 	CachedCellPadding = InCellPadding;
-
+	Quantity = InEntry.Quantity;
 
 	// 아이콘 & 수량 갱신
 	if (ItemIcon)
@@ -58,6 +58,8 @@ void UATGInventoryItemWidget::RefreshFromEntry(const FInventoryEntry& InEntry, i
 	const float WidthPx = InEntry.Width * Pitch - 2 * InCellPadding;
 	const float HeightPx = InEntry.Height * Pitch - 2 * InCellPadding;
 
+	UE_LOG(LogTemp, Warning, TEXT("UATGInventoryItemWidget::RefreshFromEntry W : %d , H : %d"), InEntry.Width, InEntry.Height)
+
 	if (RootSizeBox)
 	{
 		RootSizeBox->SetWidthOverride(WidthPx);
@@ -82,13 +84,13 @@ FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, 
 
 void UATGInventoryItemWidget::NativeOnDragDetected(const FGeometry& InGeo, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
 {
-	UDragDropOperation* Op = NewObject<UDragDropOperation>(this);
+	UATGDragDropOperation* Op = NewObject<UATGDragDropOperation>(this);
 
 	// 드래그 비주얼은 새 인스턴스로 만들어서 원본 위젯 분리/깜빡임 방지
 	UATGInventoryItemWidget* Visual = CreateWidget<UATGInventoryItemWidget>(GetOwningPlayer(), GetClass());
 	if (Visual)
 	{
-		Visual->SetupFromEntry(CachedEntry, CachedCellSize, CachedCellPadding);
+		Visual->SetupFromEntry(Inven, CachedEntry, CachedCellSize, CachedCellPadding);
 		Visual->SetVisibility(ESlateVisibility::HitTestInvisible);
 		Visual->SetRenderOpacity(0.4f);
 		Op->DefaultDragVisual = Visual;

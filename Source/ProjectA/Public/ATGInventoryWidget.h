@@ -20,6 +20,7 @@ class PROJECTA_API UATGInventoryWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	UATGInventoryWidget(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
 	UATGInventoryGirdWidget* PlayerGrid = nullptr;
@@ -44,10 +45,18 @@ protected:
 
 
 protected:
+	//void HandleItemRotated();
+	//드래그관련
 
 	virtual void NativeConstruct() override;
 	virtual bool NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	virtual void NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	virtual void NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
+	/*virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;*/
 
 	void TogglePlayerGrid(bool bIsVisibie);
 	

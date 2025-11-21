@@ -22,7 +22,7 @@ UATGInventoryComponent::UATGInventoryComponent()
 	Inventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
 
 	SetIsReplicatedByDefault(true);
-	// ...
+	
 }
 
 
@@ -75,7 +75,7 @@ void UATGInventoryComponent::ItemRemoved(int32 EntryId)
 	OnItemRemoved.Broadcast(EntryId);
 }
 
-TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& ClientAddRequest, AActor* InteractedActor = nullptr)
+TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRequest, AActor* InteractedActor)
 {
 
 	TArray<int32> EntryIds;
@@ -106,6 +106,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& Clien
 			{
 				Comp->DecreaseQty(OriginQty - Qty);
 			}
+			ClientAddRequest.Quantity = Qty;
 		}
 		return EntryIds;
 	}
@@ -135,9 +136,42 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(const FClientAddRequest& Clien
 		{
 			Comp->DecreaseQty(OriginQty - Qty);
 		}
+		ClientAddRequest.Quantity = Qty;
 	}
+	
 
 	return EntryIds;
+}
+
+void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest ClientAddRequest, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
+{
+	int32 Qty = ClientAddRequest.Quantity;
+
+	Inventory.AddItemAt(ClientAddRequest.ItemDef, Qty, ClientAddRequest.X, ClientAddRequest.Y, ClientAddRequest.ItemDef->Width, ClientAddRequest.ItemDef->Height, ClientAddRequest.bRotated);
+
+	if(Qty > 0)
+	{
+		ClientAddRequest.Quantity = Qty;
+		AddItemAuto(ClientAddRequest, nullptr);
+		Qty = ClientAddRequest.Quantity;
+	}
+	
+	//여기서 받은 interface로 아이템 수량감소
+	//Inven->TryASdd
+	//Qty = 
+
+}
+
+void UATGInventoryComponent::TryAddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotated, TScriptInterface<IATGInventoryOwnerInterface> Inven)
+{
+	//ServerAddItemAt(ItemDef, InQty, X, Y, bRotate);
+	FClientAddRequest ClientAddRequest;
+	ClientAddRequest.ItemDef = ItemDef;
+	ClientAddRequest.Quantity = InQty;
+	ClientAddRequest.X = X;
+	ClientAddRequest.Y = Y;
+	ClientAddRequest.bRotated = bRotated;
+	ServerAddItemAt(ClientAddRequest, Inven);
 }
 
 void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor)
@@ -202,17 +236,6 @@ void UATGInventoryComponent::ClientAddItemResult_Implementation(FInventoryChange
 			//OnItemPreRemoved.Broadcast(Result.PredictionKey);
 		}
 	}
-}
-
-void UATGInventoryComponent::ServerAddItemAt_Implementation(UATGItemData* ItemDef, int32 Quantity, int32 X, int32 Y, bool bRotated)
-{
-	if (!ItemDef || Quantity <= 0) return;
-
-	int32 W = bRotated ? ItemDef->Height : ItemDef->Width;
-	int32 H = bRotated ? ItemDef->Width : ItemDef->Height;
-
-	const int32 Id = Inventory.AddItemAt(ItemDef, Quantity, X, Y, W, H, bRotated, 0);
-	//if (Id > 0) OnItemAdded.Broadcast(Id);
 }
 
 void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
@@ -288,6 +311,7 @@ void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId, int32 
 
 void UATGInventoryComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
 {
+	UE_LOG(LogTemp, Warning, TEXT("UATGInventoryComponent::ServerMoveOrSwap %d :"), bIsRotate)
 	bool bIsSuccessful = Inventory.MoveOrSwap(EntryId, NewX, NewY, bIsRotate);
 	FInventoryChangeResult Result;
 	
