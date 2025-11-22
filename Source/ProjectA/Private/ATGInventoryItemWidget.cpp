@@ -44,7 +44,7 @@ void UATGInventoryItemWidget::SetupFromEntry(const TScriptInterface<IATGInventor
 
 	if (QuantityText)
 	{
-		QuantityText->SetText(FText::AsNumber(InEntry.Quantity));
+		//QuantityText->SetText(FText::AsNumber(InEntry.Quantity));
 	}
 }
 
@@ -66,9 +66,10 @@ void UATGInventoryItemWidget::RefreshFromEntry(const FInventoryEntry& InEntry, i
 		RootSizeBox->SetHeightOverride(HeightPx);
 	}
 
+	Quantity = InEntry.Quantity;
 	if (QuantityText)
 	{
-		QuantityText->SetText(FText::AsNumber(InEntry.Quantity));
+		//QuantityText->SetText(FText::AsNumber(InEntry.Quantity));
 	}
 	// 회전/크기 변경은 부모 Grid 위젯이 Slot 스팬을 갱신합니다.
 }

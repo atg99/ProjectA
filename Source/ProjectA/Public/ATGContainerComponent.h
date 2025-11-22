@@ -116,6 +116,13 @@ protected:
 
 	virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) override;
 
+	virtual void TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<class UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotate = false) override;
+
+	TArray<int32> AddItemAuto(FClientAddRequest& ClientAddRequest);
+
+	UFUNCTION(Server, Reliable)
+	void ServerAddItemAt(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven);
+
 	UFUNCTION(Server, Reliable)
 	void ServerDropItem(int32 EntryId, int32 SplitNum = -1);
 

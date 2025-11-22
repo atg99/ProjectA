@@ -182,6 +182,102 @@ void UATGContainerComponent::TryDropItem(int32 EntryId, int32 SplitNum)
 	ServerDropItem(EntryId, SplitNum);
 }
 
+void UATGContainerComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<class UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotate)
+{
+	FClientAddRequest ClientAddRequest;
+	ClientAddRequest.ItemDef = ItemDef;
+	ClientAddRequest.Quantity = InQty;
+	ClientAddRequest.X = X;
+	ClientAddRequest.Y = Y;
+	ClientAddRequest.bRotated = bRotate;
+	ServerAddItemAt(ClientAddRequest, OtherGridId, Inven);
+}
+
+void UATGContainerComponent::ServerAddItemAt_Implementation(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
+{
+	int32 OriginQty = ClientAddRequest.Quantity;
+	int32 Qty = ClientAddRequest.Quantity;
+
+	ContainerInventory.AddItemAt(ClientAddRequest.ItemDef, Qty, ClientAddRequest.X, ClientAddRequest.Y, ClientAddRequest.ItemDef->Width, ClientAddRequest.ItemDef->Height, ClientAddRequest.bRotated);
+
+	if (Qty > 0)
+	{
+		ClientAddRequest.Quantity = Qty;
+		AddItemAuto(ClientAddRequest);
+		Qty = ClientAddRequest.Quantity;
+	}
+
+	int32 DecreasedQty = OriginQty - Qty;
+	//여기서 받은 interface로 아이템 수량감소
+	if (Inven)
+	{
+		Inven->TryHandleTransItemResult(OtherGridId, DecreasedQty);
+	}
+}
+
+TArray<int32> UATGContainerComponent::AddItemAuto(FClientAddRequest& ClientAddRequest)
+{
+	TArray<int32> EntryIds;
+	EntryIds.Empty();
+	if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0) return EntryIds;
+
+	if (!ClientAddRequest.ItemDef.Get()) // 로드
+	{
+		ClientAddRequest.ItemDef.LoadSynchronous();
+	}
+
+	int32 W = ClientAddRequest.ItemDef->Width;
+	int32 H = ClientAddRequest.ItemDef->Height;
+	int32 OutX = -1, OutY = -1;
+	int32 OriginQty = ClientAddRequest.Quantity;
+
+	int32 RemainingQty = ClientAddRequest.Quantity;
+
+	if (!ContainerInventory.FindFirstFit(ClientAddRequest.ItemDef, W, H, OutX, OutY, RemainingQty)) //여기서 존재하는 스택에 저장 남은 값 Qty 참조로 반환
+	{
+		if (GetOwner()->HasAuthority()) // Decrease WorldItem Qty
+		{
+			ClientAddRequest.Quantity = RemainingQty;
+		}
+		return EntryIds; // 새로운 자리 없음 
+	}
+
+	if (RemainingQty <= 0) //수량이 0이 된경우
+	{
+		if (GetOwner()->HasAuthority()) // Decrease WorldItem Qty
+		{
+			ClientAddRequest.Quantity = RemainingQty;
+		}
+		return EntryIds;
+	}
+
+	int32 Id = ContainerInventory.AddItemAt(ClientAddRequest.ItemDef, RemainingQty, OutX, OutY, W, H, false, ClientAddRequest.PredictionKey);
+	EntryIds.Add(Id);
+	//RemainingQty 참조 반환
+	while (RemainingQty >= 1) //수량이 0이 될때 까지 반복
+	{
+		OutX = -1;
+		OutY = -1;
+		if (!ContainerInventory.FindFirstFit(W, H, OutX, OutY)) //다시 자리 검색, 존재하는 스택 저장 X 
+		{
+			break;
+		}
+		Id = ContainerInventory.AddItemAt(ClientAddRequest.ItemDef, RemainingQty, OutX, OutY, W, H, false, ClientAddRequest.PredictionKey);
+		if (Id == 0)
+		{
+			break;
+		}
+		EntryIds.Add(Id);
+	}
+
+	if (GetOwner()->HasAuthority()) // Decrease WorldItem Qty 
+	{
+		ClientAddRequest.Quantity = RemainingQty;
+	}
+
+	return EntryIds;
+}
+
 void UATGContainerComponent::ServerDropItem_Implementation(int32 EntryId, int32 SplitNum)
 {
 	ServerSpawnItem(EntryId, SplitNum);
@@ -253,6 +349,7 @@ void UATGContainerComponent::TryHandleTransItemResult(int32 EntryId, int32 Remov
 
 void UATGContainerComponent::ServerHandleTransItemResult_Implementation(int32 EntryId, int32 RemoveQty)
 {
+	UE_LOG(LogTemp, Warning, TEXT("UATGContainerComponent::ServerHandleTransItemResult RemoveQty: %d"), RemoveQty);
 	if (RemoveQty > 0)
 	{
 		ContainerInventory.DecreaseQtyAndRemoveById(EntryId, RemoveQty);

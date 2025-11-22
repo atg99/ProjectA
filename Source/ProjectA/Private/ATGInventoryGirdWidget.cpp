@@ -364,7 +364,7 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 
 		//from my grid
 		//when controlkey down split stack
-		if (InDragDropEvent.IsControlDown() && Dragged->QuantityText->GetText().ToString() != "1")
+		if (InDragDropEvent.IsControlDown() && Dragged->Quantity != 1)
 		{
 			if (!SplitUI)
 			{
@@ -381,9 +381,9 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 
 			SplitUI->SetVisibility(ESlateVisibility::Visible);
 			
-			int32 Qty = 1;
-			LexTryParseString(Qty, *Dragged->QuantityText->GetText().ToString());
-			SplitUI->InitSplit(Qty);
+			//int32 Qty = 1;
+			//LexTryParseString(Qty, *Dragged->QuantityText->GetText().ToString());
+			SplitUI->InitSplit(Dragged->Quantity);
 			
 			return true;
 		}

@@ -95,6 +95,14 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 
 	if (!Inventory.FindFirstFit(ClientAddRequest.ItemDef, W, H, OutX, OutY, Qty)) //여기서 존재하는 스택에 저장 남은 값 Qty 참조로 반환
 	{
+		if (IsHasAuthority()) // Decrease WorldItem Qty
+		{
+			if (auto Comp = GetPickupComp(InteractedActor))
+			{
+				Comp->DecreaseQty(OriginQty - Qty);
+			}
+			ClientAddRequest.Quantity = Qty;
+		}
 		return EntryIds; // 새로운 자리 없음 
 	}
 
@@ -164,7 +172,7 @@ void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest Cl
 	}
 }
 
-void UATGInventoryComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotated)
+void UATGInventoryComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotate)
 {
 	//ServerAddItemAt(ItemDef, InQty, X, Y, bRotate);
 	FClientAddRequest ClientAddRequest;
@@ -172,7 +180,7 @@ void UATGInventoryComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInt
 	ClientAddRequest.Quantity = InQty;
 	ClientAddRequest.X = X;
 	ClientAddRequest.Y = Y;
-	ClientAddRequest.bRotated = bRotated;
+	ClientAddRequest.bRotated = bRotate;
 	ServerAddItemAt(ClientAddRequest, OtherGridId, Inven);
 }
 
