@@ -238,7 +238,7 @@ public:
 
     bool RemoveById(int32 EntryId);
 
-    bool DecreaseQtyById(int32 EntryId, int32 Num);
+    bool DecreaseQtyAndRemoveById(int32 EntryId, int32 Num);
     bool DecreaseQtyByRef(FInventoryEntry& E, int32 Num);
 
     bool IncreaseQtyById(int32 EntryId, int32 Num);

@@ -665,7 +665,7 @@ bool FInventoryGrid::RemoveById(int32 EntryId)
     return true;
 }
 
-bool FInventoryGrid::DecreaseQtyById(int32 EntryId, int32 Num)
+bool FInventoryGrid::DecreaseQtyAndRemoveById(int32 EntryId, int32 Num)
 {
     FInventoryEntry* E = GetById(EntryId);
     if (E->Quantity - Num > 0)

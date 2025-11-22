@@ -138,31 +138,33 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 		}
 		ClientAddRequest.Quantity = Qty;
 	}
-	
 
 	return EntryIds;
 }
 
-void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest ClientAddRequest, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
+void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
 {
+	int32 OriginQty = ClientAddRequest.Quantity;
 	int32 Qty = ClientAddRequest.Quantity;
 
 	Inventory.AddItemAt(ClientAddRequest.ItemDef, Qty, ClientAddRequest.X, ClientAddRequest.Y, ClientAddRequest.ItemDef->Width, ClientAddRequest.ItemDef->Height, ClientAddRequest.bRotated);
 
-	if(Qty > 0)
+	if (Qty > 0)
 	{
 		ClientAddRequest.Quantity = Qty;
 		AddItemAuto(ClientAddRequest, nullptr);
 		Qty = ClientAddRequest.Quantity;
 	}
-	
-	//여기서 받은 interface로 아이템 수량감소
-	//Inven->TryASdd
-	//Qty = 
 
+	int32 DecreasedQty = OriginQty - Qty;
+	//여기서 받은 interface로 아이템 수량감소
+	if (Inven)
+	{
+		Inven->TryHandleTransItemResult(OtherGridId, DecreasedQty);
+	}
 }
 
-void UATGInventoryComponent::TryAddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotated, TScriptInterface<IATGInventoryOwnerInterface> Inven)
+void UATGInventoryComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotated)
 {
 	//ServerAddItemAt(ItemDef, InQty, X, Y, bRotate);
 	FClientAddRequest ClientAddRequest;
@@ -171,7 +173,7 @@ void UATGInventoryComponent::TryAddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, 
 	ClientAddRequest.X = X;
 	ClientAddRequest.Y = Y;
 	ClientAddRequest.bRotated = bRotated;
-	ServerAddItemAt(ClientAddRequest, Inven);
+	ServerAddItemAt(ClientAddRequest, OtherGridId, Inven);
 }
 
 void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor)
@@ -272,7 +274,7 @@ void UATGInventoryComponent::ServerSplitStack_Implementation(int32 EntryId, int3
 	if (Inventory.AddItemAt(E->Item, Qty, NewX, NewY, E->Width, E->Height, bIsRotate, -1))
 	{
 		//성공시 성공한 수량만큼 원본 스텍 감소
-		Inventory.DecreaseQtyById(EntryId, SplitNum-Qty);
+		Inventory.DecreaseQtyAndRemoveById(EntryId, SplitNum-Qty);
 	}
 	else
 	{
@@ -285,6 +287,20 @@ void UATGInventoryComponent::ServerSplitStack_Implementation(int32 EntryId, int3
 void UATGInventoryComponent::TryDropItem(int32 EntryId, int32 SplitNum)
 {
 	ServerDropItem(EntryId, SplitNum);
+}
+
+void UATGInventoryComponent::TryHandleTransItemResult(int32 EntryId, int32 RemoveQty)
+{
+	
+	ServerHandleTransItemResult(EntryId, RemoveQty);
+}
+
+void UATGInventoryComponent::ServerHandleTransItemResult_Implementation(int32 EntryId, int32 RemoveQty)
+{
+	if (RemoveQty > 0)
+	{
+		Inventory.DecreaseQtyAndRemoveById(EntryId, RemoveQty);
+	}
 }
 
 void UATGInventoryComponent::TrySortByItemId()
@@ -303,10 +319,11 @@ void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId, int32 
 	if (SplitNum > 0)
 	{
 		//아이템 수량감소
-		Inventory.DecreaseQtyById(EntryId, SplitNum);
+		Inventory.DecreaseQtyAndRemoveById(EntryId, SplitNum);
 		return;
 	}
 	ServerRemoveItem(EntryId);
+	return;
 }
 
 void UATGInventoryComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)

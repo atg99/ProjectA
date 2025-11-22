@@ -40,7 +40,7 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "Item")
 	int32 ItemQty = 1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item")
 	EInteractionType InteractionType = EInteractionType::PickUpItem;
 
 	void DecreaseQty(int32 Amount);

@@ -10,6 +10,8 @@
 #include "ATGInventoryOwnerInterface.h"
 #include "ATGContainerComponent.generated.h"
 
+class AATGItem;
+
 USTRUCT(BlueprintType)
 struct FContainerItem
 {
@@ -47,7 +49,7 @@ public:
 protected:
 
 	// FastArray 
-	UPROPERTY(EditAnywhere, Replicated)
+	UPROPERTY(EditInstanceOnly, Replicated)
 	FInventoryGrid ContainerInventory;
 
 	UPROPERTY(EditAnywhere, meta=(ToolTip = "Init Container Value"))
@@ -106,12 +108,31 @@ protected:
 
 	virtual void TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum) override;
 
+	virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerDropItem(int32 EntryId, int32 SplitNum = -1);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSpawnItem(int32 EntryId, int32 SplitNum = -1);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRemoveItem(int32 EntryId);
+
+	virtual void TryHandleTransItemResult(int32 EntryId, int32 RemoveQty = -1) override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerHandleTransItemResult(int32 EntryId, int32 RemoveQty = -1);
+
 	UFUNCTION(Server, Reliable)
 	void ServerMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
 	//virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
+	TSubclassOf<AATGItem> ItemBPClass;
 
 
 };

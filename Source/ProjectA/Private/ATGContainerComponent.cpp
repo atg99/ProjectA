@@ -3,7 +3,11 @@
 
 #include "ATGContainerComponent.h"
 #include "ATGItemData.h"
+#include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
+#include <Kismet/GameplayStatics.h>
+#include <ATGItem.h>
+#include "ATGPickupComponent.h"
 
 // Sets default values for this component's properties
 UATGContainerComponent::UATGContainerComponent()
@@ -166,6 +170,88 @@ void UATGContainerComponent::TrySplitStack(int32 EntryId, int32 NewX, int32 NewY
 	ServerSplitStack(EntryId, NewX, NewY, bIsRotate, SplitNum);
 }
 
+void UATGContainerComponent::TryDropItem(int32 EntryId, int32 SplitNum)
+{
+	ServerDropItem(EntryId, SplitNum);
+}
+
+void UATGContainerComponent::ServerDropItem_Implementation(int32 EntryId, int32 SplitNum)
+{
+	ServerSpawnItem(EntryId, SplitNum);
+	if (SplitNum > 0)
+	{
+		//아이템 수량감소 및 삭제
+		ContainerInventory.DecreaseQtyAndRemoveById(EntryId, SplitNum);
+		return;
+	}
+	ServerRemoveItem(EntryId);
+	return;
+}
+
+void UATGContainerComponent::ServerSpawnItem_Implementation(int32 EntryId, int32 SplitNum)
+{
+	FInventoryEntry* Entry = ContainerInventory.GetById(EntryId);
+	if (!Entry)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UATGContainerComponent::ServerSpawnItem FInventoryEntry* Entry is Invaild"));
+		return;
+	}
+	if (Entry->Item.Get()) // load
+	{
+		Entry->Item.LoadSynchronous();
+	}
+
+	if (ACharacter* PlayerCharacter = Cast<ACharacter>(GetOwner()->GetOwner()))
+	{
+		FVector SpawnLoc = PlayerCharacter->GetActorLocation() + FVector(100.f, 0, -50.f);
+
+		FTransform SpawnTransform = { FRotator::ZeroRotator, SpawnLoc, FVector(1.f) };
+
+		FActorSpawnParameters SpawnParam;
+		SpawnParam.Owner = PlayerCharacter;
+
+		AATGItem* ItemActor = GetWorld()->SpawnActorDeferred<AATGItem>(ItemBPClass, SpawnTransform, PlayerCharacter, nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn, ESpawnActorScaleMethod::OverrideRootScale);
+		if (ItemActor)
+		{
+			if (ItemActor->GetPickupComp())
+			{
+				ItemActor->GetPickupComp()->ItemDef = Entry->Item;
+				ItemActor->GetPickupComp()->ItemQty = SplitNum > 0 ? SplitNum : Entry->Quantity;
+				UGameplayStatics::FinishSpawningActor(ItemActor, SpawnTransform);
+				UE_LOG(LogTemp, Warning, TEXT("Spawn Item ItemActor->GetPickupComp() Is Valid"));
+			}
+			else
+			{
+				ItemActor->Destroy();
+				UE_LOG(LogTemp, Warning, TEXT("Spawn Item ItemActor->GetPickupComp() == nullptr"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UATGContainerComponent :: Spawn Item ItemActor == nullptr"));
+		}
+	}
+}
+
+void UATGContainerComponent::ServerRemoveItem_Implementation(int32 EntryId)
+{
+	ContainerInventory.RemoveById(EntryId);
+}
+
+void UATGContainerComponent::TryHandleTransItemResult(int32 EntryId, int32 RemoveQty)
+{
+	ServerHandleTransItemResult(EntryId, RemoveQty);
+}
+
+void UATGContainerComponent::ServerHandleTransItemResult_Implementation(int32 EntryId, int32 RemoveQty)
+{
+	if (RemoveQty > 0)
+	{
+		ContainerInventory.DecreaseQtyAndRemoveById(EntryId, RemoveQty);
+	}
+}
+
 void UATGContainerComponent::ServerSplitStack_Implementation(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum)
 {
 	int32 Qty = SplitNum;
@@ -175,7 +261,7 @@ void UATGContainerComponent::ServerSplitStack_Implementation(int32 EntryId, int3
 	if (ContainerInventory.AddItemAt(E->Item, Qty, NewX, NewY, E->Width, E->Height, bIsRotate, -1))
 	{
 		//성공시 성공한 수량만큼 원본 스텍 감소
-		ContainerInventory.DecreaseQtyById(EntryId, SplitNum - Qty);
+		ContainerInventory.DecreaseQtyAndRemoveById(EntryId, SplitNum - Qty);
 	}
 	else
 	{

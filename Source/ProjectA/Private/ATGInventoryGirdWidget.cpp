@@ -185,8 +185,7 @@ void UATGInventoryGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation
 		bIsR = Op->bIsRotated;
 	}
 
-	Inven->TryAddItemAt(InDragged->ItemDef, InDragged->Quantity, Cell.X, Cell.Y, bIsR);
-
+	Inven->TryAddItemAt(InDragged->Inven, InDragged->EntryId, InDragged->ItemDef, InDragged->Quantity, Cell.X, Cell.Y, bIsR);
 }
 
 
@@ -337,12 +336,12 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 	// 이 스코프 끝날 때 무조건 호출됨
 	ON_SCOPE_EXIT
 	{
-		SetAllGridDefaultColor();
+		SetAllGridDefault();
 	};
 
 	if (!Inven || !GridPanel)
 	{
-		return false;
+		return true;
 	}
 
 	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
@@ -350,15 +349,21 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 
 		const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
 		
-		if (Dragged->Inven != Inven)
+		if (Dragged->Inven != Inven && !bIsDragLeave)	//from other grid and drag entered
 		{
 			UE_LOG(LogTemp, Warning, TEXT("this Item is Not Contain Current Grid"));
 
 			HandleIncomingItem(InOperation, Dragged, Screen);
 
-			return false;
+			return true;
+		}
+		else if (Dragged->Inven != Inven)	//from other grid and not drag entered
+		{
+			return true;
 		}
 
+		//from my grid
+		//when controlkey down split stack
 		if (InDragDropEvent.IsControlDown() && Dragged->QuantityText->GetText().ToString() != "1")
 		{
 			if (!SplitUI)
@@ -380,15 +385,16 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 			LexTryParseString(Qty, *Dragged->QuantityText->GetText().ToString());
 			SplitUI->InitSplit(Qty);
 			
-			return false;
+			return true;
 		}
 
+		//when just drop
 		DoNativeOnDrop(InOperation, Dragged, Screen);
 
-		return false;
+		return true;
 	}
 
-	return false;
+	return true;
 }
 
 void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
@@ -408,8 +414,8 @@ void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDrop
 	// TODO: 하이라이트 해제
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("NativeOnDragLeave"));
-	SetAllGridDefaultColor();
-	bIsDragLeave = true;
+	SetAllGridDefault();
+	
 	//Operation = nullptr;
 	//bIsRotate = false;
 }
@@ -440,7 +446,7 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 
 		if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
 		{
-			SetAllGridDefaultColor();
+			//SetAllGridDefault();
 			return false;
 		}
 
@@ -542,8 +548,9 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 	return false;
 }
 
-void UATGInventoryGirdWidget::SetAllGridDefaultColor()
+void UATGInventoryGirdWidget::SetAllGridDefault()
 {
+	bIsDragLeave = true;
 	PrevCell = FIntPoint(-1);
 	for (auto Child : GridPanel->GetAllChildren())
 	{

@@ -51,5 +51,8 @@ public:
 
 	virtual void TrySortByItemId() {}
 
-	virtual void TryAddItemAt(TSoftObjectPtr<class UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, bool bRotate = false, TScriptInterface<IATGInventoryOwnerInterface> Inven = nullptr) {}
+	//when Incoming from other grid
+	virtual void TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<class UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, bool bRotate = false) {}
+
+	virtual void TryHandleTransItemResult(int32 EntryId, int32 RemoveQty = -1) {}
 };

@@ -101,7 +101,8 @@ bool UATGInventoryWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEv
 
 	UE_LOG(LogTemp, Display, TEXT("PlayerLocal : %f, %f \n ContainerLocal : %f, %f"), PlayerLocal.X, PlayerLocal.Y, ContainerLocal.X, ContainerLocal.Y);
 
-	//PlayerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
+	PlayerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
+	ContainerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
 
 	//if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
 	//{

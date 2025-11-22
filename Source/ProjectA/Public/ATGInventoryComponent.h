@@ -104,10 +104,10 @@ public:
 	void ClientMoveResult(const FInventoryChangeResult& Result);
 
 	UFUNCTION(Server, Reliable)
-	void ServerAddItemAt(FClientAddRequest ClientAddRequest, const TScriptInterface<IATGInventoryOwnerInterface>& Inven);
+	void ServerAddItemAt(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven);
 
 	// Client Preview + ServerRPC
-	virtual void TryAddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotated = false, TScriptInterface<IATGInventoryOwnerInterface> Inven = nullptr) override;
+	virtual void TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotated = false) override;
 
 	UFUNCTION()
 	void TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor);
@@ -117,6 +117,11 @@ public:
 
 	UFUNCTION()
 	virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) override;
+
+	virtual void TryHandleTransItemResult(int32 EntryId, int32 RemoveQty = -1) override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerHandleTransItemResult(int32 EntryId, int32 RemoveQty = -1);
 
 	UFUNCTION()
 	virtual void TrySortByItemId() override;

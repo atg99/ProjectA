@@ -128,7 +128,7 @@ protected:
 	// ¼¿ ¹è°æ »ý¼º
 	void BuildCellBackground();
 
-	bool bIsDragLeave = false;
+	bool bIsDragLeave = true;
 
 	void HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen);
 
@@ -137,7 +137,7 @@ protected:
 	UDragDropOperation* Operation;
 	//bool bIsRotate = false;
 	//bool bIsRKeyPressed = false;
-	void SetAllGridDefaultColor();
+	void SetAllGridDefault();
 
 	UFUNCTION()
 	void OnSortBtnClicked();
