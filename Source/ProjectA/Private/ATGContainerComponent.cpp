@@ -17,7 +17,8 @@ UATGContainerComponent::UATGContainerComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 
-	// ...
+	ContainerInventory.GridWidth = GridWidth;
+	//ContainerInventory.GridHeight = GridHeight;
 }
 
 
@@ -25,7 +26,11 @@ UATGContainerComponent::UATGContainerComponent()
 void UATGContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	ContainerInventory.GridWidth = GridWidth;
+	ContainerInventory.GridHeight = GridHeight;
 	//ContainerInventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
+
 	for (auto& Item : ContainerItems)
 	{
 		if (!Item.ItemDef.Get())
@@ -34,6 +39,7 @@ void UATGContainerComponent::BeginPlay()
 		}
 	}
 
+	//!!! if don't initialize check owner's replication property
 	if (GetOwner()->HasAuthority())
 	{
 		InitContainerItem();
@@ -50,10 +56,11 @@ void UATGContainerComponent::OnRegister()
 void UATGContainerComponent::InitContainerItem()
 {
 	if (!GetOwner()->HasAuthority()) return;
-
+	UE_LOG(LogTemp, Display, TEXT("UATGContainerComponent::InitContainerItem"));
 	//수정예정
 	for (auto Item : ContainerItems)
 	{
+		UE_LOG(LogTemp, Display, TEXT("UATGContainerComponent::InitContainerItem Item: %s"), *Item.ItemDef->GetName());
 		int32 W = Item.ItemDef->Width;
 		int32 H = Item.ItemDef->Height;
 		int32 OutX = -1, OutY = -1;

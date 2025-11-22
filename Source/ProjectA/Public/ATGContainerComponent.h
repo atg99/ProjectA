@@ -49,11 +49,17 @@ public:
 protected:
 
 	// FastArray 
-	UPROPERTY(EditInstanceOnly, Replicated)
+	UPROPERTY(Replicated)
 	FInventoryGrid ContainerInventory;
 
 	UPROPERTY(EditAnywhere, meta=(ToolTip = "Init Container Value"))
 	TArray<FContainerItem> ContainerItems;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	int32 GridWidth = 10;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	int32 GridHeight = 10;
 
 public:
 

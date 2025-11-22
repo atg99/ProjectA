@@ -910,17 +910,33 @@ void FInventoryGrid::SortEntryByItemId()
         }
     }
 
+    UObject* OwnerObj = Owner.GetObject();
+    if (!OwnerObj) return;
+
+    // TWeakObjectPtr을 사용하여 Owner가 살아있는지 확인
+    TWeakObjectPtr<UObject> WeakOwner(OwnerObj);
+
     //  MarkArrayDirty() MarkItemDirty() 동시에 실행하면 FRepLayout::DeltaSerializeFastArrayProperty() 크러시
     //id기반 삭제
-    Owner.GetObject()->GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this, DeleteIds]() {
-        for (int32 DeleteId : DeleteIds)
+    Owner.GetObject()->GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this, DeleteIds, WeakOwner]() {
+        
+        if (DeleteIds.Num() > 0)
         {
-            const int32 Idx = Entries.IndexOfByPredicate([&](const FInventoryEntry& E) { return E.Id == DeleteId; });
-            if (Idx == INDEX_NONE) continue;
-            Entries.RemoveAt(Idx);
+            Entries.RemoveAll([&](const FInventoryEntry& Val) {
+                return DeleteIds.Contains(Val.Id);
+                });
+
+            MarkArrayDirty();
+
+            if (Owner)
+            {
+                Owner->InventoryForceNetUpdate();
+            }
         }
-        MarkArrayDirty();
-        Owner->InventoryForceNetUpdate();
+        else
+        {
+            MarkArrayDirty();
+        }
         }));
   
     TempEntries.Empty();

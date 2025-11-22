@@ -198,10 +198,10 @@ public:
     UPROPERTY(NotReplicated)
     TScriptInterface<IATGInventoryOwnerInterface> Owner = nullptr;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    UPROPERTY(BlueprintReadOnly)
     int32 GridWidth = 10;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    UPROPERTY(BlueprintReadOnly)
     int32 GridHeight = 10;
 
     //Custom Network Serialize

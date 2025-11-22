@@ -303,7 +303,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 
 	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
 
-	if (bIsDragLeave/*CheckIsOutGrid(Local)*/)
+	if (CheckIsOutGrid(Local)) // 분할시 UI조작하면 그리드 밖으로 나가기 때문에 좌표로 판정
 	{
 		Inven->TryDropItem(Dragged->EntryId, SplitNum);
 		return;
