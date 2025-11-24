@@ -9,11 +9,28 @@
  */
 
 UENUM(BlueprintType)
+enum class EItemType : uint8
+{
+	None			UMETA(DisplayName = "None"),
+	Equipment		UMETA(DisplayName = "Equipment"),
+	Consumables		UMETA(DisplayName = "Consumables"),
+	Materials 		UMETA(DisplayName = "Materials"),
+};
+
+UENUM(BlueprintType)
+enum class EEquipmentType : uint8
+{
+	None		UMETA(DisplayName = "None"),
+	Weapon		UMETA(DisplayName = "Weapon"),
+	Armor		UMETA(DisplayName = "Armor"),
+};
+
+UENUM(BlueprintType)
 enum class EInteractionType : uint8
 {
 	None			UMETA(DisplayName = "None"),
 	PickUpItem		UMETA(DisplayName = "PickUpItem"),
-	ItemGridBox	UMETA(DisplayName = "OpenItemGrid"),
+	ItemGridBox		UMETA(DisplayName = "OpenItemGrid"),
 	Equipment		UMETA(DisplayName = "Equipment"),
 };
 

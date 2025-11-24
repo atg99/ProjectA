@@ -61,6 +61,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable) 
 	FOnGridEvent OnItemRemoved;
+
 	UPROPERTY(BlueprintAssignable) 
 	FOnGridEvent OnItemChanged;
 

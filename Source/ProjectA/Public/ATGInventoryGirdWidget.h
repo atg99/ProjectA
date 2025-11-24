@@ -28,7 +28,8 @@ class PROJECTA_API UATGInventoryGirdWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
+
+	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadOnly)
 	UButton* Btn_Sort = nullptr;
 
 	// 디자이너에서 GridPanel 바인드 (Named Slot: GridPanel)
@@ -93,13 +94,15 @@ public:
 
 	// 전체 리빌드
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void RebuildAll();
+	virtual void RebuildAll();
 
-	void BindInventoryComp();
+	virtual void BindInventoryComp();
 
 	virtual bool NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 protected:
+
 	virtual void NativeConstruct() override;
+
 	virtual void NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
@@ -125,8 +128,9 @@ protected:
 	bool CheckIsOutGrid(const FVector2D& Local) const;
 	void DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen);
 	void DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen, int32 SplitNum);
+
 	// 셀 배경 생성
-	void BuildCellBackground();
+	virtual void BuildCellBackground();
 
 	bool bIsDragLeave = true;
 

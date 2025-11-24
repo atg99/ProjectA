@@ -7,8 +7,10 @@
 #include "ATGInventoryWidget.generated.h"
 
 class UATGInventoryGirdWidget;
+class UATGEquipmentGirdWidget;
 class UATGInventoryComponent;
 class UATGHUDComponent;
+class UATGEquipmentComponent;
 
 /**
  * 
@@ -20,13 +22,18 @@ class PROJECTA_API UATGInventoryWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	UATGInventoryWidget(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
 	UATGInventoryGirdWidget* PlayerGrid = nullptr;
 
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
 	UATGInventoryGirdWidget* ContainerGrid = nullptr;
+
+	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
+	UATGEquipmentGirdWidget* MainWeapon1Grid = nullptr;
+
+	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
+	UATGEquipmentGirdWidget* MainWeapon2Grid = nullptr;
 
 	void SetHUDComp(UATGHUDComponent* InHUDComp);
 
@@ -39,6 +46,9 @@ protected:
 	// 인벤토리 소스
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	UATGInventoryComponent* InventoryComponent = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	UATGEquipmentComponent* EquipmentComponent = nullptr;
 
 	UFUNCTION() 
 	void HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent);
@@ -61,5 +71,5 @@ protected:
 	void TogglePlayerGrid(bool bIsVisibie);
 	
 
-	void InjectInvenComp(UATGInventoryComponent* GetInventoryComponent);
+	void InjectInvenComp(UATGInventoryComponent* InInventoryComponent, UATGEquipmentComponent* InEquipmentComponent);
 };

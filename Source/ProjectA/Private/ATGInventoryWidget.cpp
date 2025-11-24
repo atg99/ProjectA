@@ -11,6 +11,10 @@
 #include "ATGInventoryItemWidget.h"
 #include "ATGHUDComponent.h"
 #include "Components/GridPanel.h"
+#include "ATGEquipmentComponent.h"
+#include "GameFramework/PlayerState.h"
+#include "../Public/Widget/ATGEquipmentGirdWidget.h"
+
 
 void UATGInventoryWidget::NativeConstruct()
 {
@@ -20,24 +24,29 @@ void UATGInventoryWidget::NativeConstruct()
 
 	//SetKeyboardFocus();
 	
-	UE_LOG(LogTemp, Log, TEXT("Keyboard focus set on widget"));
-	AATGPlayerController* PC = Cast<AATGPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
-	if (PC)
+	//UE_LOG(LogTemp, Log, TEXT("Keyboard focus set on widget"));
+	if (APlayerController* PC = GetOwningPlayer())
 	{
-		if (PC->InvenComp)
+		if (APlayerState* PS = PC->PlayerState)
 		{
-			InjectInvenComp(PC->InvenComp);
+			auto EquipComp = PS->FindComponentByClass<UATGEquipmentComponent>();
+			auto InvenComp = PS->FindComponentByClass<UATGInventoryComponent>();
+			InjectInvenComp(InvenComp, EquipComp);
 		}
-		else
-		{
-			PC->InitInventoryComponent.AddDynamic(this, &UATGInventoryWidget::HandleInitInventoryComp);
-		}
-	}
-}
+	}	
 
-UATGInventoryWidget::UATGInventoryWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-{
-	//SetIsFocusable(true);
+	//AATGPlayerController* PC = Cast<AATGPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+	//if (PC)
+	//{
+	//	if (PC->InvenComp)
+	//	{
+	//		InjectInvenComp(PC->InvenComp);
+	//	}
+	//	else
+	//	{
+	//		PC->InitInventoryComponent.AddDynamic(this, &UATGInventoryWidget::HandleInitInventoryComp);
+	//	}
+	//}
 }
 
 //FReply UATGInventoryWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -76,15 +85,34 @@ void UATGInventoryWidget::HandleContainerToggle(UATGContainerComponent* Containe
 
 void UATGInventoryWidget::HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent)
 {
-	InjectInvenComp(GetInventoryComponent);
+	//InjectInvenComp(GetInventoryComponent);
 }
 
-void UATGInventoryWidget::InjectInvenComp(UATGInventoryComponent* GetInventoryComponent)
+void UATGInventoryWidget::InjectInvenComp(UATGInventoryComponent* InInventoryComponent, UATGEquipmentComponent* InEquipmentComponent)
 {
-	InventoryComponent = GetInventoryComponent;
+	if (ensure(InInventoryComponent))
+	{
+		InventoryComponent = InInventoryComponent;
+		PlayerGrid->Inven = InInventoryComponent;
+		PlayerGrid->BindInventoryComp();
+	}
+	
+	if (ensure(InEquipmentComponent))
+	{
+		EquipmentComponent = InEquipmentComponent;
+
+		MainWeapon1Grid->EquipmentSlot = EEquipmentSlotType::MainWeapon1;
+		MainWeapon2Grid->EquipmentSlot = EEquipmentSlotType::MainWeapon2;
+
+		MainWeapon1Grid->Inven = InEquipmentComponent;
+		MainWeapon2Grid->Inven = InEquipmentComponent;
+
+		MainWeapon1Grid->BindInventoryComp();
+		MainWeapon2Grid->BindInventoryComp();
+	}
+	
 	//PlayerGrid->InventoryComp = GetInventoryComponent;
-	PlayerGrid->Inven = GetInventoryComponent;
-	PlayerGrid->BindInventoryComp();
+	
 }
 
 bool UATGInventoryWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)

@@ -139,7 +139,7 @@ struct FInventoryEntry : public FFastArraySerializerItem
     GENERATED_BODY()
 
     UPROPERTY(BlueprintReadOnly)
-    TSoftObjectPtr<UATGItemData> Item;
+    TSoftObjectPtr<UATGItemData> Item = nullptr;
 
     UPROPERTY(BlueprintReadOnly)
     int32 Quantity = 0;

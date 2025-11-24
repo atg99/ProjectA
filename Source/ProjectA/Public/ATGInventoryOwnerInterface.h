@@ -35,9 +35,9 @@ public:
 
 	virtual const TArray<struct FInventoryEntry>& GetEntries() = 0;
 
-	virtual int32 GetGridWidth() const = 0;
+	virtual int32 GetGridWidth() const { return 0; }
 
-	virtual int32 GetGridHeight() const = 0;
+	virtual int32 GetGridHeight() const { return 0; }
 
 	virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) {}
 
@@ -45,9 +45,9 @@ public:
 
 	virtual void TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum) {}
 
-	virtual const struct FInventoryGrid& GetInventory() = 0;
+	virtual const struct FInventoryGrid& GetInventory();
 
-	virtual bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) = 0;
+	virtual bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) { return false; }
 
 	virtual void TrySortByItemId() {}
 

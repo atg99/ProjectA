@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "ATGEnum.h"
 #include "ATGItemData.generated.h"
 
 /**
@@ -21,6 +22,13 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     FText DisplayName;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+    EItemType ItemType = EItemType::None;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+    EEquipmentType EquipmentType = EEquipmentType::None;
+
+    //category key
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     int32 ItemId;
 

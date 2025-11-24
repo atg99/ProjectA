@@ -7,7 +7,7 @@
 #include "ATGPlayerState.generated.h"
 
 class UATGInventoryComponent;
-
+class UATGEquipmentComponent;
 /**
  * 
  */
@@ -22,5 +22,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UATGInventoryComponent* InventoryComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UATGEquipmentComponent* EquipmentComponent;
 	
 };

@@ -13,5 +13,9 @@ UCLASS()
 class PROJECTA_API AATGHUD : public AHUD
 {
 	GENERATED_BODY()
+
+public:
+
+	virtual void DrawHUD() override;
 	
 };

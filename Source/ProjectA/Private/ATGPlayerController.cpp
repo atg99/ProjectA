@@ -60,16 +60,6 @@ void AATGPlayerController::StartInitInventoryWidget()
 		UE_LOG(LogTemp, Error, TEXT("Can't Find HUD"));
 		return;
 	}
-	UATGHUDComponent* HUDComp = GetHUD()->FindComponentByClass<UATGHUDComponent>();
-	if (HUDComp)
-	{
-		HUDComp->EnsureWidgetCreated(this);
-		//HUDComp->OnInventToggle.AddDynamic()
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Can't Find HUDComponent at HUD"));
-	}
 
 	InvenComp = GetPlayerState<APlayerState>()->FindComponentByClass<UATGInventoryComponent>();
 	if (InvenComp)
@@ -81,6 +71,17 @@ void AATGPlayerController::StartInitInventoryWidget()
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("Can't Find UATGInventoryComponent at PlayerState"));
+	}
+
+	UATGHUDComponent* HUDComp = GetHUD()->FindComponentByClass<UATGHUDComponent>();
+	if (HUDComp)
+	{
+		HUDComp->EnsureWidgetCreated(this);
+		//HUDComp->OnInventToggle.AddDynamic()
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Can't Find HUDComponent at HUD"));
 	}
 }
 
