@@ -326,7 +326,6 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 	return;
 }
 
-
 bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	//Super::NativeOnDrop(InGeo, InDragDropEvent, InOperation);
@@ -349,7 +348,7 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 
 		const FVector2D Screen = InDragDropEvent.GetScreenSpacePosition();
 		
-		if (Dragged->Inven != Inven && !bIsDragLeave)	//from other grid and drag entered
+		if (CheckIsFromOther(Dragged))	//from other grid and drag entered
 		{
 			UE_LOG(LogTemp, Warning, TEXT("this Item is Not Contain Current Grid"));
 
@@ -395,6 +394,12 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 	}
 
 	return true;
+}
+
+
+bool UATGInventoryGirdWidget::CheckIsFromOther(UATGInventoryItemWidget* Dragged)
+{
+	return (Dragged->Inven != Inven && !bIsDragLeave);
 }
 
 void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)

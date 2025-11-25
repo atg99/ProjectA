@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "ATGEnum.h"
 #include "ATGInventoryOwnerInterface.generated.h"
 
 // This class does not need to be modified.
@@ -33,7 +34,9 @@ public:
 
 	virtual bool IsLocallyOwned() { return false; }
 
-	virtual const TArray<struct FInventoryEntry>& GetEntries() = 0;
+	virtual const TArray<struct FInventoryEntry>& GetEntries();
+	
+	virtual void GetEquipmentEntry(EEquipmentSlotType EquipSlotType, FInventoryEntry& OutEntry) {}
 
 	virtual int32 GetGridWidth() const { return 0; }
 

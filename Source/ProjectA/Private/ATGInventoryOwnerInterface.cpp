@@ -3,10 +3,18 @@
 
 #include "ATGInventoryOwnerInterface.h"
 #include "InventoryTypes.h"
+
 // Add default functionality here for any IATGInventoryOwnerInterface functions that are not pure virtual.
 const FInventoryGrid& IATGInventoryOwnerInterface::GetInventory()
 {
     static const FInventoryGrid EmptyGrid;
 
     return EmptyGrid;
+}
+
+const TArray<struct FInventoryEntry>& IATGInventoryOwnerInterface::GetEntries()
+{
+    static const TArray<FInventoryEntry> EmptyEntries;
+
+    return EmptyEntries;
 }

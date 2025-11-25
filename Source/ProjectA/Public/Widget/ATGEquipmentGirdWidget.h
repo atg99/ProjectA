@@ -4,19 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "ATGInventoryGirdWidget.h"
+#include "ATGEnum.h"
 #include "ATGEquipmentGirdWidget.generated.h"
 
 /**
  * 
  */
-
-UENUM(BlueprintType)
-enum class EEquipmentSlotType : uint8
-{
-	None			UMETA(DisplayName = "None"),
-	MainWeapon1		UMETA(DisplayName = "MainWeapon1"),
-	MainWeapon2		UMETA(DisplayName = "MainWeapon2"),
-};
 
 class UATGEquipmentComponent;
 
@@ -37,4 +30,18 @@ public:
 	virtual void RebuildAll() override;
 
 	virtual void BuildCellBackground() override;
+	
+	virtual void HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen) override;
+
+	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+
+	virtual bool CheckIsFromOther(UATGInventoryItemWidget* Dragged) override;
+
+	UFUNCTION()
+	void HandleEquipmentChanged(FInventoryEntry EquipmentEntry);
+
+protected:
+
+	UPROPERTY(BlueprintReadOnly)
+	UATGInventoryItemWidget* EquipmentWidget = nullptr;
 };

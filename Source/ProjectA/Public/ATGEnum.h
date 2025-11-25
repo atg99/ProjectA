@@ -11,18 +11,34 @@
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
-	None			UMETA(DisplayName = "None"),
-	Equipment		UMETA(DisplayName = "Equipment"),
-	Consumables		UMETA(DisplayName = "Consumables"),
-	Materials 		UMETA(DisplayName = "Materials"),
+	None		=0		UMETA(DisplayName = "None"),
+	Equipment	=10		UMETA(DisplayName = "Equipment"),
+	Consumables	=20		UMETA(DisplayName = "Consumables"),
+	Materials 	=30		UMETA(DisplayName = "Materials"),
 };
 
 UENUM(BlueprintType)
 enum class EEquipmentType : uint8
 {
-	None		UMETA(DisplayName = "None"),
-	Weapon		UMETA(DisplayName = "Weapon"),
-	Armor		UMETA(DisplayName = "Armor"),
+	None	=0		UMETA(DisplayName = "None"),
+	Weapon	=10		UMETA(DisplayName = "Weapon"),
+	Armor	=20		UMETA(DisplayName = "Armor"),
+};
+
+UENUM(BlueprintType)
+enum class EWeaponType : uint8
+{
+	None		= 0		UMETA(DisplayName = "None"),
+	MainWeapon  = 10	UMETA(DisplayName = "MainWeapon"),
+	SubWeapon   = 20	UMETA(DisplayName = "SubWeapon"),
+};
+
+UENUM(BlueprintType)
+enum class EEquipmentSlotType : uint8
+{
+	None		=0		UMETA(DisplayName = "None"),
+	MainWeapon1	=10		UMETA(DisplayName = "MainWeapon1"),
+	MainWeapon2	=20		UMETA(DisplayName = "MainWeapon2"),
 };
 
 UENUM(BlueprintType)
@@ -35,6 +51,7 @@ enum class EInteractionType : uint8
 };
 
 class UATGItemData;
+
 
 USTRUCT(BlueprintType)
 struct FInteractionData

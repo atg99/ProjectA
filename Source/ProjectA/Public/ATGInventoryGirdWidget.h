@@ -32,11 +32,11 @@ public:
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadOnly)
 	UButton* Btn_Sort = nullptr;
 
-	// µğÀÚÀÌ³Ê¿¡¼­ GridPanel ¹ÙÀÎµå (Named Slot: GridPanel)
+	// ë””ìì´ë„ˆì—ì„œ GridPanel ë°”ì¸ë“œ (Named Slot: GridPanel)
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
 	UGridPanel* GridPanel = nullptr;
 
-	// ÇÈ¼¿ ´ÜÀ§ ¼¿ Å©±â & ÆĞµù
+	// í”½ì…€ ë‹¨ìœ„ ì…€ í¬ê¸° & íŒ¨ë”©
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Layout")
 	int32 CellSize = 64;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Layout")
@@ -53,7 +53,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
 	FLinearColor CheckTrueColor = { 0, 0.5f, 0, 0.5f };
 
-	// ¼¿ ¹è°æ ÅØ½ºÃ³(¿É¼Ç)
+	// ì…€ ë°°ê²½ í…ìŠ¤ì²˜(ì˜µì…˜)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
 	UTexture2D* DefaultCellBg = nullptr;
 
@@ -61,7 +61,7 @@ public:
 
 	FIntPoint PrevCell;
 
-	// ÀÎº¥Åä¸® ¼Ò½º
+	// ì¸ë²¤í† ë¦¬ ì†ŒìŠ¤
 	UPROPERTY()
 	TScriptInterface<IATGInventoryOwnerInterface> Inven = nullptr;
 
@@ -72,11 +72,11 @@ public:
 	UATGContainerComponent* ContainerComp = nullptr;*/
 
 protected:
-	// Id -> ItemWidget ¸Ê(ºÎºĞ °»½Å¿ë)
+	// Id -> ItemWidget ë§µ(ë¶€ë¶„ ê°±ì‹ ìš©)
 	UPROPERTY(Transient)
 	TMap<int32, TWeakObjectPtr<UATGInventoryItemWidget>> IdToWidget;
 
-	//preview Àü¿ë
+	//preview ì „ìš©
 	//UPROPERTY(Transient)
 	TMap<int32, TArray<TWeakObjectPtr<UATGInventoryItemWidget>>> PreviewIdToWidget;
 
@@ -87,12 +87,12 @@ protected:
 	TSubclassOf<UATGStackSplitWidget> StackSplitWidgetClass;
 
 public:
-	// ¼ÒÀ¯ÀÚ ±âÁØÀ¸·Î ÀÎº¥Åä¸® Ã£¾Æ ÀÚµ¿ ÃÊ±âÈ­(¶Ç´Â BP¿¡¼­ Á÷Á¢ Set ÇØµµ µÊ)
+	// ì†Œìœ ì ê¸°ì¤€ìœ¼ë¡œ ì¸ë²¤í† ë¦¬ ì°¾ì•„ ìë™ ì´ˆê¸°í™”(ë˜ëŠ” BPì—ì„œ ì§ì ‘ Set í•´ë„ ë¨)
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void InitializeFromOwner();
 
 
-	// ÀüÃ¼ ¸®ºôµå
+	// ì „ì²´ ë¦¬ë¹Œë“œ
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	virtual void RebuildAll();
 
@@ -107,7 +107,7 @@ protected:
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
-	// µ¨¸®°ÔÀÌÆ® ÇÚµé·¯
+	// ë¸ë¦¬ê²Œì´íŠ¸ í•¸ë“¤ëŸ¬
 	//UFUNCTION() void HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent);
 
 	UFUNCTION() void HandleItemAdded(int32 EntryId);
@@ -120,7 +120,7 @@ protected:
 	UFUNCTION() void HandleItemPreRemoved(int32 PreEId);
 
 
-	// ÇïÆÛ
+	// í—¬í¼
 	const FInventoryEntry* FindEntryById(int32 EntryId) const;
 	UATGInventoryItemWidget* CreateItemWidget(const FInventoryEntry& E);
 	void UpdateItemSlot(UATGInventoryItemWidget* W, const FInventoryEntry& E);
@@ -129,15 +129,18 @@ protected:
 	void DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen);
 	void DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen, int32 SplitNum);
 
-	// ¼¿ ¹è°æ »ı¼º
+	//ë‹¤ë¥¸ ê·¸ë¦¬ë“œë¡œ ë¶€í„° ì™”ëŠ”ì§€ í™•ì¸
+	virtual bool CheckIsFromOther(UATGInventoryItemWidget* Dragged);
+
+	// ì…€ ë°°ê²½ ìƒì„±
 	virtual void BuildCellBackground();
 
 	bool bIsDragLeave = true;
 
-	void HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen);
+	virtual void HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen);
 
 protected:
-	//µå·¡±×°ü·Ã
+	//ë“œë˜ê·¸ê´€ë ¨
 	UDragDropOperation* Operation;
 	//bool bIsRotate = false;
 	//bool bIsRKeyPressed = false;

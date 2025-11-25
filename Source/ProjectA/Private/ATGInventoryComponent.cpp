@@ -152,6 +152,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 
 void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
 {
+	//아이템 이전 데이터 복제 후 원본에서 삭제
 	int32 OriginQty = ClientAddRequest.Quantity;
 	int32 Qty = ClientAddRequest.Quantity;
 

@@ -28,6 +28,9 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     EEquipmentType EquipmentType = EEquipmentType::None;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+    EWeaponType WeaponType = EWeaponType::None;
+
     //category key
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     int32 ItemId;
