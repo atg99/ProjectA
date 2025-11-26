@@ -4,7 +4,7 @@
 #include "ATGInventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "InventoryTypes.h"
-#include "ATGItemData.h"
+#include "Data/ATGItemData.h"
 #include "ATGItem.h"
 #include "GameFramework/PlayerState.h"
 #include "ATGPickupComponent.h"

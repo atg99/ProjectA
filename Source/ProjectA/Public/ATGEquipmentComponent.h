@@ -112,8 +112,9 @@ public:
 
 	virtual bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) override;
 
-	bool CheckEquipable(const class UATGItemData* ItemData) const;
+	//bool CheckEquipable(const class UATGItemData* ItemData) const;
 
-private:
+protected:
+	bool CheckItemFitSlot(UATGItemData* ItemData, EEquipmentSlotType SlotType);
 	//static int32 GlobalEquipmentIdCounter;
 };

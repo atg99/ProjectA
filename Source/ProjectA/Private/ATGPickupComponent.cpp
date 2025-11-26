@@ -3,7 +3,7 @@
 
 #include "ATGPickupComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "ATGItemData.h"
+#include "Data/ATGItemData.h"
 
 // Sets default values for this component's properties
 UATGPickupComponent::UATGPickupComponent()

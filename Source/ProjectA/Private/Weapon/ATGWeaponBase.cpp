@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "ATGWeaponBase.h"
+#include "Weapon/ATGWeaponBase.h"
 #include "Components/StaticMeshComponent.h"
 
 // Sets default values
@@ -28,9 +28,5 @@ void AATGWeaponBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-}
-
-void AATGWeaponBase::PlayerInteract(FInteractionData& InteractionData)
-{
 }
 

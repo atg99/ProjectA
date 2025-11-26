@@ -3,9 +3,11 @@
 
 #include "ATGEquipmentComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "ATGItemData.h"
+#include "Data/ATGItemData.h"
 #include "ATGEnum.h"
 #include "ATGInventoryOwnerInterface.h"
+#include "Data/ATGEquipmentData.h"
+#include "Data/ATGWeaponData.h"
 
 // Sets default values for this component's properties
 UATGEquipmentComponent::UATGEquipmentComponent()
@@ -69,6 +71,7 @@ void UATGEquipmentComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 //변경시 클라에 전파
 void UATGEquipmentComponent::OnRep_FirstMainWeapon()
 {	//위젯과 플레어어가 구독
+	UE_LOG(LogTemp, Log, TEXT("UATGEquipmentComponent::OnRep_FirstMainWeapon"));
 	OnFirstMainWeaponChanged.Broadcast(FirstMainWeapon);
 }
 
@@ -154,17 +157,15 @@ void UATGEquipmentComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInt
 
 void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObjectPtr<class UATGItemData>& ItemDef, uint8 EquipmentSlotType, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
 {
-	if (UATGItemData* ItemData = ItemDef.LoadSynchronous())
+	EEquipmentSlotType SlotType = (EEquipmentSlotType)EquipmentSlotType;
+
+	//서버에서도 슬롯에 맞는 장비인지 검증
+	if (UATGItemData* ItemData = ItemDef.Get(); !ItemData || !CheckItemFitSlot(ItemData, SlotType)) //C++17 최신문법?
 	{
-		if (ItemData->ItemType != EItemType::Equipment)
-		{
-			return;
-		}
+		return;
 	}
 
 	FInventoryEntry* TargetEntry = nullptr;
-
-	EEquipmentSlotType SlotType = (EEquipmentSlotType)EquipmentSlotType;
 
 	if (SlotType == EEquipmentSlotType::MainWeapon1)
 	{
@@ -206,7 +207,6 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 		}
 	}
 
-	
 }
 
 bool UATGEquipmentComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId)
@@ -216,10 +216,30 @@ bool UATGEquipmentComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, i
 	return true;
 }
 
-bool UATGEquipmentComponent::CheckEquipable(const UATGItemData* ItemData) const
+bool UATGEquipmentComponent::CheckItemFitSlot(UATGItemData* ItemData, EEquipmentSlotType SlotType)
 {
-	if (!ItemData) return false;
+	if (UATGEquipmentData* EquipData = Cast<UATGEquipmentData>(ItemData))
+	{
+		switch (SlotType)
+		{
+		case EEquipmentSlotType::MainWeapon1:
+		{
+			UATGWeaponData* WeaponData = Cast<UATGWeaponData>(EquipData);
+			return WeaponData ? WeaponData->WeaponType == EWeaponType::MainWeapon : false;
+			break;
+		}
+		case EEquipmentSlotType::MainWeapon2:
+		{
+			UATGWeaponData* WeaponData = Cast<UATGWeaponData>(EquipData);
+			return WeaponData ? WeaponData->WeaponType == EWeaponType::MainWeapon : false;
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+	return false;
 	
-	return ItemData->EquipmentType == EEquipmentType::Weapon;
 }
 

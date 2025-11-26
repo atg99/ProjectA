@@ -24,11 +24,13 @@
 #include "GameFramework/PlayerState.h"
 
 #include "ATGEnum.h"
-#include "ATGItemData.h"
-
+#include "Data/ATGItemData.h"
+#include "Data/ATGWeaponData.h"
+#include "Data/ATGConsumableItemData.h"
 #include "ATGPlayerController.h"
 #include "ATGHUDComponent.h"
 #include "GameFramework/HUD.h"
+
 
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
@@ -77,7 +79,6 @@ AATGPlayerCharacter::AATGPlayerCharacter()
 void AATGPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame

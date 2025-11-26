@@ -3,7 +3,7 @@
 
 #include "InventoryTypes.h"
 #include "ATGInventoryComponent.h"
-#include "ATGItemData.h"
+#include "Data/ATGItemData.h"
 #include "Algo/Sort.h"
 
 int32 FInventoryGrid::GlobalEntryIdCounter = 0;

@@ -4,7 +4,7 @@
 #include "ATGInventoryItemWidget.h"
 #include "ATGDragDropOperation.h"
 #include "ATGInventoryComponent.h"
-#include "ATGItemData.h"
+#include "Data/ATGItemData.h"
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"

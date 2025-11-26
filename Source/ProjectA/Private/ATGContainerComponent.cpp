@@ -2,7 +2,7 @@
 
 
 #include "ATGContainerComponent.h"
-#include "ATGItemData.h"
+#include "Data/ATGItemData.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include <Kismet/GameplayStatics.h>

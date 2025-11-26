@@ -44,4 +44,10 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	UATGInventoryItemWidget* EquipmentWidget = nullptr;
+
+	EEquipmentType FitEquipmentType = EEquipmentType::None;
+
+	EWeaponType FitWeaponType = EWeaponType::None;
+
+	bool CheckFitEquip(UATGItemData* ItemData);
 };

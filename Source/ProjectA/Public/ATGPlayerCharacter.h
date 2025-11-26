@@ -14,6 +14,7 @@ class UATGInventoryComponent;
 struct FInputActionValue;
 class AActor;
 struct FInteractionData;
+struct FInventoryEntry;
 
 UCLASS()
 class PROJECTA_API AATGPlayerCharacter : public ACharacter

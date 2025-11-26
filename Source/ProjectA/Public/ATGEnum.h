@@ -52,7 +52,6 @@ enum class EInteractionType : uint8
 
 class UATGItemData;
 
-
 USTRUCT(BlueprintType)
 struct FInteractionData
 {
@@ -85,3 +84,15 @@ struct FInteractionData
 	int32 ItemQty;
 };
 
+USTRUCT(BlueprintType)
+struct FEquipmentSlot
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EEquipmentSlotType SlotType = EEquipmentSlotType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<AActor> EquippedActor = nullptr;
+};

@@ -4,14 +4,15 @@
 #include "Widget/ATGEquipmentGirdWidget.h"
 #include "ATGEquipmentComponent.h"
 #include "ATGInventoryItemWidget.h"
-#include "ATGItemData.h"
+#include "Data/ATGItemData.h"
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/Image.h"
 #include "ATGDragDropOperation.h"
 #include "Blueprint/DragDropOperation.h"
-
+#include "Data/ATGEquipmentData.h"
+#include "Data/ATGWeaponData.h"
 
 void UATGEquipmentGirdWidget::NativeConstruct()
 {
@@ -35,9 +36,15 @@ void UATGEquipmentGirdWidget::BindInventoryComp()
 		break;
 	case EEquipmentSlotType::MainWeapon1:
 		EquipmentComp->OnFirstMainWeaponChanged.AddDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
+
+		FitEquipmentType = EEquipmentType::Weapon;
+		FitWeaponType = EWeaponType::MainWeapon;
 		break;
 	case EEquipmentSlotType::MainWeapon2:
 		EquipmentComp->OnSecondMainWeaponChanged.AddDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
+
+		FitEquipmentType = EEquipmentType::Weapon;
+		FitWeaponType = EWeaponType::MainWeapon;
 		break;
 	}
 	
@@ -157,31 +164,14 @@ void UATGEquipmentGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation
 	if (!InDragged || !InDragged->ItemDef) return;
 	UE_LOG(LogTemp, Display, TEXT("UATGEquipmentGirdWidget::HandleIncomingItem"));
 
-	EEquipmentType FitEquipmentType = EEquipmentType::None;
-	switch (EquipmentSlot)
+	if (UATGItemData* ItemData = InDragged->ItemDef.Get())
 	{
-	case EEquipmentSlotType::None:
-		return;
-	case EEquipmentSlotType::MainWeapon1:
-		FitEquipmentType = EEquipmentType::Weapon;
-		break;
-	case EEquipmentSlotType::MainWeapon2:
-		FitEquipmentType = EEquipmentType::Weapon;
-		break;
-	}
-
-	if (InDragged->ItemDef.LoadSynchronous())
-	{
-		if (InDragged->ItemDef->ItemType == EItemType::Equipment && InDragged->ItemDef->EquipmentType != FitEquipmentType)
+		if (CheckFitEquip(ItemData))
 		{
-			// 슬롯에 맞는 장비유형이 아니면 거부
-			return;
-		}
+			// 슬롯 타입 전달 (X좌표에 Enum 값 할당)
+			Inven->TryAddItemAt(InDragged->Inven, InDragged->EntryId, InDragged->ItemDef, InDragged->Quantity, (int32)EquipmentSlot, 0);
+		}		
 	}
-	
-	// 슬롯 타입 전달 (X좌표에 Enum 값 할당)
-	
-	Inven->TryAddItemAt(InDragged->Inven, InDragged->EntryId, InDragged->ItemDef, InDragged->Quantity, (int32)EquipmentSlot, 0);
 }
 
 bool UATGEquipmentGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
@@ -230,18 +220,14 @@ bool UATGEquipmentGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		
 		bool bCanMove = Inven->CheckCanMove(Cell.X, Cell.Y, W, H, E->Id);
 
-		// Equipment Check
-		if (UATGEquipmentComponent* EquipmentComp = Cast<UATGEquipmentComponent>(Inven.GetObject()))
+		if (UATGItemData* ItemData = E->Item.Get())
 		{
-			if (UATGItemData* ItemData = E->Item.LoadSynchronous())
+			if (!CheckFitEquip(ItemData))
 			{
-				if (!EquipmentComp->CheckEquipable(ItemData))
-				{
-					bCanMove = false;
-				}
+				bCanMove = false;
 			}
 		}
-
+		
 		for (auto Child : GridPanel->GetAllChildren())
 		{
 			USizeBox* CellBox = Cast<USizeBox>(Child);
@@ -302,3 +288,34 @@ bool UATGEquipmentGirdWidget::CheckIsFromOther(UATGInventoryItemWidget* Dragged)
 	return (Dragged->Inven != Inven && !bIsDragLeave) || (Dragged->Inven == Inven && !bIsDragLeave);
 }
 
+bool UATGEquipmentGirdWidget::CheckFitEquip(UATGItemData* ItemData)
+{
+	if (!ItemData)
+	{
+		return false;
+	}
+
+	//장비인가?
+	if (UATGEquipmentData* EquipData = Cast<UATGEquipmentData>(ItemData))
+	{
+		//장비 타입이 슬롯과 일치?
+		if (EquipData->EquipmentType == FitEquipmentType)
+		{
+			//장비 타입의 세부 타입이 슬롯과 일치?
+			switch (FitEquipmentType)
+			{
+			case EEquipmentType::Weapon:
+			{
+				UATGWeaponData* WeaponData = Cast<UATGWeaponData>(EquipData);
+				return WeaponData ? WeaponData->WeaponType == FitWeaponType : false;
+			}
+			case EEquipmentType::Armor:
+				break;//구현 예정
+			default:
+				break;
+			}
+		}
+	}
+
+	return false;
+}

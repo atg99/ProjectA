@@ -4,14 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "../Public/ATGInterface.h"
 #include "../Public/ATGEnum.h"
 #include "ATGWeaponBase.generated.h"
 
 class UStaticMeshComponent;
 
 UCLASS()
-class PROJECTA_API AATGWeaponBase : public AActor, public IATGInterface
+class PROJECTA_API AATGWeaponBase : public AActor
 {
 	GENERATED_BODY()
 	
@@ -48,9 +47,5 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Data)
 	TObjectPtr<UAnimMontage> ReloadMontage;
-
-protected:
-
-	virtual void PlayerInteract(FInteractionData& InteractionData) override;
 
 };

@@ -18,35 +18,34 @@ class PROJECTA_API UATGItemData : public UPrimaryDataAsset
 
 public:
 
-    // Asset Name
+    // Display Item Name
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     FText DisplayName;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     EItemType ItemType = EItemType::None;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-    EEquipmentType EquipmentType = EEquipmentType::None;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-    EWeaponType WeaponType = EWeaponType::None;
-
-    //category key
+    //Category key
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     int32 ItemId;
 
+    //Inventory Image
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     UTexture2D* Icon = nullptr;
 
+    //World spawn item mesh
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     UStaticMesh* Mesh = nullptr;
 
+    //Max stack at inventory grid
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     int32 MaxStack = 99;
 
+    //Widget size at inventory grid
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Grid")
     int32 Width = 1;
 
+    //Height size at inventory grid
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Grid")
     int32 Height = 1;
 	
