@@ -109,6 +109,7 @@ void UATGEquipmentComponent::ItemChanged(int32 EntryId)
 //	return TrashEntry;
 //}
 
+//서버에서 받음
 void UATGEquipmentComponent::TryHandleTransItemResult(int32 EntryId, int32 RemoveQty)
 {
 	if (RemoveQty < 1)
@@ -120,9 +121,11 @@ void UATGEquipmentComponent::TryHandleTransItemResult(int32 EntryId, int32 Remov
 	{
 	case (int32)EEquipmentSlotType::MainWeapon1:
 		FirstMainWeapon.Item = nullptr;
+		OnRep_FirstMainWeapon();
 		break;
 	case (int32)EEquipmentSlotType::MainWeapon2:
 		SecondMainWeapon.Item = nullptr;
+		OnRep_SecondMainWeapon();
 		break;
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("!!! UATGEquipmentComponent::TryHandleTransItemResult Invaild EntryId"));
@@ -159,7 +162,7 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 	EEquipmentSlotType SlotType = (EEquipmentSlotType)EquipmentSlotType;
 
 	//서버에서도 슬롯에 맞는 장비인지 검증
-	if (UATGItemData* ItemData = ItemDef.Get(); !ItemData || !CheckItemFitSlot(ItemData, SlotType)) //C++17 최신문법?
+	if (UATGItemData* ItemData = ItemDef.Get(); !ItemData || !CheckItemFitSlot(ItemData, SlotType))
 	{
 		return;
 	}
@@ -211,10 +214,10 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 		case EEquipmentSlotType::None:
 			break;
 		case EEquipmentSlotType::MainWeapon1:
-			OnFirstMainWeaponChanged.Broadcast(FirstMainWeapon);
+			OnRep_FirstMainWeapon();
 			break;
 		case EEquipmentSlotType::MainWeapon2:
-			OnSecondMainWeaponChanged.Broadcast(SecondMainWeapon);
+			OnRep_SecondMainWeapon();
 			break;
 		default:
 			break;

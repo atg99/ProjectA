@@ -28,9 +28,11 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	//슬롯의 상태
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Equipment")
 	TArray<FEquipmentSlot> EquipmentSlots;
 
+	//현재 사용중인 슬롯
 	UPROPERTY(ReplicatedUsing = "OnRep_CurrentUsingSlot", BlueprintReadOnly, Category = "Equipment")
 	EEquipmentSlotType CurrentUsingSlot = EEquipmentSlotType::None;
 
@@ -38,6 +40,9 @@ public:
 	void OnRep_CurrentUsingSlot();
 
 	void ChangeWeaponEquip();
+
+	UFUNCTION(Server, Reliable)
+	void ServerChangePlayerUsingSlot(EEquipmentSlotType TryUsingSlot);
 
 protected:
 
@@ -63,10 +68,6 @@ protected:
 	bool CheckPlayerStateCompReady();
 
 	void InitEquipComponent(UATGEquipmentComponent* EquipmentComponent);
-
-public:
-	UFUNCTION(Server, Reliable)
-	void ServerChangePlayerUsingSlot(EEquipmentSlotType TryUsingSlot);
 
 protected:
 

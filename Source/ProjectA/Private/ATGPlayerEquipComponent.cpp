@@ -97,71 +97,47 @@ void UATGPlayerEquipComponent::InitEquipComponent(UATGEquipmentComponent* Equipm
     }
 }
 
-void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquipmentSlotType TryUsingSlot)
-{
-    UE_LOG(LogTemp, Log, TEXT("ServerChangePlayerUsingSlot_Implementation"));
-    CurrentUsingSlot = TryUsingSlot;
-    ChangeWeaponEquip();
-}
-
 void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFirstMainWeapon)
 {
-    if (GetOwner()->HasAuthority())
+    if (!GetOwner()->HasAuthority())
     {
         return;
     }
-    //null이 되어서 들어왔든, 다른 아이템으로 바뀌어서 들어왔든 기존 액터는 지워야 함
+
     if (EquipmentSlots[0].EquippedActor)
     {
         EquipmentSlots[0].EquippedActor->Destroy();
         EquipmentSlots[0].EquippedActor = nullptr;
     }
 
-    // 1. 유효성 검사 (ItemData 및 WeaponData 확인)
     UATGItemData* ItemData = InFirstMainWeapon.Item.Get();
     if (!ItemData) return;
 
     UATGWeaponData* WeaponData = Cast<UATGWeaponData>(ItemData);
     if (!WeaponData || !WeaponData->WeaponClass) return;
 
-    // 2. 오너 캐릭터 및 월드 가져오기
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     if (!OwnerCharacter) return;
 
     UWorld* World = GetWorld();
     if (!World) return;
 
-    // 3. 스폰 트랜스폼 준비 (Attach 할 것이므로 위치는 0,0,0이어도 무관하지만 기본값 설정)
+ 
     FTransform SpawnTransform = OwnerCharacter->GetActorTransform();
 
-    // ----------------------------------------------------------------
-    // 4. [중요] SpawnActorDeferred 호출
-    // ----------------------------------------------------------------
-    // AATGWeaponBase는 실제 무기 액터 클래스로 변경하세요 (예: AMyWeaponActor)
-    // 템플릿(< >) 안에 실제 무기 클래스 타입을 넣어야 멤버 변수에 접근 가능합니다.
-    AActor* SpawnedActor = World->SpawnActorDeferred<AActor>(
+    AATGWeaponBase* SpawnedActor = World->SpawnActorDeferred<AATGWeaponBase>(
         WeaponData->WeaponClass,
         SpawnTransform,
-        OwnerCharacter, // Owner 설정
-        OwnerCharacter, // Instigator 설정
+        OwnerCharacter, // Owner
+        OwnerCharacter, // Instigator
         ESpawnActorCollisionHandlingMethod::AlwaysSpawn
     );
 
-    // 5. 초기값 대입 및 스폰 마무리
     if (SpawnedActor)
     {
-        // 실제 무기 클래스로 캐스팅하여 데이터 주입
-        // (예시: AATGWeaponBase* NewWeapon = Cast<AATGWeaponBase>(SpawnedActor);)
-        /*
-        if (NewWeapon)
-        {
-             NewWeapon->Damage = WeaponData->BaseDamage; // 예시: 초기값 대입
-             NewWeapon->WeaponID = WeaponData->ID;       // 예시: 초기값 대입
-        }
-        */
         SpawnedActor->SetReplicates(true);
-        //슬롯배열에 추가
         EquipmentSlots[0].EquippedActor = SpawnedActor;
+
         //BeginPlay 및 초기화 실행 
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
 
@@ -169,7 +145,7 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
 
         SpawnedActor->AttachToComponent(
             OwnerCharacter->GetMesh(),
-            FAttachmentTransformRules::SnapToTargetIncludingScale, // 위치,회전,크기 모두 소켓에 맞춤
+            FAttachmentTransformRules::SnapToTargetIncludingScale,
             AttachSocketName
         );
     }
@@ -177,8 +153,7 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
 
 void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InSecondMainWeapon)
 {
-    // null이 되어서 들어왔든, 다른 아이템으로 바뀌어서 들어왔든 기존 액터는 지워야 함
-    if (GetOwner()->HasAuthority())
+    if (!GetOwner()->HasAuthority())
     {
         return;
     }
@@ -189,59 +164,41 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
         EquipmentSlots[1].EquippedActor = nullptr;
     }
 
-    // 1. 유효성 검사 (ItemData 및 WeaponData 확인)
     UATGItemData* ItemData = InSecondMainWeapon.Item.Get();
     if (!ItemData) return;
 
     UATGWeaponData* WeaponData = Cast<UATGWeaponData>(ItemData);
     if (!WeaponData || !WeaponData->WeaponClass) return;
 
-    // 2. 오너 캐릭터 및 월드 가져오기
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     if (!OwnerCharacter) return;
 
     UWorld* World = GetWorld();
     if (!World) return;
 
-    // 3. 스폰 트랜스폼 준비 (Attach 할 것이므로 위치는 0,0,0이어도 무관하지만 기본값 설정)
     FTransform SpawnTransform = OwnerCharacter->GetActorTransform();
 
-    // ----------------------------------------------------------------
-    // 4. [중요] SpawnActorDeferred 호출
-    // ----------------------------------------------------------------
-    // AATGWeaponBase는 실제 무기 액터 클래스로 변경하세요 (예: AMyWeaponActor)
-    // 템플릿(< >) 안에 실제 무기 클래스 타입을 넣어야 멤버 변수에 접근 가능합니다.
-    AActor* SpawnedActor = World->SpawnActorDeferred<AActor>(
+    AATGWeaponBase* SpawnedActor = World->SpawnActorDeferred<AATGWeaponBase>(
         WeaponData->WeaponClass,
         SpawnTransform,
-        OwnerCharacter, // Owner 설정
-        OwnerCharacter, // Instigator 설정
+        OwnerCharacter, // Owner
+        OwnerCharacter, // Instigator
         ESpawnActorCollisionHandlingMethod::AlwaysSpawn
     );
 
-    // 5. 초기값 대입 및 스폰 마무리
     if (SpawnedActor)
     {
-        // 실제 무기 클래스로 캐스팅하여 데이터 주입
-        // (예시: AATGWeaponBase* NewWeapon = Cast<AATGWeaponBase>(SpawnedActor);)
-        /*
-        if (NewWeapon)
-        {
-             NewWeapon->Damage = WeaponData->BaseDamage; // 예시: 초기값 대입
-             NewWeapon->WeaponID = WeaponData->ID;       // 예시: 초기값 대입
-        }
-        */
         SpawnedActor->SetReplicates(true);
-        //슬롯배열에 추가
         EquipmentSlots[1].EquippedActor = SpawnedActor;
-        // BeginPlay 및 초기화 실행 (이 시점에 액터가 세상에 완전히 태어남)
+
+        // BeginPlay 및 초기화 실행 
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
 
         FName AttachSocketName = CurrentUsingSlot == EEquipmentSlotType::MainWeapon2 ? SniperSocketName : Main2BackSocketName;
 
         SpawnedActor->AttachToComponent(
             OwnerCharacter->GetMesh(),
-            FAttachmentTransformRules::SnapToTargetIncludingScale, // 위치,회전,크기 모두 소켓에 맞춤
+            FAttachmentTransformRules::SnapToTargetIncludingScale,
             AttachSocketName
         );
     }
@@ -253,6 +210,13 @@ void UATGPlayerEquipComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+}
+
+void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquipmentSlotType TryUsingSlot)
+{
+    UE_LOG(LogTemp, Log, TEXT("ServerChangePlayerUsingSlot_Implementation"));
+    CurrentUsingSlot = TryUsingSlot;
+    ChangeWeaponEquip();
 }
 
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
@@ -267,6 +231,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
         return;
     }
 
+    UE_LOG(LogTemp, Log, TEXT("UATGPlayerEquipComponent::ChangeWeaponEquip"));
 
     switch (CurrentUsingSlot)
     {
