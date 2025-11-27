@@ -26,10 +26,30 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Equipment")
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Equipment")
 	TArray<FEquipmentSlot> EquipmentSlots;
 
+	UPROPERTY(ReplicatedUsing = "OnRep_CurrentUsingSlot", BlueprintReadOnly, Category = "Equipment")
+	EEquipmentSlotType CurrentUsingSlot = EEquipmentSlotType::None;
+
+	UFUNCTION()
+	void OnRep_CurrentUsingSlot();
+
+	void ChangeWeaponEquip();
+
 protected:
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
+	FName SniperSocketName = TEXT("HandGrip_Sniper");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
+	FName Main1BackSocketName = TEXT("Main1Back_Sniper");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
+	FName Main2BackSocketName = TEXT("Main2Back_Sniper");
+
 	FTimerHandle TimerHandle_InitCheck;
 
 	ACharacter* GetOwningPlayerCharacter();
@@ -43,4 +63,11 @@ protected:
 	bool CheckPlayerStateCompReady();
 
 	void InitEquipComponent(UATGEquipmentComponent* EquipmentComponent);
+
+public:
+	UFUNCTION(Server, Reliable)
+	void ServerChangePlayerUsingSlot(EEquipmentSlotType TryUsingSlot);
+
+protected:
+
 };

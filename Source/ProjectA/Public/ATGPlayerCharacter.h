@@ -15,6 +15,7 @@ struct FInputActionValue;
 class AActor;
 struct FInteractionData;
 struct FInventoryEntry;
+class UATGPlayerEquipComponent;
 
 UCLASS()
 class PROJECTA_API AATGPlayerCharacter : public ACharacter
@@ -36,6 +37,9 @@ protected:
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UATGPlayerEquipComponent* PlayerEquipComp;
 
 protected:
 
@@ -61,6 +65,11 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* IA_RotateHeldItemAction;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* IA_FirstMainEquip;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* IA_SecondMainEquip;
 protected:
 
 	/** Called for movement input */
@@ -76,6 +85,9 @@ protected:
 	void ToggleInventory(const FInputActionValue& Value);
 
 	void RotateHeldItem(const FInputActionValue& Value);
+
+	void TryEquipFirstMain(const FInputActionValue& Value);
+	void TrySecondFirstMain(const FInputActionValue& Value);
 
 public:
 

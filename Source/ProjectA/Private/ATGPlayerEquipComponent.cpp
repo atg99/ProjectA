@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h" 
 #include "Engine/World.h"
 #include "Weapon/ATGWeaponBase.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
 UATGPlayerEquipComponent::UATGPlayerEquipComponent()
@@ -26,13 +27,11 @@ UATGPlayerEquipComponent::UATGPlayerEquipComponent()
     Slot1.EquippedActor = nullptr; // 초기엔 장비 없음
     EquipmentSlots.Add(Slot1);
 
-    //MainWeapon2 슬롯 추가
     FEquipmentSlot Slot2;
     Slot2.SlotType = EEquipmentSlotType::MainWeapon2;
     Slot2.EquippedActor = nullptr;
     EquipmentSlots.Add(Slot2);
 
-	// ...
 }
 
 
@@ -60,6 +59,14 @@ void UATGPlayerEquipComponent::BeginPlay()
         );
     }
 
+}
+
+void UATGPlayerEquipComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME_CONDITION(UATGPlayerEquipComponent, CurrentUsingSlot, COND_None);
+    DOREPLIFETIME_CONDITION(UATGPlayerEquipComponent, EquipmentSlots, COND_None);
 }
 
 bool UATGPlayerEquipComponent::CheckPlayerStateCompReady()
@@ -90,13 +97,24 @@ void UATGPlayerEquipComponent::InitEquipComponent(UATGEquipmentComponent* Equipm
     }
 }
 
+void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquipmentSlotType TryUsingSlot)
+{
+    UE_LOG(LogTemp, Log, TEXT("ServerChangePlayerUsingSlot_Implementation"));
+    CurrentUsingSlot = TryUsingSlot;
+    ChangeWeaponEquip();
+}
+
 void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFirstMainWeapon)
 {
+    if (GetOwner()->HasAuthority())
+    {
+        return;
+    }
     //null이 되어서 들어왔든, 다른 아이템으로 바뀌어서 들어왔든 기존 액터는 지워야 함
-
     if (EquipmentSlots[0].EquippedActor)
     {
         EquipmentSlots[0].EquippedActor->Destroy();
+        EquipmentSlots[0].EquippedActor = nullptr;
     }
 
     // 1. 유효성 검사 (ItemData 및 WeaponData 확인)
@@ -141,34 +159,34 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
              NewWeapon->WeaponID = WeaponData->ID;       // 예시: 초기값 대입
         }
         */
-
+        SpawnedActor->SetReplicates(true);
         //슬롯배열에 추가
         EquipmentSlots[0].EquippedActor = SpawnedActor;
-        // [중요] BeginPlay 및 초기화 실행 (이 시점에 액터가 세상에 완전히 태어남)
+        //BeginPlay 및 초기화 실행 
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
 
-        // 6. 캐릭터 메쉬 소켓에 부착 (Attach)
-        // "Hand_R_Socket" 부분은 실제 사용하는 소켓 이름으로 변경하세요.
-        FName SocketName = TEXT("HandGrip_R");
+        FName AttachSocketName = CurrentUsingSlot == EEquipmentSlotType::MainWeapon1 ? SniperSocketName : Main1BackSocketName;
 
         SpawnedActor->AttachToComponent(
             OwnerCharacter->GetMesh(),
             FAttachmentTransformRules::SnapToTargetIncludingScale, // 위치,회전,크기 모두 소켓에 맞춤
-            SocketName
+            AttachSocketName
         );
-
-        // (선택 사항) 컴포넌트 내 변수에 무기 포인터 저장
-        // CurrentWeapon = SpawnedActor; 
     }
 }
 
 void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InSecondMainWeapon)
 {
     // null이 되어서 들어왔든, 다른 아이템으로 바뀌어서 들어왔든 기존 액터는 지워야 함
-   
+    if (GetOwner()->HasAuthority())
+    {
+        return;
+    }
+
     if (EquipmentSlots[1].EquippedActor)
     {
         EquipmentSlots[1].EquippedActor->Destroy();
+        EquipmentSlots[1].EquippedActor = nullptr;
     }
 
     // 1. 유효성 검사 (ItemData 및 WeaponData 확인)
@@ -213,24 +231,19 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
              NewWeapon->WeaponID = WeaponData->ID;       // 예시: 초기값 대입
         }
         */
-
+        SpawnedActor->SetReplicates(true);
         //슬롯배열에 추가
         EquipmentSlots[1].EquippedActor = SpawnedActor;
-        // [중요] BeginPlay 및 초기화 실행 (이 시점에 액터가 세상에 완전히 태어남)
+        // BeginPlay 및 초기화 실행 (이 시점에 액터가 세상에 완전히 태어남)
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
 
-        // 6. 캐릭터 메쉬 소켓에 부착 (Attach)
-        // "Hand_R_Socket" 부분은 실제 사용하는 소켓 이름으로 변경하세요.
-        FName SocketName = TEXT("HandGrip_R");
+        FName AttachSocketName = CurrentUsingSlot == EEquipmentSlotType::MainWeapon2 ? SniperSocketName : Main2BackSocketName;
 
         SpawnedActor->AttachToComponent(
             OwnerCharacter->GetMesh(),
             FAttachmentTransformRules::SnapToTargetIncludingScale, // 위치,회전,크기 모두 소켓에 맞춤
-            SocketName
+            AttachSocketName
         );
-
-        // (선택 사항) 컴포넌트 내 변수에 무기 포인터 저장
-        // CurrentWeapon = SpawnedActor; 
     }
 }
 
@@ -240,6 +253,64 @@ void UATGPlayerEquipComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+}
+
+void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
+{
+    UE_LOG(LogTemp, Log, TEXT("UATGPlayerEquipComponent::OnRep_CurrentUsingSlot"));
+}
+
+void UATGPlayerEquipComponent::ChangeWeaponEquip()
+{
+    if (!GetOwningPlayerCharacter())
+    {
+        return;
+    }
+
+
+    switch (CurrentUsingSlot)
+    {
+    case EEquipmentSlotType::MainWeapon1:
+    {
+        if (EquipmentSlots[0].EquippedActor)
+        {
+            EquipmentSlots[0].EquippedActor->AttachToComponent(
+                GetOwningPlayerCharacter()->GetMesh(),
+                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+                SniperSocketName
+            );
+        }
+        if (EquipmentSlots[1].EquippedActor)
+        {
+            EquipmentSlots[1].EquippedActor->AttachToComponent(
+                GetOwningPlayerCharacter()->GetMesh(),
+                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+                Main2BackSocketName
+            );
+        }
+        break;
+    }
+    case EEquipmentSlotType::MainWeapon2:
+    {
+        if (EquipmentSlots[0].EquippedActor)
+        {
+            EquipmentSlots[0].EquippedActor->AttachToComponent(
+                GetOwningPlayerCharacter()->GetMesh(),
+                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+                Main1BackSocketName
+            );
+        }
+        if (EquipmentSlots[1].EquippedActor)
+        {
+            EquipmentSlots[1].EquippedActor->AttachToComponent(
+                GetOwningPlayerCharacter()->GetMesh(),
+                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+                SniperSocketName
+            );
+        }
+        break;
+    }
+    }
 }
 
 ACharacter* UATGPlayerEquipComponent::GetOwningPlayerCharacter()

@@ -30,7 +30,7 @@
 #include "ATGPlayerController.h"
 #include "ATGHUDComponent.h"
 #include "GameFramework/HUD.h"
-
+#include "ATGPlayerEquipComponent.h"
 
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
@@ -69,6 +69,8 @@ AATGPlayerCharacter::AATGPlayerCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+
+	PlayerEquipComp = CreateDefaultSubobject<UATGPlayerEquipComponent>(TEXT("PlayerEquipComponent"));
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -114,6 +116,12 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 		//RotateItem
 		EnhancedInputComponent->BindAction(IA_RotateHeldItemAction, ETriggerEvent::Started, this, &AATGPlayerCharacter::RotateHeldItem);
+
+		//RotateItem
+		EnhancedInputComponent->BindAction(IA_FirstMainEquip, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryEquipFirstMain);
+
+		//RotateItem
+		EnhancedInputComponent->BindAction(IA_SecondMainEquip, ETriggerEvent::Started, this, &AATGPlayerCharacter::TrySecondFirstMain);
 
 	}
 	else
@@ -289,6 +297,22 @@ void AATGPlayerCharacter::RotateHeldItem(const FInputActionValue& Value)
 	//}
 	//if (GEngine)
 	//	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("RotateItem"));
+}
+
+void AATGPlayerCharacter::TryEquipFirstMain(const FInputActionValue& Value)
+{
+	if (PlayerEquipComp)
+	{
+		PlayerEquipComp->ServerChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon1);
+	}
+}
+
+void AATGPlayerCharacter::TrySecondFirstMain(const FInputActionValue& Value)
+{
+	if (PlayerEquipComp)
+	{
+		PlayerEquipComp->ServerChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon2);
+	}
 }
 
 void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InteractionData)

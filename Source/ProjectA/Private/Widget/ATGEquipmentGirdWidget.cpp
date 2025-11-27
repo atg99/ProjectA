@@ -170,7 +170,7 @@ void UATGEquipmentGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation
 		{
 			// 슬롯 타입 전달 (X좌표에 Enum 값 할당)
 			Inven->TryAddItemAt(InDragged->Inven, InDragged->EntryId, InDragged->ItemDef, InDragged->Quantity, (int32)EquipmentSlot, 0);
-		}		
+		}
 	}
 }
 

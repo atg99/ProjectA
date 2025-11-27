@@ -1,0 +1,23 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Animation/ZombieAnimInstance.h"
+#include "AI/ZombieEnemy.h"
+
+void UZombieAnimInstance::NativeInitializeAnimation()
+{
+	//Character = Cast<ACharacter>(TryGetPawnOwner());
+}
+
+void UZombieAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
+{
+	AZombieEnemy* Enemy = Cast<AZombieEnemy>(TryGetPawnOwner());
+
+	if (Enemy)
+	{
+		Velocity = Enemy->GetVelocity();
+		GroundSpeed = Velocity.Size2D();
+		ShouldMove = (GroundSpeed > 3.0f);
+		EnemyState = Enemy->EnemyState;
+	}
+}

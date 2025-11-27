@@ -65,7 +65,7 @@ void UATGEquipmentComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 
 	DOREPLIFETIME_CONDITION(UATGEquipmentComponent, FirstMainWeapon, COND_None);
 	DOREPLIFETIME_CONDITION(UATGEquipmentComponent, SecondMainWeapon, COND_None);
-
+	
 }
 
 //변경시 클라에 전파
@@ -128,7 +128,6 @@ void UATGEquipmentComponent::TryHandleTransItemResult(int32 EntryId, int32 Remov
 		UE_LOG(LogTemp, Warning, TEXT("!!! UATGEquipmentComponent::TryHandleTransItemResult Invaild EntryId"));
 		break;
 	}
-
 	GetOwner()->ForceNetUpdate();
 }
 
@@ -166,19 +165,33 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 	}
 
 	FInventoryEntry* TargetEntry = nullptr;
-
+	int32 TargetId = 0;
 	if (SlotType == EEquipmentSlotType::MainWeapon1)
 	{
 		TargetEntry = &FirstMainWeapon;
+		TargetId = TargetEntry->Id;
 	}
 	else if (SlotType == EEquipmentSlotType::MainWeapon2)
 	{
 		TargetEntry = &SecondMainWeapon;
+		TargetId = TargetEntry->Id;
+	}
+
+	//장비그리드에서 같은 장비 슬롯으로 옮겨시 이 함수가 실행됬을 때 거부
+	if (Inven.GetObject() == this && OtherGridId == TargetId)
+	{
+		UE_LOG(LogTemp, Log, TEXT("UATGEquipmentComponent:: Same Slot"));
+		return;
 	}
 
 	if (TargetEntry)
 	{
 		UE_LOG(LogTemp, Display, TEXT("UATGEquipmentComponent::ServerAddEquipment"));
+
+		if (TargetEntry->Item == ItemDef)
+		{
+			return;
+		}
 
 		//아이템 복사
 		TargetEntry->Item = ItemDef;
@@ -190,6 +203,7 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 
 		// 원래 인벤토리에서 제거 요청 무기 장착은 슬롯 하나당 1개만 가능 하므로 1개 제거 (무기가 스택이 쌓였을 수도 있음)
 		Inven->TryHandleTransItemResult(OtherGridId, 1);
+		
 		GetOwner()->ForceNetUpdate();
 
 		switch (SlotType)
@@ -206,7 +220,6 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 			break;
 		}
 	}
-
 }
 
 bool UATGEquipmentComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId)
@@ -238,8 +251,6 @@ bool UATGEquipmentComponent::CheckItemFitSlot(UATGItemData* ItemData, EEquipment
 			break;
 		}
 	}
-
 	return false;
-	
 }
 
