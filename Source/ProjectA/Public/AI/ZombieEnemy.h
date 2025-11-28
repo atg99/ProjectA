@@ -4,20 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interface/ATGBTInterface.h"
 #include "ZombieEnemy.generated.h"
 
-UENUM(BlueprintType)
-enum class EEnemyState : uint8
-{
-	None		= 0		UMETA(DisplayName = "None"),
-	Normal		= 10	UMETA(DisplayName = "Normal"),
-	Chase		= 20	UMETA(DisplayName = "Chase"),
-	Battle		= 30	UMETA(DisplayName = "Battle"),
-	Death		= 40	UMETA(DisplayName = "Death"),
-};
-
 UCLASS()
-class PROJECTA_API AZombieEnemy : public ACharacter
+class PROJECTA_API AZombieEnemy : public ACharacter, public IATGBTInterface
 {
 	GENERATED_BODY()
 
@@ -36,5 +27,13 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	EEnemyState EnemyState = EEnemyState::Normal;
+	virtual float TryPlayMontage(UAnimMontage* Montage, float PlayRate = 1.f, FName StartSessionName = NAME_None) override;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiPlayMontage(UAnimMontage* Montage, float PlayRate = 1.f, FName StartSessionName = NAME_None);
+
+	virtual void TryStopMontage(UAnimMontage* Montage) override;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiStopMontage(UAnimMontage* Montage);
 };

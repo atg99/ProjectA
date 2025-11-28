@@ -5,11 +5,13 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
 #include "AI/ZombieEnemy.h"
+#include "ATGEnum.h"
 #include "ZombieAnimInstance.generated.h"
 
 /**
  * 
  */
+
 UCLASS()
 class PROJECTA_API UZombieAnimInstance : public UAnimInstance
 {
@@ -36,6 +38,6 @@ public:
 	bool bIsDie;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
-	EEnemyState EnemyState = EEnemyState::None;
+	EMonsterState MonsterState;
 
 };

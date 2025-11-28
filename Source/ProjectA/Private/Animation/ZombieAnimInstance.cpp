@@ -3,6 +3,7 @@
 
 #include "Animation/ZombieAnimInstance.h"
 #include "AI/ZombieEnemy.h"
+#include <AI/BaseAIController.h>
 
 void UZombieAnimInstance::NativeInitializeAnimation()
 {
@@ -18,6 +19,10 @@ void UZombieAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		Velocity = Enemy->GetVelocity();
 		GroundSpeed = Velocity.Size2D();
 		ShouldMove = (GroundSpeed > 3.0f);
-		EnemyState = Enemy->EnemyState;
+		ABaseAIController* AIC = Cast<ABaseAIController>(Enemy->GetController());
+		if (AIC)
+		{
+			MonsterState = AIC->MonsterState;
+		}
 	}
 }

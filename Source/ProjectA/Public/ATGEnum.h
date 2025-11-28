@@ -50,6 +50,17 @@ enum class EInteractionType : uint8
 	Equipment		UMETA(DisplayName = "Equipment"),
 };
 
+
+UENUM(BlueprintType)
+enum class EMonsterState : uint8
+{
+	None = 0	UMETA(DisplayName = "None"),
+	Normal = 10	UMETA(DisplayName = "Normal"),
+	Chase = 20	UMETA(DisplayName = "Chase"),
+	Battle = 30	UMETA(DisplayName = "Battle"),
+	Death = 40	UMETA(DisplayName = "Death"),
+};
+
 class UATGItemData;
 
 USTRUCT(BlueprintType)

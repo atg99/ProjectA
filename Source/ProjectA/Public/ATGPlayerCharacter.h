@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-
+#include "GenericTeamAgentInterface.h"
 #include "ATGPlayerCharacter.generated.h"
 
 class USpringArmComponent;
@@ -16,9 +16,10 @@ class AActor;
 struct FInteractionData;
 struct FInventoryEntry;
 class UATGPlayerEquipComponent;
+class UAIPerceptionStimuliSourceComponent;
 
 UCLASS()
-class PROJECTA_API AATGPlayerCharacter : public ACharacter
+class PROJECTA_API AATGPlayerCharacter : public ACharacter, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -38,6 +39,9 @@ public:
 	/** Follow camera */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	UCameraComponent* FollowCamera;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	UAIPerceptionStimuliSourceComponent* AIStimuliSourceComp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	UATGPlayerEquipComponent* PlayerEquipComp;
@@ -137,4 +141,14 @@ protected:
 //Helper
 protected:
 	UATGInventoryComponent* GetInventoryComponent();
+
+	//----------------------------------------------------------------------//
+	// IGenericTeamAgentInterface 인터페이스 상속 받아야 AIPerception에서 적이나 아군으로 감지
+	//----------------------------------------------------------------------//
+	FGenericTeamId TeamID;
+	/** Assigns Team Agent to given TeamID */
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+
+	/** Retrieve team identifier in form of FGenericTeamId */
+	virtual FGenericTeamId GetGenericTeamId() const override;
 };

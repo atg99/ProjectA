@@ -31,6 +31,7 @@
 #include "ATGHUDComponent.h"
 #include "GameFramework/HUD.h"
 #include "ATGPlayerEquipComponent.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
 
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
@@ -70,8 +71,11 @@ AATGPlayerCharacter::AATGPlayerCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
+	AIStimuliSourceComp = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("AIPerceptionStimuliSourceComponent"));
+
 	PlayerEquipComp = CreateDefaultSubobject<UATGPlayerEquipComponent>(TEXT("PlayerEquipComp"));
 
+	SetGenericTeamId(1);
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
@@ -352,6 +356,16 @@ UATGInventoryComponent* AATGPlayerCharacter::GetInventoryComponent()
 	UActorComponent* Comp = GetPlayerState()->GetComponentByClass(UATGInventoryComponent::StaticClass());
 	UATGInventoryComponent* InventoryComp = Cast<UATGInventoryComponent>(Comp);
 	return InventoryComp;
+}
+
+void AATGPlayerCharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	TeamID = NewTeamID;
+}
+
+FGenericTeamId AATGPlayerCharacter::GetGenericTeamId() const
+{
+	return TeamID;
 }
 
 
