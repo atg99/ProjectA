@@ -49,17 +49,17 @@ public:
 protected:
 
 	//IA
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* JumpAction;
+	///** Jump Input Action */
+	//UPROPERTY(EditAnywhere, Category = "Input")
+	//UInputAction* JumpAction;
 
-	/** Move Input Action */
-	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* MoveAction;
+	///** Move Input Action */
+	//UPROPERTY(EditAnywhere, Category = "Input")
+	//UInputAction* MoveAction;
 
-	/** Mouse Look Input Action */
-	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* MouseLookAction;
+	///** Mouse Look Input Action */
+	//UPROPERTY(EditAnywhere, Category = "Input")
+	//UInputAction* MouseLookAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* IA_Interaction;

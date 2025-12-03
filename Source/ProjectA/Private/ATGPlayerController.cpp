@@ -27,8 +27,13 @@ void AATGPlayerController::SetupInputComponent()
 		{
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
 			{
-				Subsystem->AddMappingContext(CurrentContext, 0);
+				Subsystem->AddMappingContext(CurrentContext, 1);
 			}
+
+			if (MotionMatcingContexts)
+			{
+				Subsystem->AddMappingContext(MotionMatcingContexts, 0);
+			}	
 		}
 	}
 }
@@ -116,7 +121,7 @@ void AATGPlayerController::ToggleInventoryInputMapping(bool bIsInvent)
 		{
 			if (bIsInvent)
 			{
-				Subsystem->AddMappingContext(InventoryMappingContexts, 1);
+				Subsystem->AddMappingContext(InventoryMappingContexts, 2);
 			}
 			else
 			{

@@ -11,6 +11,8 @@
 #include "Engine/World.h"
 #include "Weapon/ATGWeaponBase.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/SceneComponent.h"
+
 
 // Sets default values for this component's properties
 UATGPlayerEquipComponent::UATGPlayerEquipComponent()
@@ -143,11 +145,10 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
 
         FName AttachSocketName = CurrentUsingSlot == EEquipmentSlotType::MainWeapon1 ? SniperSocketName : Main1BackSocketName;
 
-        SpawnedActor->AttachToComponent(
-            OwnerCharacter->GetMesh(),
-            FAttachmentTransformRules::SnapToTargetIncludingScale,
-            AttachSocketName
-        );
+        if (USceneComponent* AttachComp = GetSlaveMesh())
+        {
+            SpawnedActor->AttachToComponent(AttachComp, FAttachmentTransformRules::SnapToTargetIncludingScale, AttachSocketName);
+        }
     }
 }
 
@@ -190,17 +191,16 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
     {
         SpawnedActor->SetReplicates(true);
         EquipmentSlots[1].EquippedActor = SpawnedActor;
-
+       
         // BeginPlay 및 초기화 실행 
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
 
         FName AttachSocketName = CurrentUsingSlot == EEquipmentSlotType::MainWeapon2 ? SniperSocketName : Main2BackSocketName;
 
-        SpawnedActor->AttachToComponent(
-            OwnerCharacter->GetMesh(),
-            FAttachmentTransformRules::SnapToTargetIncludingScale,
-            AttachSocketName
-        );
+        if (USceneComponent* AttachComp = GetSlaveMesh())
+        {
+            SpawnedActor->AttachToComponent(AttachComp, FAttachmentTransformRules::SnapToTargetIncludingScale, AttachSocketName);
+        }
     }
 }
 
@@ -216,17 +216,20 @@ void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquip
 {
     UE_LOG(LogTemp, Log, TEXT("ServerChangePlayerUsingSlot_Implementation"));
     CurrentUsingSlot = TryUsingSlot;
+    //서버에서 attach하면 동기화됨 클라에서 불필요
     ChangeWeaponEquip();
 }
 
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
 {
     UE_LOG(LogTemp, Log, TEXT("UATGPlayerEquipComponent::OnRep_CurrentUsingSlot"));
+    //서버에서 attach하면 동기화됨 클라에서 불필요
+    //ChangeWeaponEquip();
 }
 
 void UATGPlayerEquipComponent::ChangeWeaponEquip()
 {
-    if (!GetOwningPlayerCharacter())
+    if (!GetSlaveMesh())
     {
         return;
     }
@@ -240,7 +243,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
         if (EquipmentSlots[0].EquippedActor)
         {
             EquipmentSlots[0].EquippedActor->AttachToComponent(
-                GetOwningPlayerCharacter()->GetMesh(),
+                GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
                 SniperSocketName
             );
@@ -248,7 +251,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
         if (EquipmentSlots[1].EquippedActor)
         {
             EquipmentSlots[1].EquippedActor->AttachToComponent(
-                GetOwningPlayerCharacter()->GetMesh(),
+                GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
                 Main2BackSocketName
             );
@@ -260,7 +263,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
         if (EquipmentSlots[0].EquippedActor)
         {
             EquipmentSlots[0].EquippedActor->AttachToComponent(
-                GetOwningPlayerCharacter()->GetMesh(),
+                GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
                 Main1BackSocketName
             );
@@ -268,7 +271,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
         if (EquipmentSlots[1].EquippedActor)
         {
             EquipmentSlots[1].EquippedActor->AttachToComponent(
-                GetOwningPlayerCharacter()->GetMesh(),
+                GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
                 SniperSocketName
             );
@@ -284,3 +287,23 @@ ACharacter* UATGPlayerEquipComponent::GetOwningPlayerCharacter()
 	return Cast<ACharacter>(GetOwner());
 }
 
+USceneComponent* UATGPlayerEquipComponent::GetSlaveMesh()
+{
+    if (!GetOwningPlayerCharacter())
+    {
+        return nullptr;
+    }
+
+    TArray<USceneComponent*> Children;
+    USceneComponent* AttachComp = nullptr;
+    GetOwningPlayerCharacter()->GetMesh()->GetChildrenComponents(false, Children);
+    for (auto Comp : Children)
+    {
+        if (Comp->ComponentHasTag(FName("SlaveMesh")))
+        {
+            return Comp;
+        }
+    }
+
+    return nullptr;
+}

@@ -26,6 +26,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
 	TArray<UInputMappingContext*> DefaultMappingContexts;
 
+	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
+	UInputMappingContext* MotionMatcingContexts;
+
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputMappingContext* InventoryMappingContexts;
 

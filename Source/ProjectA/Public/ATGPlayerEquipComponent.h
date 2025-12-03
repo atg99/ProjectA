@@ -8,6 +8,7 @@
 #include "ATGPlayerEquipComponent.generated.h"
 
 class UATGEquipmentComponent;
+class USceneComponent;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTA_API UATGPlayerEquipComponent : public UActorComponent
@@ -69,6 +70,7 @@ protected:
 
 	void InitEquipComponent(UATGEquipmentComponent* EquipmentComponent);
 
+	USceneComponent* GetSlaveMesh();
 protected:
 
 };
