@@ -13,6 +13,8 @@ class UButton;
 class UTextBlock;
 class UScrollBox;
 class UEditableTextBox;
+class URichTextBlockImageDecorator;
+class URichTextBlockDecorator;
 
 UCLASS()
 class PROJECTA_API ULobbyWidget : public UUserWidget
@@ -22,18 +24,18 @@ class PROJECTA_API ULobbyWidget : public UUserWidget
 public:
 	virtual void NativeOnInitialized() override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (WidgetBind))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (BindWidget))
 	TObjectPtr<UButton> Btn_Start;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (WidgetBind))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (BindWidget))
 	TObjectPtr<UEditableTextBox> EditableText_Chat;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (WidgetBind))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_LeftTime;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (WidgetBind))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_UserCount;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (WidgetBind))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (BindWidget))
 	TObjectPtr<UScrollBox> ScrollBox_Chat;
 
 	UFUNCTION()
@@ -47,4 +49,17 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void UpdateLeftTime(int32 InLeftTime);
+
+	UFUNCTION(BlueprintCallable)
+	void UpdatePlayerNum(int32 InPlayerNum);
+
+	void AddMessage(const FText& Message);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	TObjectPtr<UDataTable> ChatStyleSet;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
+	TArray<TSubclassOf<URichTextBlockDecorator>> RichTextImageDecorators;
+
+	void ShowStartBtn();
 };

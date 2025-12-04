@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Lobby/LobbyGameState.h"
@@ -9,4 +9,21 @@ void ALobbyGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ALobbyGameState, LeftTime);
+}
+
+void ALobbyGameState::OnRep_LeftTime()
+{
+	OnLeftTime.Broadcast(LeftTime);
+}
+
+void ALobbyGameState::AddPlayerState(APlayerState* PlayerState)
+{
+	Super::AddPlayerState(PlayerState);
+	OnPlayerNum.Broadcast(PlayerArray.Num());
+}
+
+void ALobbyGameState::RemovePlayerState(APlayerState* PlayerState)
+{
+	Super::RemovePlayerState(PlayerState);
+	OnPlayerNum.Broadcast(PlayerArray.Num());
 }

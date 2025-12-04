@@ -20,10 +20,18 @@ public:
 
 	virtual void BeginPlay() override;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TSubclassOf<ULobbyWidget> LobbyWidgetClass;
 
 	UPROPERTY()
 	ULobbyWidget* LobbyWidgetObject;
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSendMessage(const FText& Message); //NetWwork 던지는 코드 생성 : 클라는 이거 호출
+	//bool ServerSendMessage_Validate(const FText& Message); //서버에서 확인 
+	//void ServerSendMessage_Implementation(const FText& Message); //실제동작 : 실제 서버에서 실행
+
+	UFUNCTION(Client, Reliable)
+	void ClientSendMessage(const FText& Message);
 	
 };

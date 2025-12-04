@@ -2,6 +2,7 @@
 
 
 #include "Lobby/LobbyGameMode.h"
+#include "Lobby/LobbyGameState.h"
 
 ALobbyGameMode::ALobbyGameMode()
 {
@@ -23,16 +24,28 @@ APlayerController* ALobbyGameMode::Login(UPlayer* NewPlayer, ENetRole InRemoteRo
 void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
+
+	//GetWorld()->GetPlayerControllerIterator();
 }
 
 void ALobbyGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	//GetWorld()->GetTimerManager().SetTimer(LeftTimeHandle, FTimerDelegate::CreateWeakLambda([this]() {
-	//	
-	//	})
-	//	1.f, true, 0.f);
+
+	GetWorld()->GetTimerManager().SetTimer(LeftTimeHandle,
+		FTimerDelegate::CreateLambda([this]() {
+			ALobbyGameState* GS = GetGameState<ALobbyGameState>();
+			if (GS)
+			{
+				//Server
+				GS->LeftTime--;
+				GS->OnRep_LeftTime();
+			}
+			}),
+		1.0f,
+		true,
+		0.0f
+	);
 }
 
 void ALobbyGameMode::StartPlay()

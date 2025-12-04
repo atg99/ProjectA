@@ -13,5 +13,18 @@ UCLASS()
 class PROJECTA_API UNetworkGameInstanceSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
+
+public:
+
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+
+	virtual void Deinitialize() override;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
+	FString UserID;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
+	FString Password;
 	
 };

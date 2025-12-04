@@ -33,7 +33,7 @@ void AATGPlayerController::SetupInputComponent()
 			if (MotionMatcingContexts)
 			{
 				Subsystem->AddMappingContext(MotionMatcingContexts, 0);
-			}	
+			}
 		}
 	}
 }
@@ -41,7 +41,13 @@ void AATGPlayerController::SetupInputComponent()
 void AATGPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	if (IsLocalController())
+	{
+		SetInputMode(FInputModeGameOnly());
+		bShowMouseCursor = false;
+	}
 
+	//府郊辑滚 困连积己
 	if (HasAuthority() && IsLocalController())
 	{
 		StartInitInventoryWidget();
