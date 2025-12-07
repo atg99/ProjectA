@@ -215,9 +215,16 @@ void UATGPlayerEquipComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquipmentSlotType TryUsingSlot)
 {
     UE_LOG(LogTemp, Log, TEXT("ServerChangePlayerUsingSlot_Implementation"));
-    CurrentUsingSlot = TryUsingSlot;
-    //서버에서 attach하면 동기화됨 클라에서 불필요
-    ChangeWeaponEquip();
+    FEquipmentSlot* TargetSlot = EquipmentSlots.FindByPredicate([TryUsingSlot](const FEquipmentSlot& Slot)
+        {
+            return Slot.SlotType == TryUsingSlot;
+        });
+	if (TargetSlot && TargetSlot->EquippedActor)
+	{
+		CurrentUsingSlot = TryUsingSlot;
+		//서버에서 attach하면 동기화됨 클라에서 불필요
+		ChangeWeaponEquip();
+	}
 }
 
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
