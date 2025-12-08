@@ -23,6 +23,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -31,14 +32,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<USkeletalMeshComponent> Mesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
-	TSubclassOf<AProjectileBase> ProjectileTemplate;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	//TSubclassOf<ABulletBase> BulletTemplate;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName SocketName = TEXT("HandGrip_R");
+	FName MuzzleSocketName = TEXT("Muzzle");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
 	int32 MaxBulletCount = 100;
@@ -72,8 +67,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
 	float TimeofLastShoot = 0.0f;
 
+	//처음에만 복제
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = Data)
+	FWeaponBulletData WeaponBulletData;
+
 	UFUNCTION(BlueprintCallable)
-	void SpawnFireProjectile(FTransform SpawnTransform);
+	void FireBullet(FVector FireLoc, FRotator FireRot);
 
 	FTimerHandle RefireTimer;
 

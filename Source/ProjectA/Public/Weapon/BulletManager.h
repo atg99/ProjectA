@@ -4,21 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "ATGEnum.h"
 #include "BulletManager.generated.h"
 
-struct FBullet
-{
-public:
-	//위치
-	FVector Location;
-	//속도 방향 + 속력
-	FVector Velocity;
-	// 중력 영향도 1.0 ~ 0.0
-	float GravityScale;
-	// 공기 저항 계수 0.0이면 저항 없음, 값이 클수록 빨리 느려짐
-	float DragCoefficient;
-};
 
+/*
+* Parallel Simulation
+* 이 엑터는 Replicate 안하고 다른 엑터에서 RPC
+* 발사한 클라 : 서버에 RPC 전송총알 탄도학 계산 총알시각표현 맞으면 이펙트 처리
+* 서버 : MultiCast RPC 총알 탄도학 계산 맞으면 데미지 처리 맞으면 Multi RPC 이펙트
+* Other 클라 : 총알시각표현
+*/
 UCLASS()
 class PROJECTA_API ABulletManager : public AActor
 {
@@ -32,8 +28,20 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	TArray<FBullet> ActiveBullets;
+
+	//SingleTon
+public:
+	// static 함수로 접근
+	static ABulletManager* GetBulletManager();
+
+private:
+	// Weak 포인터 사용 대상이 파괴되면 알아서 무효화됨.
+	static TWeakObjectPtr<ABulletManager> GlobalBulletManagerInstance;
 
 };

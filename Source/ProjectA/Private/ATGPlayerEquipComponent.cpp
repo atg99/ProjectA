@@ -12,7 +12,7 @@
 #include "Weapon/ATGWeaponBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/SceneComponent.h"
-
+#include "NetworkUtil.h"
 
 // Sets default values for this component's properties
 UATGPlayerEquipComponent::UATGPlayerEquipComponent()
@@ -138,6 +138,10 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
     if (SpawnedActor)
     {
         SpawnedActor->SetReplicates(true);
+
+        //총알 정보 복제
+        SpawnedActor->WeaponBulletData = WeaponData->WeaponBulletData;
+
         EquipmentSlots[0].EquippedActor = SpawnedActor;
 
         //BeginPlay 및 초기화 실행 
@@ -190,6 +194,8 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
     if (SpawnedActor)
     {
         SpawnedActor->SetReplicates(true);
+        //총알 정보 복제
+        SpawnedActor->WeaponBulletData = WeaponData->WeaponBulletData;
         EquipmentSlots[1].EquippedActor = SpawnedActor;
        
         // BeginPlay 및 초기화 실행 
@@ -285,6 +291,34 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
         }
         break;
     }
+    }
+}
+
+void UATGPlayerEquipComponent::DoFire()
+{
+    TryWeaponFire();
+}
+
+void UATGPlayerEquipComponent::ServerDoFire_Implementation()
+{
+    TryWeaponFire();
+}
+
+void UATGPlayerEquipComponent::TryWeaponFire()
+{
+    NET_LOG(TEXT("fire"));
+    //현재 사용하고 있는 슬롯의 무기 유효성 검사
+    EEquipmentSlotType D_CurSlotType = CurrentUsingSlot;
+    FEquipmentSlot* TargetSlot = EquipmentSlots.FindByPredicate([D_CurSlotType](const FEquipmentSlot& Slot)
+        {
+            return Slot.SlotType == D_CurSlotType;
+        });
+    if (TargetSlot && TargetSlot->EquippedActor)
+    {
+        if (AATGWeaponBase* WeaponBase = Cast<AATGWeaponBase>(TargetSlot->EquippedActor))
+        {
+            WeaponBase->Fire();
+        }
     }
 }
 

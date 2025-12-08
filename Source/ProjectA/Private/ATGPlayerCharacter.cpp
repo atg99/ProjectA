@@ -121,11 +121,11 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		//RotateItem
 		EnhancedInputComponent->BindAction(IA_RotateHeldItemAction, ETriggerEvent::Started, this, &AATGPlayerCharacter::RotateHeldItem);
 
-		//RotateItem
 		EnhancedInputComponent->BindAction(IA_FirstMainEquip, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryEquipFirstMain);
 
-		//RotateItem
 		EnhancedInputComponent->BindAction(IA_SecondMainEquip, ETriggerEvent::Started, this, &AATGPlayerCharacter::TrySecondFirstMain);
+
+		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Triggered, this, &AATGPlayerCharacter::TryFire);
 
 	}
 	else
@@ -193,6 +193,18 @@ void AATGPlayerCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+//Fire Logic
+void AATGPlayerCharacter::TryFire(const FInputActionValue& Value)
+{
+	if (PlayerEquipComp)
+	{
+		//Bullet Manager ¿¡¼­ Parallel Simulation
+		PlayerEquipComp->ServerDoFire();
+		PlayerEquipComp->DoFire();
+	}
+
 }
 
 void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
@@ -269,8 +281,7 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 			break;
 		default:
 			break;
-		}
-		
+		}		
 	}
 	else
 	{

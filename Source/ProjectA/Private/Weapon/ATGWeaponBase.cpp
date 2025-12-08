@@ -7,6 +7,8 @@
 #include "ATGPlayerCharacter.h"
 #include "NetworkUtil.h"
 #include "Weapon/ProjectileBase.h"
+#include "Weapon/BulletManager.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 AATGWeaponBase::AATGWeaponBase()
@@ -27,6 +29,14 @@ void AATGWeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+void AATGWeaponBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	//DOREPLIFETIME(AATGWeaponBase, WeaponBulletData);
+	// 만약 데이터가 변하지 않고 처음에만 전송
+	DOREPLIFETIME_CONDITION(AATGWeaponBase, WeaponBulletData, COND_InitialOnly);
 }
 
 // Called every frame
@@ -53,7 +63,7 @@ void AATGWeaponBase::Fire()
 	FRotator OutAimRot;
 	CalculateShootData(OutSpawnLoc, OutAimRot);
 
-	SpawnFireProjectile(FTransform(OutAimRot, OutSpawnLoc, FVector::OneVector));
+	FireBullet(OutSpawnLoc, OutAimRot);
 
 }
 
@@ -65,20 +75,22 @@ void AATGWeaponBase::Reload()
 {
 }
 
-void AATGWeaponBase::SpawnFireProjectile(FTransform SpawnTransform)
+void AATGWeaponBase::FireBullet(FVector FireLoc, FRotator FireRot)
 {
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	
-	AProjectileBase* Projectile = GetWorld()->SpawnActor<AProjectileBase>(ProjectileTemplate, SpawnTransform ,SpawnParams);
-	if (Projectile)
+	NET_LOG(FString::Printf(TEXT("speed : %f"), WeaponBulletData.Speed));
+	FBullet NewBullet;
+	NewBullet.Location = FireLoc;
+	//속도 = 방향 * 속력
+	NewBullet.Velocity = FireRot.Vector() * WeaponBulletData.Speed;
+	NewBullet.GravityScale = WeaponBulletData.GravityScale;
+	NewBullet.DragCoefficient = WeaponBulletData.DragCoefficient;
+
+	NewBullet.IgnoreActors.Add(GetInstigator());
+	NewBullet.IgnoreActors.Add(this);
+
+	if (ABulletManager::GetBulletManager())
 	{
-		//NET_LOG(TEXT("Spawn Success"));
-	}
-	else
-	{
-		NET_LOG(TEXT("Spawn Fail"));
+		ABulletManager::GetBulletManager()->ActiveBullets.Add(NewBullet);
 	}
 }
 
@@ -96,8 +108,17 @@ bool AATGWeaponBase::CalculateShootData(FVector& OutSpawnLocation, FRotator& Out
 	{
 		return false;
 	}
-
-	PC->GetPlayerViewPoint(OutSpawnLocation, OutAimRotation);
+	
+	if (Mesh)
+	{
+		OutSpawnLocation = Mesh->GetSocketLocation(MuzzleSocketName);
+	}
+	else
+	{
+		return false;
+	}
+	FVector TempVec;
+	PC->GetPlayerViewPoint(TempVec, OutAimRotation);
 
 	return true;
 }

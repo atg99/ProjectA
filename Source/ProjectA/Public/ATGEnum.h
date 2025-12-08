@@ -107,3 +107,36 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<AActor> EquippedActor = nullptr;
 };
+
+//날아가고 있는 총알 정보
+USTRUCT(BlueprintType)
+struct FBullet
+{
+	GENERATED_BODY()
+public:
+	//위치
+	FVector Location;
+	//속도 방향 + 속력
+	FVector Velocity;
+	// 중력 영향도 1.0 ~ 0.0
+	float GravityScale;
+	// 항력 계수 0.0이면 저항 없음, 값이 클수록 빨리 느려짐
+	float DragCoefficient;
+
+	TArray<AActor*> IgnoreActors;
+};
+
+//무기의 총알 정보
+USTRUCT(BlueprintType)
+struct FWeaponBulletData
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float GravityScale = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DragCoefficient = 1.f;
+	//탄속
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Speed = 500.f;
+};

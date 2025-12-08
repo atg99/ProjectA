@@ -3,7 +3,7 @@
 
 #include "Weapon/BulletManager.h"
 
-
+TWeakObjectPtr<ABulletManager> ABulletManager::GlobalBulletManagerInstance = nullptr;
 
 // Sets default values
 ABulletManager::ABulletManager()
@@ -17,7 +17,27 @@ ABulletManager::ABulletManager()
 void ABulletManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	if (GlobalBulletManagerInstance.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BulletManager duplication"));
+
+		Destroy();
+		return;
+	}
+
+	GlobalBulletManagerInstance = this;
+
+}
+
+void ABulletManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	if (GlobalBulletManagerInstance == this)
+	{
+		GlobalBulletManagerInstance = nullptr;
+	}
 }
 
 // Called every frame
@@ -25,5 +45,57 @@ void ABulletManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	//중력
+	const float WorldGravityZ = GetWorld()->GetGravityZ();
+
+	//역for문
+	for (int32 i = ActiveBullets.Num() - 1; i >= 0; i--)
+	{
+		FBullet& Bullet = ActiveBullets[i];
+
+		FVector StartLocation = Bullet.Location;
+
+		//중력 적용
+		Bullet.Velocity.Z += (WorldGravityZ * Bullet.GravityScale * DeltaTime);
+
+		//항력 계수 적용
+		if (Bullet.DragCoefficient > 0.0f)
+		{
+			Bullet.Velocity *= (1.0f - (Bullet.DragCoefficient * DeltaTime));
+		}
+
+		if (Bullet.Velocity.SizeSquared() < 10.0f) // 속도가 너무 느려지면 삭제
+		{
+			ActiveBullets.RemoveAtSwap(i); //배열 삭제 성능 최적화
+			continue;
+		}
+
+		//이동 거리 
+		FVector EndLocation = StartLocation + (Bullet.Velocity * DeltaTime);
+
+		FHitResult HitResult;
+		FCollisionQueryParams CollisionQueryParams;
+		CollisionQueryParams.AddIgnoredActors(Bullet.IgnoreActors);
+		DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Blue, false, -1.f);
+		bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, CollisionQueryParams);
+		if (bHit)
+		{
+			// 충돌 처리 
+			ActiveBullets.RemoveAtSwap(i);
+			continue;
+		}
+		
+		Bullet.Location = EndLocation;
+	
+	}
+}
+
+ABulletManager* ABulletManager::GetBulletManager()
+{
+	if (GlobalBulletManagerInstance.IsValid())
+	{
+		return GlobalBulletManagerInstance.Get();
+	}
+	return nullptr;
 }
 

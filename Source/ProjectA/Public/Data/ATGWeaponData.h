@@ -33,4 +33,7 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ClampMin = "0.0", UIMin = "0.0"))
     float AttackPower = 10.f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+    FWeaponBulletData WeaponBulletData;
 };

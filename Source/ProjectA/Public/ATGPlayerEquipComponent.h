@@ -45,6 +45,14 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerChangePlayerUsingSlot(EEquipmentSlotType TryUsingSlot);
 
+	UFUNCTION(Server, Reliable)
+	void ServerDoFire();
+
+	UFUNCTION()
+	void DoFire();
+
+	void TryWeaponFire();
+
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
