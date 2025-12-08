@@ -8,6 +8,7 @@
 #include "ATGWeaponBase.generated.h"
 
 class UStaticMeshComponent;
+class AProjectileBase;
 
 UCLASS()
 class PROJECTA_API AATGWeaponBase : public AActor
@@ -30,6 +31,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<USkeletalMeshComponent> Mesh;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
+	TSubclassOf<AProjectileBase> ProjectileTemplate;
+
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	//TSubclassOf<ABulletBase> BulletTemplate;
 
@@ -48,4 +52,31 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Data)
 	TObjectPtr<UAnimMontage> ReloadMontage;
 
+public:
+
+	UFUNCTION(BlueprintCallable)
+	void Fire();
+
+	UFUNCTION(BlueprintCallable)
+	void StopFire();
+
+	UFUNCTION(BlueprintCallable)
+	void Reload();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
+	uint8 bFullAuto : 1 = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data, meta = (ClampMin = 0.1f, ClampMax = 2.0f, Unit = "s"))
+	float RefireRate = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
+	float TimeofLastShoot = 0.0f;
+
+	UFUNCTION(BlueprintCallable)
+	void SpawnFireProjectile(FTransform SpawnTransform);
+
+	FTimerHandle RefireTimer;
+
+	bool CalculateShootData(FVector& OutSpawnLocation, FRotator& OutAimRotation);
 };
+

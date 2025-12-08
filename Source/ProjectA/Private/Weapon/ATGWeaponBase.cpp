@@ -3,6 +3,10 @@
 
 #include "Weapon/ATGWeaponBase.h"
 #include "Components/StaticMeshComponent.h"
+#include "GameFramework/Character.h"
+#include "ATGPlayerCharacter.h"
+#include "NetworkUtil.h"
+#include "Weapon/ProjectileBase.h"
 
 // Sets default values
 AATGWeaponBase::AATGWeaponBase()
@@ -31,4 +35,71 @@ void AATGWeaponBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
+
+void AATGWeaponBase::Fire()
+{
+	if (bFullAuto)
+	{
+		GetWorld()->GetTimerManager().SetTimer(RefireTimer, this, &AATGWeaponBase::Fire, RefireRate, false);
+	}
+
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+
+	if (!Character)
+	{
+		return;
+	}
+	FVector OutSpawnLoc;
+	FRotator OutAimRot;
+	CalculateShootData(OutSpawnLoc, OutAimRot);
+
+	SpawnFireProjectile(FTransform(OutAimRot, OutSpawnLoc, FVector::OneVector));
+
+}
+
+void AATGWeaponBase::StopFire()
+{
+}
+
+void AATGWeaponBase::Reload()
+{
+}
+
+void AATGWeaponBase::SpawnFireProjectile(FTransform SpawnTransform)
+{
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	
+	AProjectileBase* Projectile = GetWorld()->SpawnActor<AProjectileBase>(ProjectileTemplate, SpawnTransform ,SpawnParams);
+	if (Projectile)
+	{
+		//NET_LOG(TEXT("Spawn Success"));
+	}
+	else
+	{
+		NET_LOG(TEXT("Spawn Fail"));
+	}
+}
+
+bool AATGWeaponBase::CalculateShootData(FVector& OutSpawnLocation, FRotator& OutAimRotation)
+{
+	AATGPlayerCharacter* Character = Cast<AATGPlayerCharacter>(GetOwner());
+
+	if (!Character)
+	{
+		return false;
+	}
+
+	APlayerController* PC = Character->GetController<APlayerController>();
+	if (!PC)
+	{
+		return false;
+	}
+
+	PC->GetPlayerViewPoint(OutSpawnLocation, OutAimRotation);
+
+	return true;
+}
+
 
