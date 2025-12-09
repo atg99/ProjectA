@@ -22,4 +22,12 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
 	EEquipmentSlotType CurrentEquippedWeaponSlotType = EEquipmentSlotType::None;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
+	float AOYaw;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
+	float AOPitch;
+
+	FRotator GetAimOffset() const;
 };

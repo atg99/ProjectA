@@ -2,6 +2,7 @@
 
 
 #include "ATGCAnimInstance.h"
+#include "ATGEnum.h"
 #include "ATGPlayerEquipComponent.h"
 
 void UATGCAnimInstance::NativeInitializeAnimation()
@@ -14,8 +15,16 @@ void UATGCAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
 	UATGPlayerEquipComponent* PlayerEquip = TryGetPawnOwner() ? TryGetPawnOwner()->GetComponentByClass<UATGPlayerEquipComponent>() : nullptr;
-	if (PlayerEquip)
+	if (IsValid(PlayerEquip))
 	{
 		CurrentEquippedWeaponSlotType = PlayerEquip->CurrentUsingSlot;
+		FRotator AimOffset = GetAimOffset();
+		AOYaw = AimOffset.Yaw;
+		AOPitch = AimOffset.Pitch;
 	}
+}
+
+FRotator UATGCAnimInstance::GetAimOffset() const
+{
+	return TryGetPawnOwner()->ActorToWorld().InverseTransformVectorNoScale(TryGetPawnOwner()->GetBaseAimRotation().Vector()).Rotation();
 }

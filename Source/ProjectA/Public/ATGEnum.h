@@ -37,8 +37,8 @@ UENUM(BlueprintType)
 enum class EEquipmentSlotType : uint8
 {
 	None		=0		UMETA(DisplayName = "None"),
-	MainWeapon1	=10		UMETA(DisplayName = "MainWeapon1"),
-	MainWeapon2	=20		UMETA(DisplayName = "MainWeapon2"),
+	MainWeapon1	=1		UMETA(DisplayName = "MainWeapon1"),
+	MainWeapon2	=2		UMETA(DisplayName = "MainWeapon2"),
 };
 
 UENUM(BlueprintType)
