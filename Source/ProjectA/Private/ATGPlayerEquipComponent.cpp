@@ -13,13 +13,14 @@
 #include "Net/UnrealNetwork.h"
 #include "Components/SceneComponent.h"
 #include "NetworkUtil.h"
+#include "ATGPlayerCharacter.h"
 
 // Sets default values for this component's properties
 UATGPlayerEquipComponent::UATGPlayerEquipComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 
 	SetIsReplicatedByDefault(true);
 
@@ -141,8 +142,11 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
 
         //총알 정보 복제
         SpawnedActor->WeaponBulletData = WeaponData->WeaponBulletData;
+        SpawnedActor->WeaponData = WeaponData;
 
         EquipmentSlots[0].EquippedActor = SpawnedActor;
+        EquipmentSlots[0].STFTime = WeaponData->SprinttoFireTime;
+        EquipmentSlots[0].ADSTime = WeaponData->ADSTime;
 
         //BeginPlay 및 초기화 실행 
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
@@ -294,6 +298,13 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
     }
 }
 
+void UATGPlayerEquipComponent::TryFire()
+{
+    //Bullet Manager 에서 Parallel Simulation
+    ServerDoFire();
+    DoFire();
+}
+
 void UATGPlayerEquipComponent::DoFire()
 {
     TryWeaponFire();
@@ -317,8 +328,42 @@ void UATGPlayerEquipComponent::TryWeaponFire()
     {
         if (AATGWeaponBase* WeaponBase = Cast<AATGWeaponBase>(TargetSlot->EquippedActor))
         {
-            WeaponBase->Fire();
+            float STFTime = TargetSlot->STFTime;
+            float ADSTime = TargetSlot->ADSTime;
+            
+            //delay가 적용된 상태라면 바로 발사 아니라면 딜레이
+            if (bReadToFire)
+            {
+                WeaponFire(WeaponBase);
+            }
+            else
+            {   
+                //이미 STF타이머가 돌아가고 있다면 user 광클방지
+                bool bSTFTimer = GetWorld()->GetTimerManager().IsTimerActive(STFTimerHandle);
+                if (!bSTFTimer)
+                {
+                    GetWorld()->GetTimerManager().SetTimer(STFTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this, WeaponBase]() { WeaponFire(WeaponBase); }), STFTime, false);
+                }
+            }
         }
+    }
+}
+
+//delay 적용 플레그 업 SprintRecoveryTime 동안 발사없으면 플레그 다운
+void UATGPlayerEquipComponent::WeaponFire(AATGWeaponBase* WeaponBase)
+{
+    if (WeaponBase)
+    {
+        bReadToFire = true;
+        WeaponBase->Fire();
+        GetWorld()->GetTimerManager().SetTimer(FireToMoveTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]() 
+            { 
+                bReadToFire = false;
+                if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(GetOwningPlayerCharacter()))
+                {
+                    ATGC->RecoverMoveAnim();
+                }
+            }), MoveRecoveryTime, false);
     }
 }
 

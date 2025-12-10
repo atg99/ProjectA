@@ -78,6 +78,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* IA_Fire;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* IA_Aim;
 protected:
 
 	/** Called for movement input */
@@ -117,6 +120,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	virtual void TryFire(const FInputActionValue& Value);
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void StopFire(const FInputActionValue& Value);
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void RecoverMoveAnim();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void TryAim(const FInputActionValue& Value);
 
 public:
 
@@ -158,4 +170,10 @@ protected:
 	/** Retrieve team identifier in form of FGenericTeamId */
 	virtual FGenericTeamId GetGenericTeamId() const override;
 
+public:
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnCharacterFire();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnCharacterRecoverFromFire();
 };

@@ -36,4 +36,10 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
     FWeaponBulletData WeaponBulletData;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item | delay")
+    float ADSTime;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item | delay")
+    float SprinttoFireTime;
 };

@@ -125,7 +125,10 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 		EnhancedInputComponent->BindAction(IA_SecondMainEquip, ETriggerEvent::Started, this, &AATGPlayerCharacter::TrySecondFirstMain);
 
-		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Triggered, this, &AATGPlayerCharacter::TryFire);
+		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryFire);
+		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Completed, this, &AATGPlayerCharacter::StopFire);
+
+		EnhancedInputComponent->BindAction(IA_Aim, ETriggerEvent::Triggered, this, &AATGPlayerCharacter::TryAim);
 
 	}
 	else
@@ -201,10 +204,25 @@ void AATGPlayerCharacter::TryFire(const FInputActionValue& Value)
 	if (PlayerEquipComp)
 	{
 		//Bullet Manager 에서 Parallel Simulation
-		PlayerEquipComp->ServerDoFire();
-		PlayerEquipComp->DoFire();
-	}
+		PlayerEquipComp->TryFire();
 
+		//블루프린트에서 애니메이션 제어용 
+		OnCharacterFire();
+	}
+}
+
+void AATGPlayerCharacter::StopFire(const FInputActionValue& Value)
+{
+	
+}
+
+void AATGPlayerCharacter::RecoverMoveAnim()
+{
+	OnCharacterRecoverFromFire();
+}
+
+void AATGPlayerCharacter::TryAim(const FInputActionValue& Value)
+{
 }
 
 void AATGPlayerCharacter::Interact(const FInputActionValue& Value)

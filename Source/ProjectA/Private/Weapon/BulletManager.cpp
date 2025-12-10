@@ -64,9 +64,9 @@ void ABulletManager::Tick(float DeltaTime)
 			Bullet.Velocity *= (1.0f - (Bullet.DragCoefficient * DeltaTime));
 		}
 
-		if (Bullet.Velocity.SizeSquared() < 10.0f) // 속도가 너무 느려지면 삭제
+		if (Bullet.Velocity.SizeSquared() < 10.0f) // 속도 느려지면 삭제
 		{
-			ActiveBullets.RemoveAtSwap(i); //배열 삭제 성능 최적화
+			ActiveBullets.RemoveAtSwap(i); 
 			continue;
 		}
 
@@ -76,7 +76,7 @@ void ABulletManager::Tick(float DeltaTime)
 		FHitResult HitResult;
 		FCollisionQueryParams CollisionQueryParams;
 		CollisionQueryParams.AddIgnoredActors(Bullet.IgnoreActors);
-		DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Blue, false, -1.f);
+		DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Blue, false, 0.5f);
 		bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, CollisionQueryParams);
 		if (bHit)
 		{

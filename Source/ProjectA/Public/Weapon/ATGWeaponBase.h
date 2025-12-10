@@ -9,6 +9,7 @@
 
 class UStaticMeshComponent;
 class AProjectileBase;
+class UATGWeaponData;
 
 UCLASS()
 class PROJECTA_API AATGWeaponBase : public AActor
@@ -48,6 +49,9 @@ protected:
 	TObjectPtr<UAnimMontage> ReloadMontage;
 
 public:
+
+	UPROPERTY(BlueprintReadOnly)
+	UATGWeaponData* WeaponData;
 
 	UFUNCTION(BlueprintCallable)
 	void Fire();

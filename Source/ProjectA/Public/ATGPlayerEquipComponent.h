@@ -9,6 +9,7 @@
 
 class UATGEquipmentComponent;
 class USceneComponent;
+class AATGWeaponBase;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTA_API UATGPlayerEquipComponent : public UActorComponent
@@ -45,6 +46,8 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerChangePlayerUsingSlot(EEquipmentSlotType TryUsingSlot);
 
+	void TryFire();
+
 	UFUNCTION(Server, Reliable)
 	void ServerDoFire();
 
@@ -52,6 +55,8 @@ public:
 	void DoFire();
 
 	void TryWeaponFire();
+
+	void WeaponFire(AATGWeaponBase* WeaponBase);
 
 protected:
 
@@ -79,6 +84,14 @@ protected:
 	void InitEquipComponent(UATGEquipmentComponent* EquipmentComponent);
 
 	USceneComponent* GetSlaveMesh();
+
+	FTimerHandle STFTimerHandle;
+	FTimerHandle FireToMoveTimerHandle;
+	FTimerHandle ADSTimerHandle;
+
+	bool bReadToFire = false;
+
+	float MoveRecoveryTime = 0.5f;
 protected:
 
 };

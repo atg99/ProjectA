@@ -106,6 +106,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<AActor> EquippedActor = nullptr;
+
+	UPROPERTY(BlueprintReadWrite)
+	float STFTime = 0.5;
+
+	UPROPERTY(BlueprintReadWrite)
+	float ADSTime = 0.2;
 };
 
 //날아가고 있는 총알 정보
