@@ -61,6 +61,14 @@ enum class EMonsterState : uint8
 	Death = 40	UMETA(DisplayName = "Death"),
 };
 
+UENUM(BlueprintType)
+enum class ECGait : uint8
+{
+	Walk = 0	UMETA(DisplayName = "Walk"),
+	Run = 1		UMETA(DisplayName = "Run"),
+	Sprint = 2	UMETA(DisplayName = "Sprint"),
+};
+
 class UATGItemData;
 
 USTRUCT(BlueprintType)

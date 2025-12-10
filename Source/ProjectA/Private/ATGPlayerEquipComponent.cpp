@@ -328,11 +328,11 @@ void UATGPlayerEquipComponent::TryWeaponFire()
     {
         if (AATGWeaponBase* WeaponBase = Cast<AATGWeaponBase>(TargetSlot->EquippedActor))
         {
-            float STFTime = TargetSlot->STFTime;
+            float STFTime = TargetSlot->STFTime * GetReadyToFireTime();
             float ADSTime = TargetSlot->ADSTime;
             
             //delay가 적용된 상태라면 바로 발사 아니라면 딜레이
-            if (bReadToFire)
+            if (bReadToFire || STFTime <= 0)
             {
                 WeaponFire(WeaponBase);
             }
@@ -352,6 +352,7 @@ void UATGPlayerEquipComponent::TryWeaponFire()
 //delay 적용 플레그 업 SprintRecoveryTime 동안 발사없으면 플레그 다운
 void UATGPlayerEquipComponent::WeaponFire(AATGWeaponBase* WeaponBase)
 {
+    //조준하는동안은 타이머 안돌게 변경 bp의 characterinputstate값을 가져와야함 네트워크 복제 고려 서버에서 (구현예정)
     if (WeaponBase)
     {
         bReadToFire = true;
@@ -365,6 +366,59 @@ void UATGPlayerEquipComponent::WeaponFire(AATGWeaponBase* WeaponBase)
                 }
             }), MoveRecoveryTime, false);
     }
+}
+
+void UATGPlayerEquipComponent::ReadyToFire()
+{
+    EEquipmentSlotType D_CurSlotType = CurrentUsingSlot;
+    FEquipmentSlot* TargetSlot = EquipmentSlots.FindByPredicate([D_CurSlotType](const FEquipmentSlot& Slot)
+        {
+            return Slot.SlotType == D_CurSlotType;
+        });
+    float STFTime = TargetSlot->STFTime * GetReadyToFireTime();
+    float ADSTime = TargetSlot->ADSTime;
+
+    //delay가 적용된 상태라면 바로 발사 아니라면 딜레이
+    if (bReadToFire || STFTime <= 0)
+    {
+        bReadToFire = true;
+    }
+    else
+    {
+        //이미 STF타이머가 돌아가고 있다면 user 광클방지
+        bool bSTFTimer = GetWorld()->GetTimerManager().IsTimerActive(STFTimerHandle);
+        if (!bSTFTimer)
+        {
+            GetWorld()->GetTimerManager().SetTimer(STFTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]() { bReadToFire = true; }), STFTime, false);
+        }
+    }
+}
+
+void UATGPlayerEquipComponent::ReleaseAim()
+{
+    bReadToFire = false;
+    if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(GetOwningPlayerCharacter()))
+    {
+        ATGC->RecoverMoveAnim();
+    }
+}
+
+float UATGPlayerEquipComponent::GetReadyToFireTime()
+{
+    float Time = 0.f;
+    switch (CGait)
+    {
+    case ECGait::Walk:
+        break;
+    case ECGait::Run:
+        Time = 0.6f;
+        break;
+    case ECGait::Sprint:
+        Time = 1.f;
+        break;
+
+    }
+    return Time;
 }
 
 ACharacter* UATGPlayerEquipComponent::GetOwningPlayerCharacter()

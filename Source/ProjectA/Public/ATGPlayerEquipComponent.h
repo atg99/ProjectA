@@ -58,6 +58,17 @@ public:
 
 	void WeaponFire(AATGWeaponBase* WeaponBase);
 
+	UFUNCTION(BlueprintCallable)
+	void ReadyToFire();
+
+	UFUNCTION(BlueprintCallable)
+	void ReleaseAim();
+
+	float GetReadyToFireTime();
+
+	UPROPERTY(BlueprintReadWrite)
+	ECGait CGait = ECGait::Walk;
+
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");

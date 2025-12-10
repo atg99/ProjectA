@@ -128,7 +128,8 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryFire);
 		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Completed, this, &AATGPlayerCharacter::StopFire);
 
-		EnhancedInputComponent->BindAction(IA_Aim, ETriggerEvent::Triggered, this, &AATGPlayerCharacter::TryAim);
+		EnhancedInputComponent->BindAction(IA_Aim, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryAim);
+		EnhancedInputComponent->BindAction(IA_Aim, ETriggerEvent::Completed, this, &AATGPlayerCharacter::StopAim);
 
 	}
 	else
@@ -223,6 +224,18 @@ void AATGPlayerCharacter::RecoverMoveAnim()
 
 void AATGPlayerCharacter::TryAim(const FInputActionValue& Value)
 {
+	if (PlayerEquipComp)
+	{
+		PlayerEquipComp->ReadyToFire();
+	}
+}
+
+void AATGPlayerCharacter::StopAim(const FInputActionValue& Value)
+{
+	if (PlayerEquipComp)
+	{
+		PlayerEquipComp->ReleaseAim();
+	}
 }
 
 void AATGPlayerCharacter::Interact(const FInputActionValue& Value)

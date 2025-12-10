@@ -130,6 +130,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	virtual void TryAim(const FInputActionValue& Value);
 
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void StopAim(const FInputActionValue& Value);
+
 public:
 
 	/** Returns CameraBoom subobject **/
