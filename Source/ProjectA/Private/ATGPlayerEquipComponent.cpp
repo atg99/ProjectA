@@ -14,6 +14,7 @@
 #include "Components/SceneComponent.h"
 #include "NetworkUtil.h"
 #include "ATGPlayerCharacter.h"
+#include "ATGPlayerController.h"
 
 // Sets default values for this component's properties
 UATGPlayerEquipComponent::UATGPlayerEquipComponent()
@@ -68,8 +69,13 @@ void UATGPlayerEquipComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+    //애니메이션 스테이트 동기화
     DOREPLIFETIME_CONDITION(UATGPlayerEquipComponent, CurrentUsingSlot, COND_None);
+
     DOREPLIFETIME_CONDITION(UATGPlayerEquipComponent, EquipmentSlots, COND_None);
+
+    //조준중인지아닌지 서버, 로컬에서 필요
+    DOREPLIFETIME_CONDITION(UATGPlayerEquipComponent, ATGCharacterInputState, COND_OwnerOnly);
 }
 
 bool UATGPlayerEquipComponent::CheckPlayerStateCompReady()
@@ -240,6 +246,30 @@ void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquip
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
 {
     UE_LOG(LogTemp, Log, TEXT("UATGPlayerEquipComponent::OnRep_CurrentUsingSlot"));
+    ACharacter* Character = GetOwningPlayerCharacter();
+    if(!Character)
+    {
+        return;
+    }
+    //총기 인풋 맵핑
+    if (AATGPlayerController* APC = Cast<AATGPlayerController>(Character->GetController()))
+    {
+        bool bIsAdd = false;
+        switch (CurrentUsingSlot)
+        {
+        case EEquipmentSlotType::None:
+            bIsAdd = false;
+            break;
+        case EEquipmentSlotType::MainWeapon1:
+            bIsAdd = true;
+            break;
+        case EEquipmentSlotType::MainWeapon2:
+            bIsAdd = true;
+            break;
+        }
+        APC->GunWeaponInputMapping(bIsAdd);
+    }
+
     //서버에서 attach하면 동기화됨 클라에서 불필요
     //ChangeWeaponEquip();
 }
@@ -305,6 +335,7 @@ void UATGPlayerEquipComponent::TryFire()
     DoFire();
 }
 
+
 void UATGPlayerEquipComponent::DoFire()
 {
     TryWeaponFire();
@@ -332,7 +363,7 @@ void UATGPlayerEquipComponent::TryWeaponFire()
             float ADSTime = TargetSlot->ADSTime;
             
             //delay가 적용된 상태라면 바로 발사 아니라면 딜레이
-            if (bReadToFire || STFTime <= 0)
+            if (bReadyToFire || STFTime <= 0)
             {
                 WeaponFire(WeaponBase);
             }
@@ -352,20 +383,30 @@ void UATGPlayerEquipComponent::TryWeaponFire()
 //delay 적용 플레그 업 SprintRecoveryTime 동안 발사없으면 플레그 다운
 void UATGPlayerEquipComponent::WeaponFire(AATGWeaponBase* WeaponBase)
 {
-    //조준하는동안은 타이머 안돌게 변경 bp의 characterinputstate값을 가져와야함 네트워크 복제 고려 서버에서 (구현예정)
+    //조준하는동안은 타이머 안돌게 변경 bp의 characterinputstate값
     if (WeaponBase)
     {
-        bReadToFire = true;
-        WeaponBase->Fire();
-        GetWorld()->GetTimerManager().SetTimer(FireToMoveTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]() 
-            { 
-                bReadToFire = false;
-                if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(GetOwningPlayerCharacter()))
+        if (GetOwner()->HasAuthority())
+        {
+            WeaponBase->ServerStartFire();
+        }
+        else
+        {
+            WeaponBase->Fire();
+        }
+        bReadyToFire = true;
+        if (!ATGCharacterInputState.WantsToAim)
+        {
+            GetWorld()->GetTimerManager().SetTimer(FireToMoveTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
                 {
-                    ATGC->RecoverMoveAnim();
-                }
-            }), MoveRecoveryTime, false);
-    }
+                    bReadyToFire = false;
+                    if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(GetOwningPlayerCharacter()))
+                    {
+                        ATGC->RecoverMoveAnim();
+                    }
+                }), MoveRecoveryTime, false);
+        }
+    }   
 }
 
 void UATGPlayerEquipComponent::ReadyToFire()
@@ -379,9 +420,9 @@ void UATGPlayerEquipComponent::ReadyToFire()
     float ADSTime = TargetSlot->ADSTime;
 
     //delay가 적용된 상태라면 바로 발사 아니라면 딜레이
-    if (bReadToFire || STFTime <= 0)
+    if (bReadyToFire || STFTime <= 0)
     {
-        bReadToFire = true;
+        bReadyToFire = true;
     }
     else
     {
@@ -389,14 +430,14 @@ void UATGPlayerEquipComponent::ReadyToFire()
         bool bSTFTimer = GetWorld()->GetTimerManager().IsTimerActive(STFTimerHandle);
         if (!bSTFTimer)
         {
-            GetWorld()->GetTimerManager().SetTimer(STFTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]() { bReadToFire = true; }), STFTime, false);
+            GetWorld()->GetTimerManager().SetTimer(STFTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]() { bReadyToFire = true; }), STFTime, false);
         }
     }
 }
 
 void UATGPlayerEquipComponent::ReleaseAim()
 {
-    bReadToFire = false;
+    bReadyToFire = false;
     if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(GetOwningPlayerCharacter()))
     {
         ATGC->RecoverMoveAnim();

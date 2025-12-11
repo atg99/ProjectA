@@ -30,6 +30,9 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly)
+	FATGCharacterInputState ATGCharacterInputState;
+
 	//슬롯의 상태
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Equipment")
 	TArray<FEquipmentSlot> EquipmentSlots;
@@ -100,7 +103,7 @@ protected:
 	FTimerHandle FireToMoveTimerHandle;
 	FTimerHandle ADSTimerHandle;
 
-	bool bReadToFire = false;
+	bool bReadyToFire = false;
 
 	float MoveRecoveryTime = 0.5f;
 protected:

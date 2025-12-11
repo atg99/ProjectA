@@ -127,11 +127,30 @@ void AATGPlayerController::ToggleInventoryInputMapping(bool bIsInvent)
 		{
 			if (bIsInvent)
 			{
-				Subsystem->AddMappingContext(InventoryMappingContexts, 2);
+				Subsystem->AddMappingContext(InventoryMappingContexts, 3);
 			}
 			else
 			{
 				Subsystem->RemoveMappingContext(InventoryMappingContexts);
+			}
+		}
+	}
+}
+
+//√—±‚ ¡∂¿€ input mapping
+void AATGPlayerController::GunWeaponInputMapping(bool bIsAdd)
+{
+	if (IsLocalPlayerController())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		{
+			if (bIsAdd)
+			{
+				Subsystem->AddMappingContext(GunWeaponMappingContexts, 2);
+			}
+			else
+			{
+				Subsystem->RemoveMappingContext(GunWeaponMappingContexts);
 			}
 		}
 	}

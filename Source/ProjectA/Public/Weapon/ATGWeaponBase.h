@@ -81,5 +81,13 @@ public:
 	FTimerHandle RefireTimer;
 
 	bool CalculateShootData(FVector& OutSpawnLocation, FRotator& OutAimRotation);
+
+	//서버에서 호출됨
+	void ServerStartFire();
+
+	void TryHitFire(FBulletHitResult BulletHitResult);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerHitFire(FBulletHitResult BulletHitResult);
 };
 

@@ -32,6 +32,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputMappingContext* InventoryMappingContexts;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputMappingContext* GunWeaponMappingContexts;
+
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
 public:
@@ -64,6 +67,8 @@ public:
 	class UATGInventoryComponent* InvenComp = nullptr;
 
 	void ToggleInventoryInputMapping(bool bIsInvent);
+
+	void GunWeaponInputMapping(bool bIsAdd);
 
 	//void ToggleInventoryUI();
 	

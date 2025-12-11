@@ -80,7 +80,7 @@ protected:
 	UInputAction* IA_Fire;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* IA_Aim;
+	UInputAction* IA_GunAim;
 protected:
 
 	/** Called for movement input */
@@ -128,10 +128,10 @@ public:
 	virtual void RecoverMoveAnim();
 
 	UFUNCTION(BlueprintCallable, Category = "Input")
-	virtual void TryAim(const FInputActionValue& Value);
+	virtual void TryGunAim(const FInputActionValue& Value);
 
 	UFUNCTION(BlueprintCallable, Category = "Input")
-	virtual void StopAim(const FInputActionValue& Value);
+	virtual void StopGunAim(const FInputActionValue& Value);
 
 public:
 

@@ -128,8 +128,8 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryFire);
 		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Completed, this, &AATGPlayerCharacter::StopFire);
 
-		EnhancedInputComponent->BindAction(IA_Aim, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryAim);
-		EnhancedInputComponent->BindAction(IA_Aim, ETriggerEvent::Completed, this, &AATGPlayerCharacter::StopAim);
+		EnhancedInputComponent->BindAction(IA_GunAim, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryGunAim);
+		EnhancedInputComponent->BindAction(IA_GunAim, ETriggerEvent::Completed, this, &AATGPlayerCharacter::StopGunAim);
 
 	}
 	else
@@ -222,7 +222,7 @@ void AATGPlayerCharacter::RecoverMoveAnim()
 	OnCharacterRecoverFromFire();
 }
 
-void AATGPlayerCharacter::TryAim(const FInputActionValue& Value)
+void AATGPlayerCharacter::TryGunAim(const FInputActionValue& Value)
 {
 	if (PlayerEquipComp)
 	{
@@ -230,7 +230,7 @@ void AATGPlayerCharacter::TryAim(const FInputActionValue& Value)
 	}
 }
 
-void AATGPlayerCharacter::StopAim(const FInputActionValue& Value)
+void AATGPlayerCharacter::StopGunAim(const FInputActionValue& Value)
 {
 	if (PlayerEquipComp)
 	{

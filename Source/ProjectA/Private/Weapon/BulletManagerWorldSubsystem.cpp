@@ -1,48 +1,26 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Weapon/BulletManager.h"
+#include "Weapon/BulletManagerWorldSubsystem.h"
 #include "NetworkUtil.h"
+#include "Weapon/ATGWeaponBase.h"
 
-TWeakObjectPtr<ABulletManager> ABulletManager::GlobalBulletManagerInstance = nullptr;
-
-// Sets default values
-ABulletManager::ABulletManager()
+UBulletManagerWorldSubsystem::UBulletManagerWorldSubsystem()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
 
 }
 
-// Called when the game starts or when spawned
-void ABulletManager::BeginPlay()
+void UBulletManagerWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	Super::BeginPlay();
-
-	if (GlobalBulletManagerInstance.IsValid())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BulletManager duplication"));
-
-		Destroy();
-		return;
-	}
-
-	GlobalBulletManagerInstance = this;
-
+	Super::Initialize(Collection);
 }
 
-void ABulletManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UBulletManagerWorldSubsystem::Deinitialize()
 {
-	Super::EndPlay(EndPlayReason);
-
-	if (GlobalBulletManagerInstance == this)
-	{
-		GlobalBulletManagerInstance = nullptr;
-	}
+	Super::Deinitialize();
 }
 
-// Called every frame
-void ABulletManager::Tick(float DeltaTime)
+void UBulletManagerWorldSubsystem::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -66,9 +44,9 @@ void ABulletManager::Tick(float DeltaTime)
 			Bullet.Velocity *= (1.0f - (Bullet.DragCoefficient * DeltaTime));
 		}
 
-		if (Bullet.Velocity.SizeSquared() < 10.0f) // 속도 느려지면 삭제
+		if (Bullet.Velocity.SizeSquared() < 10.0f || Bullet.Location.Z < -100.f) // 속도 느려지면 삭제
 		{
-			ActiveBullets.RemoveAtSwap(i); 
+			ActiveBullets.RemoveAtSwap(i);
 			continue;
 		}
 
@@ -78,31 +56,36 @@ void ABulletManager::Tick(float DeltaTime)
 		FHitResult HitResult;
 		FCollisionQueryParams CollisionQueryParams;
 		CollisionQueryParams.AddIgnoredActors(Bullet.IgnoreActors);
+
 		FColor DrawColor = FColor::Green; // 기본: 클라이언트 (초록색)
 		if (GetWorld()->GetNetMode() != NM_Client)
 		{
 			DrawColor = FColor::Red; // 서버: 빨간색
 		}
-		DrawDebugLine(GetWorld(), StartLocation, EndLocation, DrawColor, false, 0.5f);
+
+		DrawDebugLine(GetWorld(), StartLocation, EndLocation, DrawColor, false, 3.f);
 		bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, CollisionQueryParams);
 		if (bHit)
 		{
 			// 충돌 처리 
+			AATGWeaponBase* WeaponBase = Bullet.BulletOwner ? Cast<AATGWeaponBase>(Bullet.BulletOwner) : nullptr;
+			if (WeaponBase)
+			{
+				FBulletHitResult BulletHitResult;
+				BulletHitResult.StartLocation = Bullet.StartLocation;
+				BulletHitResult.HitLocation = HitResult.Location;
+				WeaponBase->TryHitFire(BulletHitResult);
+			}
 			ActiveBullets.RemoveAtSwap(i);
 			continue;
 		}
-		
+
 		Bullet.Location = EndLocation;
-	
+
 	}
 }
 
-ABulletManager* ABulletManager::GetBulletManager()
+TStatId UBulletManagerWorldSubsystem::GetStatId() const
 {
-	if (GlobalBulletManagerInstance.IsValid())
-	{
-		return GlobalBulletManagerInstance.Get();
-	}
-	return nullptr;
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UBulletManagerWorldSubsystem, STATGROUP_Tickables);
 }
-

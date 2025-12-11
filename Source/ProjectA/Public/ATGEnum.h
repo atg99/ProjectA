@@ -128,6 +128,8 @@ struct FBullet
 {
 	GENERATED_BODY()
 public:
+	//시작 위치
+	FVector StartLocation;
 	//위치
 	FVector Location;
 	//속도 방향 + 속력
@@ -137,7 +139,21 @@ public:
 	// 항력 계수 0.0이면 저항 없음, 값이 클수록 빨리 느려짐
 	float DragCoefficient;
 
+	AActor* BulletOwner;
+
 	TArray<AActor*> IgnoreActors;
+};
+
+USTRUCT(BlueprintType)
+struct FBulletHitResult
+{
+	GENERATED_BODY()
+public:
+	//시작 위치
+	FVector StartLocation;
+	
+	FVector HitLocation;
+	
 };
 
 //무기의 총알 정보
@@ -153,4 +169,16 @@ public:
 	//탄속
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Speed = 500.f;
+};
+
+//Character Input State
+USTRUCT(BlueprintType)
+struct FATGCharacterInputState
+{
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY(BlueprintReadWrite)
+	bool WantsToAim;
 };

@@ -9,6 +9,7 @@
 #include "Weapon/ProjectileBase.h"
 #include "Weapon/BulletManager.h"
 #include "Net/UnrealNetwork.h"
+#include "Weapon/BulletManagerWorldSubsystem.h"
 
 // Sets default values
 AATGWeaponBase::AATGWeaponBase()
@@ -48,6 +49,8 @@ void AATGWeaponBase::Tick(float DeltaTime)
 
 void AATGWeaponBase::Fire()
 {
+	//클라에서 요청
+	NET_LOG(TEXT("fire"));
 	if (bFullAuto)
 	{
 		GetWorld()->GetTimerManager().SetTimer(RefireTimer, this, &AATGWeaponBase::Fire, RefireRate, false);
@@ -64,7 +67,6 @@ void AATGWeaponBase::Fire()
 	CalculateShootData(OutSpawnLoc, OutAimRot);
 
 	FireBullet(OutSpawnLoc, OutAimRot);
-
 }
 
 void AATGWeaponBase::StopFire()
@@ -79,19 +81,27 @@ void AATGWeaponBase::FireBullet(FVector FireLoc, FRotator FireRot)
 {
 	NET_LOG(FString::Printf(TEXT("speed : %f"), WeaponBulletData.Speed));
 	FBullet NewBullet;
+	NewBullet.StartLocation = FireLoc;
 	NewBullet.Location = FireLoc;
 	//속도 = 방향 * 속력
 	NewBullet.Velocity = FireRot.Vector() * WeaponBulletData.Speed;
 	NewBullet.GravityScale = WeaponBulletData.GravityScale;
 	NewBullet.DragCoefficient = WeaponBulletData.DragCoefficient;
 
+	NewBullet.BulletOwner = this;
+
 	NewBullet.IgnoreActors.Add(GetInstigator());
 	NewBullet.IgnoreActors.Add(this);
 
-	if (ABulletManager::GetBulletManager())
+	if (UBulletManagerWorldSubsystem* BulletSys = GetWorld() ? GetWorld()->GetSubsystem<UBulletManagerWorldSubsystem>() : nullptr)
+	{
+		BulletSys->ActiveBullets.Add(NewBullet);
+	}
+
+	/*if (ABulletManager::GetBulletManager())
 	{
 		ABulletManager::GetBulletManager()->ActiveBullets.Add(NewBullet);
-	}
+	}*/
 }
 
 bool AATGWeaponBase::CalculateShootData(FVector& OutSpawnLocation, FRotator& OutAimRotation)
@@ -121,6 +131,36 @@ bool AATGWeaponBase::CalculateShootData(FVector& OutSpawnLocation, FRotator& Out
 	PC->GetPlayerViewPoint(TempVec, OutAimRotation);
 
 	return true;
+}
+
+void AATGWeaponBase::ServerStartFire()
+{
+	//총소리 이펙트 같은거 멀티케스트
+	// 대략적인 궤적을 시뮬레이션 옆으로 총알 제압 효과 라인트레이스 한번
+
+	NET_LOG(TEXT(""));
+}
+
+void AATGWeaponBase::TryHitFire(FBulletHitResult BulletHitResult)
+{
+	NET_LOG(TEXT(""));
+	DrawDebugLine(GetWorld(), BulletHitResult.StartLocation, BulletHitResult.HitLocation, FColor::Blue, false, 3.f);
+	ServerHitFire(BulletHitResult);
+}
+
+bool AATGWeaponBase::ServerHitFire_Validate(FBulletHitResult BulletHitResult)
+{
+	//검증
+	NET_LOG(TEXT(""));
+	return true;
+}
+
+void AATGWeaponBase::ServerHitFire_Implementation(FBulletHitResult BulletHitResult)
+{
+	//hit처리
+	NET_LOG(TEXT(""));
+	DrawDebugLine(GetWorld(), BulletHitResult.StartLocation, BulletHitResult.HitLocation, FColor::Blue, false, 0.5f);
+	//GetWorld()->LineTraceMultiByObjectType();
 }
 
 
