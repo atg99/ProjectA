@@ -31,8 +31,8 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     TSubclassOf<AATGWeaponBase> WeaponClass = nullptr;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ClampMin = "0.0", UIMin = "0.0"))
-    float AttackPower = 10.f;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+    TSubclassOf<UDamageType> DamageTypeClass = nullptr;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
     FWeaponBulletData WeaponBulletData;
@@ -42,4 +42,9 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item | delay")
     float SprinttoFireTime;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Data, meta = (ClampMin = 0.01f, ClampMax = 2.0f, Unit = "s"))
+    float RefireRate = 0.5f;
+
+
 };

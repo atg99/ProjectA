@@ -40,7 +40,7 @@ public:
 	UFUNCTION()
 	void HandlePerceptionUpdated(const TArray<AActor*>& UpdatedActors);
 	UFUNCTION()
-	void HandleActorPerceptionUpdated( AActor* Actor, FAIStimulus Stimulus);
+	void HandleActorPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 	UFUNCTION()
 	void HandleActorPerceptionForgetUpdated(AActor* Actor);
 

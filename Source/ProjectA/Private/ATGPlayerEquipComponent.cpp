@@ -145,7 +145,7 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
     if (SpawnedActor)
     {
         SpawnedActor->SetReplicates(true);
-
+  
         //총알 정보 복제
         SpawnedActor->WeaponBulletData = WeaponData->WeaponBulletData;
         SpawnedActor->WeaponData = WeaponData;
@@ -204,9 +204,14 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
     if (SpawnedActor)
     {
         SpawnedActor->SetReplicates(true);
+
         //총알 정보 복제
         SpawnedActor->WeaponBulletData = WeaponData->WeaponBulletData;
+        SpawnedActor->WeaponData = WeaponData;
+
         EquipmentSlots[1].EquippedActor = SpawnedActor;
+        EquipmentSlots[1].STFTime = WeaponData->SprinttoFireTime;
+        EquipmentSlots[1].ADSTime = WeaponData->ADSTime;
        
         // BeginPlay 및 초기화 실행 
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);

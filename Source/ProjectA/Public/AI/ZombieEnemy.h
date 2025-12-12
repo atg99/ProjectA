@@ -36,4 +36,14 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiStopMontage(UAnimMontage* Montage);
+
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float CurrentHP = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxHP = 100;
+
+	void CApplyDamageMomentum(float InImpulseScale, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser, bool bScaleMomentumByMass);
 };

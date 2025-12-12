@@ -29,10 +29,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<USkeletalMeshComponent> Mesh;
-
+protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName MuzzleSocketName = TEXT("Muzzle");
 
@@ -50,8 +49,11 @@ protected:
 
 public:
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(ReplicatedUsing = OnRep_WeaponData, BlueprintReadOnly)
 	UATGWeaponData* WeaponData;
+
+	UFUNCTION()
+	void OnRep_WeaponData();
 
 	UFUNCTION(BlueprintCallable)
 	void Fire();
@@ -65,14 +67,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
 	uint8 bFullAuto : 1 = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data, meta = (ClampMin = 0.1f, ClampMax = 2.0f, Unit = "s"))
-	float RefireRate = 0.5f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Data)
 	float TimeofLastShoot = 0.0f;
 
 	//처음에만 복제
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = Data)
+	UPROPERTY(BlueprintReadWrite, Category = Data)
 	FWeaponBulletData WeaponBulletData;
 
 	UFUNCTION(BlueprintCallable)
@@ -85,9 +84,13 @@ public:
 	//서버에서 호출됨
 	void ServerStartFire();
 
-	void TryHitFire(FBulletHitResult BulletHitResult);
+	void TryHitFire(const FBulletHitResult& BulletHitResult);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerHitFire(FBulletHitResult BulletHitResult);
+	void ServerHitFire(const FBulletHitResult& BulletHitResult);
+
+protected:
+
+	float ApplayGunDamage(AActor* DamagedActor, float BaseDamage, float ImpulseScale, FVector const& HitFromDirection, FHitResult const& HitInfo, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<UDamageType> DamageTypeClass);
 };
 

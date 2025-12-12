@@ -27,4 +27,12 @@ public:
 	virtual TStatId GetStatId() const override;
 
 	TArray<FBullet> ActiveBullets;
+
+	virtual bool IsTickable() const override { return false; }
+
+	FTimerHandle TimerHandle_Loop;
+
+	void SimulateBullets();
+
+	float SimulateInterval = 0.1f;
 };
