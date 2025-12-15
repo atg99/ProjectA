@@ -158,8 +158,9 @@ void AZombieEnemy::ReceiveGunPointDamage(const struct FGunPointDamageEvent* Even
 {
 	NET_LOG(TEXT("FGunPointDamageEvent"));
 	MultiPlayEffectHitReact(DamageType, HitLocation, HitNormal);
-	GunPointApplyDamageMomentum(Event->ImpulseScale, Event->ShotDirection, *Event, InstigatedBy->GetPawn(), DamageCauser, false);
+	GunPointApplyDamageMomentum(Event->ImpulseScale, Event->ShotDirection, *Event, InstigatedBy->GetPawn(), DamageCauser, true);
 	CurrentHP -= Damage;
+
 }
 
 void AZombieEnemy::MultiPlayEffectHitReact_Implementation(const class UATGDamageType* DamageType, const FVector& HitLocation, const FVector& HitNormal)
@@ -189,6 +190,19 @@ void AZombieEnemy::MultiPlayEffectHitReact_Implementation(const class UATGDamage
 	
 	FRotator HitRotator = UKismetMathLibrary::MakeRotFromX(HitNormal);
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SelectedVFX, HitLocation, HitRotator);
+
+	//GetMesh()->GlobalAnimRateScale = 0;
+	CustomTimeDilation = 0.01f;
+	FTimerHandle HitStopHandle;
+	GetWorld()->GetTimerManager().SetTimer(
+		HitStopHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
+			{
+				//GetMesh()->GlobalAnimRateScale = 1.f;
+				this->CustomTimeDilation = 1.f;
+			}),
+		0.03f,
+		false
+	);
 }
 
 
