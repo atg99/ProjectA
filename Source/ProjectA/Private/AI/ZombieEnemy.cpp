@@ -7,13 +7,19 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "NetworkUtil.h"
+#include "NiagaraFunctionLibrary.h"
+#include "Data/ATGDamageType.h"
+#include "Components/CapsuleComponent.h"
+#include "Net/UnrealNetwork.h"
+
+
 
 // Sets default values
 AZombieEnemy::AZombieEnemy()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
+	PrimaryActorTick.bCanEverTick = false;
+	
 }
 
 // Called when the game starts or when spawned
@@ -23,18 +29,16 @@ void AZombieEnemy::BeginPlay()
 	
 }
 
+void AZombieEnemy::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AZombieEnemy, MonsterState);
+}
+
 // Called every frame
 void AZombieEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-}
-
-// Called to bind functionality to input
-void AZombieEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 }
 
 float AZombieEnemy::TryPlayMontage(UAnimMontage* Montage, float PlayRate, FName StartSessionName)
@@ -73,6 +77,9 @@ void AZombieEnemy::MultiStopMontage_Implementation(UAnimMontage* Montage)
 float AZombieEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	//CDO
+	UATGDamageType const* const DamageTypeCDO = DamageEvent.DamageTypeClass ? DamageEvent.DamageTypeClass->GetDefaultObject<UATGDamageType>() : GetDefault<UATGDamageType>();
+	//const UATGDamageType* MyDamageCDO = Cast<UATGDamageType>(DamageTypeCDO);
 
 	if (CurrentHP <= 0)
 	{
@@ -80,13 +87,12 @@ float AZombieEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 	}
 	if (DamageEvent.IsOfType(FGunPointDamageEvent::ClassID))
 	{
-		FGunPointDamageEvent* Event = (FGunPointDamageEvent*)(&DamageEvent);
+		const FGunPointDamageEvent* Event = (FGunPointDamageEvent*)(&DamageEvent);
 		if (Event)
 		{
-			NET_LOG(TEXT("FGunPointDamageEvent"));
-			CApplyDamageMomentum(Event->ImpulseScale, DamageEvent, EventInstigator->GetPawn(), DamageCauser, true);
+			//Event->DamageTypeClass
+			ReceiveGunPointDamage(Event, Damage, DamageTypeCDO, Event->HitInfo.ImpactPoint, Event->HitInfo.ImpactNormal, Event->HitInfo.GetComponent(), Event->HitInfo.BoneName, Event->ShotDirection, EventInstigator, DamageCauser, Event->HitInfo);
 		}
-
 	}
 	else if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
 	{
@@ -114,16 +120,16 @@ float AZombieEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 	return Damage;
 }
 
-void AZombieEnemy::CApplyDamageMomentum(float InImpulseScale, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser, bool bScaleMomentumByMass)
+void AZombieEnemy::GunPointApplyDamageMomentum(float InImpulseScale, const FVector& ShotDir, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser, bool bScaleMomentumByMass)
 {
-	
+
 	float const ImpulseScale = InImpulseScale;
 
 	if ((ImpulseScale > 3.f) && (GetCharacterMovement() != nullptr))
 	{
 		FHitResult HitInfo;
-		FVector ImpulseDir;
-		DamageEvent.GetBestHitInfo(this, PawnInstigator, HitInfo, ImpulseDir);
+		FVector ImpulseDir = ShotDir;
+		//DamageEvent.GetBestHitInfo(this, PawnInstigator, HitInfo, ImpulseDir);
 
 		FVector Impulse = ImpulseDir * ImpulseScale;
 		bool const bMassIndependentImpulse = bScaleMomentumByMass;
@@ -141,7 +147,52 @@ void AZombieEnemy::CApplyDamageMomentum(float InImpulseScale, FDamageEvent const
 				Impulse.Z *= 0.5f;
 			}
 		}
-
+		//GetCharacterMovement()->Launch(Impulse);
+		GetCharacterMovement()->StopMovementKeepPathing();
 		GetCharacterMovement()->AddImpulse(Impulse, bMassIndependentImpulse);
+		
 	}
+}
+
+void AZombieEnemy::ReceiveGunPointDamage(const struct FGunPointDamageEvent* Event, float Damage, const UATGDamageType* DamageType, FVector HitLocation, FVector HitNormal, UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, AController* InstigatedBy, AActor* DamageCauser, const FHitResult& HitInfo)
+{
+	NET_LOG(TEXT("FGunPointDamageEvent"));
+	MultiPlayEffectHitReact(DamageType, HitLocation, HitNormal);
+	GunPointApplyDamageMomentum(Event->ImpulseScale, Event->ShotDirection, *Event, InstigatedBy->GetPawn(), DamageCauser, false);
+	CurrentHP -= Damage;
+}
+
+void AZombieEnemy::MultiPlayEffectHitReact_Implementation(const class UATGDamageType* DamageType, const FVector& HitLocation, const FVector& HitNormal)
+{
+	UNiagaraSystem* SelectedVFX = nullptr;
+	switch (DamageType->DamageType)
+	{
+	case EDamageType::Normal:
+	{
+		SelectedVFX = NormalDamageImpactVFX;
+		NET_LOG(TEXT("Normal Damage VFX"));
+		break;
+	}
+	case EDamageType::Fire:
+	{
+		SelectedVFX = FireDamageImpactVFX;
+		NET_LOG(TEXT("Fire Damage VFX"));
+		break;
+	}
+	default:
+	{
+		SelectedVFX = NormalDamageImpactVFX;
+		NET_LOG(TEXT("Default Damage VFX"));
+		break;
+	}
+	}
+	
+	FRotator HitRotator = UKismetMathLibrary::MakeRotFromX(HitNormal);
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SelectedVFX, HitLocation, HitRotator);
+}
+
+
+void AZombieEnemy::MultiStartDeath_Implementation()
+{
+
 }

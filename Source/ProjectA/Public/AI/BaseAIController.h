@@ -55,4 +55,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetState(EMonsterState NewEnemyState);
+
+	UFUNCTION()
+	void HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 };

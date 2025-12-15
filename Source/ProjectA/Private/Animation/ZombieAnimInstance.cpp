@@ -19,10 +19,6 @@ void UZombieAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		Velocity = Enemy->GetVelocity();
 		GroundSpeed = Velocity.Size2D();
 		ShouldMove = (GroundSpeed > 3.0f);
-		ABaseAIController* AIC = Cast<ABaseAIController>(Enemy->GetController());
-		if (AIC)
-		{
-			MonsterState = AIC->MonsterState;
-		}
+		MonsterState = Enemy->MonsterState;
 	}
 }

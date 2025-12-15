@@ -22,22 +22,19 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	FVector Velocity;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	float GroundSpeed;
 
 	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
 	//float Direction;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	bool ShouldMove;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
-	bool bIsDie;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	EMonsterState MonsterState;
 
 };

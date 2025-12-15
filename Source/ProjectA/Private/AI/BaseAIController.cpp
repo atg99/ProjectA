@@ -5,6 +5,8 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "AI/ZombieEnemy.h"
+#include "NetworkUtil.h"
 
 ABaseAIController::ABaseAIController()
 {
@@ -53,6 +55,11 @@ void ABaseAIController::OnPossess(APawn* InPawn)
 	if (UBlackboardComponent* BB = GetBlackboardComponent())
 	{
 		SetState(EMonsterState::Normal);
+	}
+
+	if (InPawn)
+	{
+		InPawn->OnTakeAnyDamage.AddDynamic(this, &ABaseAIController::HandleTakeAnyDamage);
 	}
 }
 
@@ -110,5 +117,23 @@ void ABaseAIController::SetState(EMonsterState NewEnemyState)
 	{
 		BB->SetValueAsEnum(FName("CurrentState"), (uint8)NewEnemyState); //Chase
 		MonsterState = NewEnemyState;
+		if (AZombieEnemy* Zombie = Cast<AZombieEnemy>(GetPawn()))
+		{
+			Zombie->MonsterState = NewEnemyState;
+		}
+	}
+}
+
+void ABaseAIController::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
+{
+	NET_LOG(TEXT(""));
+	AZombieEnemy* Zombie = Cast<AZombieEnemy>(DamagedActor);
+	if (Zombie)
+	{
+		if (Zombie->GetCurrentHP() <= 0.f)
+		{
+			SetState(EMonsterState::Death);
+			Zombie->StartDeath();
+		}
 	}
 }
