@@ -11,6 +11,7 @@
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterStateChanged, EMonsterState, InState);
 
 class UNiagaraSystem;
+class USliceSystemComponent;
 
 UCLASS()
 class PROJECTA_API AZombieEnemy : public ACharacter, public IATGBTInterface
@@ -50,6 +51,10 @@ public:
 	//FOnMonsterStateChanged OnMonsterStateChanged;
 
 protected:
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<USliceSystemComponent> SliceSystemComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentHP = 100;
 
@@ -59,7 +64,7 @@ protected:
 	void GunPointApplyDamageMomentum(float InImpulseScale, const FVector& ShotDir, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser, bool bScaleMomentumByMass);
 
 	UFUNCTION(NetMulticast, Unreliable)
-	void MultiPlayEffectHitReact(const class UATGDamageType* DamageType, const FVector& HitLocation, const FVector& HitNormal);
+	void MultiPlayEffectHitReact(const class UATGDamageType* DamageType, const FVector& HitLocation, const FVector& HitNormal, const FName& BoneName, float ImpulseScale);
 
 	UPROPERTY(EditAnywhere, Category = "VFX")
 	UNiagaraSystem* NormalDamageImpactVFX;

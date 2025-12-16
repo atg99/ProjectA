@@ -6,7 +6,7 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AI/ZombieEnemy.h"
-#include "NetworkUtil.h"
+#include "Utils/NetworkUtil.h"
 
 ABaseAIController::ABaseAIController()
 {

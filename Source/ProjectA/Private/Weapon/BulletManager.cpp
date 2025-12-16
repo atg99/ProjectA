@@ -2,7 +2,7 @@
 
 
 #include "Weapon/BulletManager.h"
-#include "NetworkUtil.h"
+#include "Utils/NetworkUtil.h"
 
 TWeakObjectPtr<ABulletManager> ABulletManager::GlobalBulletManagerInstance = nullptr;
 

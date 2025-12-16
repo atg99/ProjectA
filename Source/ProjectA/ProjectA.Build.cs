@@ -19,7 +19,10 @@ public class ProjectA : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
-            "Niagara"
+            "Niagara",
+            "ProceduralMeshComponent",
+            "RenderCore",
+            "RHI"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });

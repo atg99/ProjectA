@@ -3,7 +3,7 @@
 
 #include "Lobby/LobbyPC.h"
 #include "Lobby/LobbyWidget.h"
-#include "NetworkUtil.h"
+#include "Utils/NetworkUtil.h"
 
 ALobbyPC::ALobbyPC()
 {

@@ -12,7 +12,7 @@
 #include "Weapon/ATGWeaponBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/SceneComponent.h"
-#include "NetworkUtil.h"
+#include "Utils/NetworkUtil.h"
 #include "ATGPlayerCharacter.h"
 #include "ATGPlayerController.h"
 

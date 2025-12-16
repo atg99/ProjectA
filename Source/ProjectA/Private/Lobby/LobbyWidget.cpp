@@ -11,7 +11,7 @@
 #include "Lobby/LobbyGameState.h"
 #include "Lobby/LobbyPC.h"
 #include "Components/RichTextBlock.h"
-#include "NetworkUtil.h"
+#include "Utils/NetworkUtil.h"
 #include "Title/NetworkGameInstanceSubsystem.h"
 #include "Components/RichTextBlockImageDecorator.h"
 

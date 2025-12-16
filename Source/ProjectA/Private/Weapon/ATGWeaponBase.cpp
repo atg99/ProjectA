@@ -5,7 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/Character.h"
 #include "ATGPlayerCharacter.h"
-#include "NetworkUtil.h"
+#include "Utils/NetworkUtil.h"
 #include "Weapon/ProjectileBase.h"
 #include "Weapon/BulletManager.h"
 #include "Net/UnrealNetwork.h"

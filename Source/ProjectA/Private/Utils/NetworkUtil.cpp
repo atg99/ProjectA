@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "NetworkUtil.h"
+#include "Utils/NetworkUtil.h"
 
 NetworkUtil::NetworkUtil()
 {

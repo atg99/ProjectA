@@ -2,7 +2,7 @@
 
 
 #include "Weapon/BulletManagerWorldSubsystem.h"
-#include "NetworkUtil.h"
+#include "Utils/NetworkUtil.h"
 #include "Weapon/ATGWeaponBase.h"
 
 UBulletManagerWorldSubsystem::UBulletManagerWorldSubsystem()
@@ -69,6 +69,7 @@ void UBulletManagerWorldSubsystem::SimulateBullets()
 
 		FCollisionQueryParams CollisionQueryParams;
 		CollisionQueryParams.AddIgnoredActors(Bullet.IgnoreActors);
+		//정밀 추적
 		CollisionQueryParams.bTraceComplex = true;
 
 		FColor DrawColor = FColor::Green; // 기본: 클라이언트 (초록색)
