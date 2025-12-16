@@ -28,7 +28,7 @@ void USliceUtils::ConvertBoneToProcMesh(USkeletalMeshComponent* SkeletalMeshComp
     const FPositionVertexBuffer& PosBuffer = LODData.StaticVertexBuffers.PositionVertexBuffer;
     const FStaticMeshVertexBuffer& StaticMeshBuffer = LODData.StaticVertexBuffers.StaticMeshVertexBuffer;
 
-    // [수정 1] 타겟 본의 Reference Pose(Bind Pose) Component Transform 계산
+    // 타겟 본의 Reference Pose(Bind Pose) Component Transform 계산
     // 버텍스 버퍼는 Bind Pose 기준이므로, Bind Pose 상태의 본 위치를 알아내야 함
     FTransform BoneToComponent = FTransform::Identity;
     const FReferenceSkeleton& RefSkeleton = SkelMesh->GetRefSkeleton();
@@ -61,6 +61,10 @@ void USliceUtils::ConvertBoneToProcMesh(USkeletalMeshComponent* SkeletalMeshComp
 
         // 중복 버텍스 생성을 방지하기 위한 맵 (OriginalIndex -> NewIndex)
         TMap<int32, int32> VertexMap;
+
+        // [핵심 수정] 위치가 겹치는 버텍스를 찾기 위한 맵
+        // Key: 버텍스 위치 (FVector), Value: 새로 생성된 NewVertices의 인덱스
+        //TMap<FVector, int32> UniquePosMap;
 
         // 4. 삼각형 단위 순회
         for (uint32 TriIdx = 0; TriIdx < Section.NumTriangles; TriIdx++)
@@ -109,6 +113,49 @@ void USliceUtils::ConvertBoneToProcMesh(USkeletalMeshComponent* SkeletalMeshComp
             // 6. 타겟 본에 속한 삼각형이라면 데이터 복사
             if (bIsTargetBone)
             {
+                //for (int32 i = 0; i < 3; i++)
+                //{
+                //    int32 OriginalIdx = Indices[i];
+
+                //    // 위치 좌표 변환
+                //    FVector Pos = (FVector)PosBuffer.VertexPosition(OriginalIdx);
+                //    Pos = WorldToLocal.TransformPosition(Pos);
+
+                //    // [핵심 해결책]
+                //    // 기존: 인덱스(OriginalIdx)로 중복 검사 -> UV 경계선에서 버텍스가 쪼개짐 -> Cap 실패
+                //    // 변경: 위치(Pos)로 중복 검사 -> UV가 달라도 위치가 같으면 하나로 합침 -> Cap 성공
+
+                //    if (UniquePosMap.Contains(Pos))
+                //    {
+                //        // 이미 같은 위치에 점이 있다면 그 인덱스를 재사용 (용접)
+                //        NewTriangles.Add(UniquePosMap[Pos]);
+                //    }
+                //    else
+                //    {
+                //        // 새 점 생성
+                //        FVector Normal = (FVector)StaticMeshBuffer.VertexTangentZ(OriginalIdx);
+                //        Normal = WorldToLocal.TransformVector(Normal);
+
+                //        FVector TangentVec = (FVector)StaticMeshBuffer.VertexTangentX(OriginalIdx);
+                //        TangentVec = WorldToLocal.TransformVector(TangentVec);
+                //        FProcMeshTangent Tangent(TangentVec, false);
+
+                //        FVector2D UV = (FVector2D)StaticMeshBuffer.GetVertexUV(OriginalIdx, 0);
+                //        FLinearColor VertColor = FLinearColor::White;
+
+                //        int32 NewIdx = NewVertices.Add(Pos);
+                //        NewNormals.Add(Normal);
+                //        NewUVs.Add(UV);
+                //        NewTangents.Add(Tangent);
+                //        NewColors.Add(VertColor);
+
+                //        // 맵에 등록 (위치 -> 새 인덱스)
+                //        UniquePosMap.Add(Pos, NewIdx);
+                //        NewTriangles.Add(NewIdx);
+                //    }
+                //}
+          
+
                 for (int32 i = 0; i < 3; i++)
                 {
                     int32 OriginalIdx = Indices[i];
@@ -120,8 +167,8 @@ void USliceUtils::ConvertBoneToProcMesh(USkeletalMeshComponent* SkeletalMeshComp
                     }
                     else
                     {
-                        // [수정 2] 좌표 및 벡터 변환 적용
-                                       // 위치: Component Space -> Bone Local Space
+                        //좌표 및 벡터 변환 적용
+                        // 위치: Component Space -> Bone Local Space
                         FVector Pos = (FVector)PosBuffer.VertexPosition(OriginalIdx);
                         Pos = WorldToLocal.TransformPosition(Pos);
 
@@ -169,7 +216,7 @@ void USliceUtils::ConvertBoneToProcMesh(USkeletalMeshComponent* SkeletalMeshComp
                 true // Collision
             );
 
-            // [핵심 수정] 머터리얼 할당 로직
+            // 머터리얼 할당 로직
             // Section.MaterialIndex는 스켈레탈 메시의 Materials 배열 인덱스입니다.
             if (SkelMesh->GetMaterials().IsValidIndex(Section.MaterialIndex))
             {
@@ -228,34 +275,41 @@ void USliceUtils::MaskTargetBoneOnly(USkeletalMeshComponent* SkeletalMeshComp, F
             if (ColorBuffer.VertexColor(VertexIndex).A == 0) continue;
 
             // ---------------------------------------------------------
-            // [핵심 로직] "가장 영향력이 큰 본(Dominant Bone)" 찾기
+            // 타겟 본 웨이트가 0.01 이상이면 무조건 숨김
             // ---------------------------------------------------------
-            int32 BestBoneIndex = INDEX_NONE;
-            float MaxWeight = -1.0f;
-
+            bool bShouldMask = false;
             int32 NumInfluences = SkinWeightBuffer.GetMaxBoneInfluences();
+
             for (int32 InfIdx = 0; InfIdx < NumInfluences; InfIdx++)
             {
+                // 웨이트 가져오기 (엔진 버전에 따라 반환 타입이 다를 수 있으나, 기존 코드의 float 형식을 따름)
                 float Weight = SkinWeightBuffer.GetBoneWeight(VertexIndex, InfIdx);
-                if (Weight > MaxWeight)
+
+                // 웨이트가 0.01보다 작으면 무시 (영향력이 거의 없는 경우)
+                if (Weight < 0.01f)
                 {
-                    int32 BoneIndexInBuffer = SkinWeightBuffer.GetBoneIndex(VertexIndex, InfIdx);
+                    continue;
+                }
 
-                    // BoneMap 변환
-                    int32 RealBoneIndex = BoneIndexInBuffer;
-                    if (Section.BoneMap.Num() > 0 && Section.BoneMap.IsValidIndex(BoneIndexInBuffer))
-                    {
-                        RealBoneIndex = Section.BoneMap[BoneIndexInBuffer];
-                    }
+                int32 BoneIndexInBuffer = SkinWeightBuffer.GetBoneIndex(VertexIndex, InfIdx);
 
-                    MaxWeight = Weight;
-                    BestBoneIndex = RealBoneIndex;
+                // BoneMap 변환 (Section의 로컬 인덱스 -> 실제 스켈레톤 인덱스)
+                int32 RealBoneIndex = BoneIndexInBuffer;
+                if (Section.BoneMap.Num() > 0 && Section.BoneMap.IsValidIndex(BoneIndexInBuffer))
+                {
+                    RealBoneIndex = Section.BoneMap[BoneIndexInBuffer];
+                }
+
+                // 현재 영향력을 주는 본이 타겟 본과 일치하는가?
+                if (RealBoneIndex == TargetBoneIndex)
+                {
+                    bShouldMask = true;
+                    break; // 하나라도 조건에 맞으면 더 이상 검사할 필요 없음
                 }
             }
 
-            // 가장 큰 영향을 주는 본이 "타겟 본"일 때만 숨김
-            // 이렇게 해야 LowerArm(자식)과 연결된 관절 부위가 안전하게 보존됨
-            if (BestBoneIndex == TargetBoneIndex)
+            // 타겟 본의 영향력이 조금이라도 있으면 투명화
+            if (bShouldMask)
             {
                 FColor NewColor = ColorBuffer.VertexColor(VertexIndex);
                 NewColor.A = 0; // 투명화

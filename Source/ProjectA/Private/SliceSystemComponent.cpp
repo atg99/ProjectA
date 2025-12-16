@@ -60,14 +60,19 @@ void USliceSystemComponent::SliceBone(FName TargetBone, FVector HitLocation, FVe
     // [중요] 자르기 전에 'Stump'를 타겟 본에 먼저 붙여야, Slice 함수가 월드 좌표를 로컬로 올바르게 변환함
     // 또한 애니메이션 위치에 맞게 메시가 정렬됨
     PMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
+    PMC_Stump->SetRelativeTransform(FTransform::Identity); // 로컬 좌표계이므로 0,0,0으로 초기화
     PMC_Stump->UpdateComponentToWorld(); // 월드 좌표 갱신 보장
 
     // 2. 자르기
     // PMC_Stump가 이미 본 위치에 가 있으므로, Slice 함수가 내부적으로 HitLocation을 로컬로 잘 변환함
+    FVector CutLocation = PMC_Stump->Bounds.Origin;
+    FVector CutNormal = FVector::UpVector;
+
+	UMaterialInterface* CapMaterial = SliceCapMaterial ? SliceCapMaterial : Mesh->GetMaterial(0);
     UKismetProceduralMeshLibrary::SliceProceduralMesh(
-        PMC_Stump, HitLocation, HitNormal, true,
+        PMC_Stump, HitLocation, CutNormal, true,
         PMC_Debris, EProcMeshSliceCapOption::CreateNewSectionForCap,
-        Mesh->GetMaterial(0)
+        CapMaterial
     );
 
     //// 3. 위치 재조정 및 부착
@@ -75,6 +80,7 @@ void USliceSystemComponent::SliceBone(FName TargetBone, FVector HitLocation, FVe
     // [Debris 설정] : 잘려나간 부위
     // Debris는 TargetBone(물리 시뮬레이션 될 본)에 붙입니다.
     PMC_Debris->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
+    PMC_Debris->SetRelativeTransform(FTransform::Identity); // 오프셋 없이 본 위치에 일치시킴
 
     // [Stump 설정] : 몸통에 붙어있는 부위
     // Stump는 ParentBone에 붙어야 몸통을 따라다닙니다.
@@ -84,7 +90,7 @@ void USliceSystemComponent::SliceBone(FName TargetBone, FVector HitLocation, FVe
     FName ParentBone = Mesh->GetParentBone(TargetBone);
     int32 TargetBoneIndex = Mesh->GetBoneIndex(TargetBone);
 
-    if (TargetBoneIndex != INDEX_NONE)
+    if (TargetBoneIndex != INDEX_NONE && ParentBone != NAME_None)
     {
         // 1. 부모 본에 부착
         PMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, ParentBone);
@@ -92,6 +98,11 @@ void USliceSystemComponent::SliceBone(FName TargetBone, FVector HitLocation, FVe
         // 2. 오프셋 적용 (TargetBone의 로컬 Transform을 적용)
         FTransform RefBoneTransform = Mesh->GetSkeletalMeshAsset()->GetRefSkeleton().GetRefBonePose()[TargetBoneIndex];
         PMC_Stump->SetRelativeTransform(RefBoneTransform);
+    }
+    else
+    {
+        // 부모가 없는 루트 본이거나 오류 상황이면 그냥 둠
+        PMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
     }
 
     PMC_Stump->SetVisibility(true);
