@@ -156,6 +156,24 @@ void AATGPlayerController::GunWeaponInputMapping(bool bIsAdd)
 	}
 }
 
+void AATGPlayerController::MeleeWeaponInputMapping(bool bIsAdd)
+{
+	if (IsLocalPlayerController())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		{
+			if (bIsAdd)
+			{
+				Subsystem->AddMappingContext(MeleeWeaponMappingContexts, 2);
+			}
+			else
+			{
+				Subsystem->RemoveMappingContext(MeleeWeaponMappingContexts);
+			}
+		}
+	}
+}
+
 //void AATGPlayerController::ToggleInventoryUI()
 //{
 //	if (!InventoryWidget)

@@ -108,6 +108,7 @@ void UATGPlayerEquipComponent::InitEquipComponent(UATGEquipmentComponent* Equipm
 
 void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFirstMainWeapon)
 {
+    NET_LOG("");
     if (!GetOwner()->HasAuthority())
     {
         return;
@@ -118,19 +119,21 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
         EquipmentSlots[0].EquippedActor->Destroy();
         EquipmentSlots[0].EquippedActor = nullptr;
     }
-
+    
     UATGItemData* ItemData = InFirstMainWeapon.Item.Get();
-    if (!ItemData) return;
 
-    UATGWeaponData* WeaponData = Cast<UATGWeaponData>(ItemData);
-    if (!WeaponData || !WeaponData->WeaponClass) return;
+    UATGWeaponData* WeaponData = ItemData ? Cast<UATGWeaponData>(ItemData) : nullptr;
+    if (!WeaponData || !WeaponData->WeaponClass)
+    {
+        ToDefaultSlot(EquipmentSlots[0]);
+        return;
+    }
 
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     if (!OwnerCharacter) return;
 
     UWorld* World = GetWorld();
     if (!World) return;
-
  
     FTransform SpawnTransform = OwnerCharacter->GetActorTransform();
 
@@ -180,10 +183,13 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
     }
 
     UATGItemData* ItemData = InSecondMainWeapon.Item.Get();
-    if (!ItemData) return;
 
-    UATGWeaponData* WeaponData = Cast<UATGWeaponData>(ItemData);
-    if (!WeaponData || !WeaponData->WeaponClass) return;
+    UATGWeaponData* WeaponData = ItemData ? Cast<UATGWeaponData>(ItemData) : nullptr;
+    if (!WeaponData || !WeaponData->WeaponClass)
+    {
+        ToDefaultSlot(EquipmentSlots[1]);
+        return;
+    }
 
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     if (!OwnerCharacter) return;
@@ -225,6 +231,22 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
     }
 }
 
+void UATGPlayerEquipComponent::ToDefaultSlot(FEquipmentSlot& Slot)
+{
+    if (!GetOwner()->HasAuthority())
+    {
+        return;
+    }
+
+    if (Slot.EquippedActor)
+    {
+        Slot.EquippedActor->Destroy();
+        Slot.EquippedActor = nullptr;
+    }
+    NET_LOG("");
+    ServerChangePlayerUsingSlot(EEquipmentSlotType::None);
+}
+
 // Called every frame
 void UATGPlayerEquipComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -233,24 +255,28 @@ void UATGPlayerEquipComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	// ...
 }
 
-void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquipmentSlotType TryUsingSlot)
+void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquipmentSlotType DesiredSlot)
 {
-    UE_LOG(LogTemp, Log, TEXT("ServerChangePlayerUsingSlot_Implementation"));
-    FEquipmentSlot* TargetSlot = EquipmentSlots.FindByPredicate([TryUsingSlot](const FEquipmentSlot& Slot)
+    FEquipmentSlot* TargetSlot = EquipmentSlots.FindByPredicate([DesiredSlot](const FEquipmentSlot& Slot)
         {
-            return Slot.SlotType == TryUsingSlot;
+            return Slot.SlotType == DesiredSlot;
         });
-	if (TargetSlot && TargetSlot->EquippedActor)
+	if (TargetSlot)
 	{
-		CurrentUsingSlot = TryUsingSlot;
+        NET_LOG("");
+		CurrentUsingSlot = DesiredSlot;
 		//서버에서 attach하면 동기화됨 클라에서 불필요
 		ChangeWeaponEquip();
 	}
+    else
+    {
+        NET_LOG("TargetSlot Null");
+    }
 }
 
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
 {
-    UE_LOG(LogTemp, Log, TEXT("UATGPlayerEquipComponent::OnRep_CurrentUsingSlot"));
+    NET_LOG("");
     ACharacter* Character = GetOwningPlayerCharacter();
     if(!Character)
     {
@@ -285,11 +311,30 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
     {
         return;
     }
-
-    UE_LOG(LogTemp, Log, TEXT("UATGPlayerEquipComponent::ChangeWeaponEquip"));
+    NET_LOG("");
 
     switch (CurrentUsingSlot)
     {
+    case EEquipmentSlotType::None:
+    {
+        if (EquipmentSlots[0].EquippedActor)
+        {
+            EquipmentSlots[0].EquippedActor->AttachToComponent(
+                GetSlaveMesh(),
+                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+                Main1BackSocketName
+            );
+        }
+        if (EquipmentSlots[1].EquippedActor)
+        {
+            EquipmentSlots[1].EquippedActor->AttachToComponent(
+                GetSlaveMesh(),
+                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+                Main2BackSocketName
+            );
+        }
+        break;
+    }
     case EEquipmentSlotType::MainWeapon1:
     {
         if (EquipmentSlots[0].EquippedActor)

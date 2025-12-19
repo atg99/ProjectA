@@ -8,6 +8,7 @@
 #include "ATGInventoryOwnerInterface.h"
 #include "Data/ATGEquipmentData.h"
 #include "Data/ATGWeaponData.h"
+#include "Utils/NetworkUtil.h"
 
 // Sets default values for this component's properties
 UATGEquipmentComponent::UATGEquipmentComponent()
@@ -71,7 +72,7 @@ void UATGEquipmentComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 //변경시 클라에 전파
 void UATGEquipmentComponent::OnRep_FirstMainWeapon()
 {	//위젯과 플레어어가 구독
-	UE_LOG(LogTemp, Log, TEXT("UATGEquipmentComponent::OnRep_FirstMainWeapon"));
+	NET_LOG("");
 	OnFirstMainWeaponChanged.Broadcast(FirstMainWeapon);
 }
 

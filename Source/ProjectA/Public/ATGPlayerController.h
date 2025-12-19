@@ -35,6 +35,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputMappingContext* GunWeaponMappingContexts;
 
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputMappingContext* MeleeWeaponMappingContexts;
+
 	/** Input mapping context setup */
 	virtual void SetupInputComponent() override;
 public:
@@ -70,6 +73,7 @@ public:
 
 	void GunWeaponInputMapping(bool bIsAdd);
 
+	void MeleeWeaponInputMapping(bool bIsAdd);
 	//void ToggleInventoryUI();
 	
 };

@@ -47,7 +47,7 @@ public:
 	void ChangeWeaponEquip();
 
 	UFUNCTION(Server, Reliable)
-	void ServerChangePlayerUsingSlot(EEquipmentSlotType TryUsingSlot);
+	void ServerChangePlayerUsingSlot(EEquipmentSlotType DesiredSlot);
 
 	void TryFire();
 
@@ -92,6 +92,8 @@ protected:
 
 	UFUNCTION()
 	void HandleSecondMainWeaponChanged(FInventoryEntry InSecondMainWeapon);
+
+	void ToDefaultSlot(FEquipmentSlot& Slot);
 
 	bool CheckPlayerStateCompReady();
 
