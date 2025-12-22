@@ -36,10 +36,12 @@ enum class EWeaponType : uint8
 UENUM(BlueprintType)
 enum class EEquipmentSlotType : uint8
 {
-	None		=0		UMETA(DisplayName = "None"),
-	MainWeapon1	=1		UMETA(DisplayName = "MainWeapon1"),
-	MainWeapon2	=2		UMETA(DisplayName = "MainWeapon2"),
+	None		= 0		UMETA(DisplayName = "None"),
+	MainWeapon1	= 1		UMETA(DisplayName = "MainWeapon1"),
+	MainWeapon2	= 2		UMETA(DisplayName = "MainWeapon2"),
+	MeleeWeapon = 10		UMETA(DisplayName = "MeleeWeapon"),
 };
+ENUM_RANGE_BY_FIRST_AND_LAST(EEquipmentSlotType, EEquipmentSlotType::MainWeapon1, EEquipmentSlotType::MeleeWeapon);
 
 UENUM(BlueprintType)
 enum class EInteractionType : uint8

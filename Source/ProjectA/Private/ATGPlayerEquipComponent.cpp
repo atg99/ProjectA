@@ -25,16 +25,32 @@ UATGPlayerEquipComponent::UATGPlayerEquipComponent()
 
 	SetIsReplicatedByDefault(true);
 
-    //MainWeapon1 슬롯 추가
-    FEquipmentSlot Slot1;
-    Slot1.SlotType = EEquipmentSlotType::MainWeapon1;
-    Slot1.EquippedActor = nullptr; // 초기엔 장비 없음
-    EquipmentSlots.Add(Slot1);
+    for (EEquipmentSlotType EquipmentSlotType : TEnumRange<EEquipmentSlotType>())
+    {
+        InitSlot(EquipmentSlotType);
+    }
 
-    FEquipmentSlot Slot2;
-    Slot2.SlotType = EEquipmentSlotType::MainWeapon2;
-    Slot2.EquippedActor = nullptr;
-    EquipmentSlots.Add(Slot2);
+    ////MainWeapon1 슬롯 추가
+    //FEquipmentSlot SlotNone;
+    //SlotNone.SlotType = EEquipmentSlotType::None;
+    //SlotNone.EquippedActor = nullptr; // 초기엔 장비 없음
+    //EquipmentSlots.Add(SlotNone);
+
+    //FEquipmentSlot MeleeSlot;
+    //MeleeSlot.SlotType = EEquipmentSlotType::MeleeWeapon;
+    //MeleeSlot.EquippedActor = nullptr; // 초기엔 장비 없음
+    //EquipmentSlots.Add(MeleeSlot);
+
+    ////MainWeapon1 슬롯 추가
+    //FEquipmentSlot Slot1;
+    //Slot1.SlotType = EEquipmentSlotType::MainWeapon1;
+    //Slot1.EquippedActor = nullptr; // 초기엔 장비 없음
+    //EquipmentSlots.Add(Slot1);
+
+    //FEquipmentSlot Slot2;
+    //Slot2.SlotType = EEquipmentSlotType::MainWeapon2;
+    //Slot2.EquippedActor = nullptr;
+    //EquipmentSlots.Add(Slot2);
 
 }
 
@@ -125,7 +141,7 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
     UATGWeaponData* WeaponData = ItemData ? Cast<UATGWeaponData>(ItemData) : nullptr;
     if (!WeaponData || !WeaponData->WeaponClass)
     {
-        ToDefaultSlot(EquipmentSlots[0]);
+        ClearSlot(EquipmentSlots[0]);
         return;
     }
 
@@ -187,7 +203,7 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
     UATGWeaponData* WeaponData = ItemData ? Cast<UATGWeaponData>(ItemData) : nullptr;
     if (!WeaponData || !WeaponData->WeaponClass)
     {
-        ToDefaultSlot(EquipmentSlots[1]);
+        ClearSlot(EquipmentSlots[1]);
         return;
     }
 
@@ -231,7 +247,7 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
     }
 }
 
-void UATGPlayerEquipComponent::ToDefaultSlot(FEquipmentSlot& Slot)
+void UATGPlayerEquipComponent::ClearSlot(FEquipmentSlot& Slot)
 {
     if (!GetOwner()->HasAuthority())
     {
@@ -244,7 +260,7 @@ void UATGPlayerEquipComponent::ToDefaultSlot(FEquipmentSlot& Slot)
         Slot.EquippedActor = nullptr;
     }
     NET_LOG("");
-    ServerChangePlayerUsingSlot(EEquipmentSlotType::None);
+    ServerChangePlayerUsingSlot(EEquipmentSlotType::MeleeWeapon);
 }
 
 // Called every frame
@@ -255,24 +271,38 @@ void UATGPlayerEquipComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	// ...
 }
 
+void UATGPlayerEquipComponent::TryChangePlayerUsingSlot(EEquipmentSlotType DesiredSlot)
+{
+    ServerChangePlayerUsingSlot(DesiredSlot);
+    //클라이언트 예측
+    ChangePlayerUsingSlot(DesiredSlot);
+}
+
 void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquipmentSlotType DesiredSlot)
+{
+    ChangePlayerUsingSlot(DesiredSlot);
+}
+
+void UATGPlayerEquipComponent::ChangePlayerUsingSlot(EEquipmentSlotType DesiredSlot)
 {
     FEquipmentSlot* TargetSlot = EquipmentSlots.FindByPredicate([DesiredSlot](const FEquipmentSlot& Slot)
         {
+            UE_LOG(LogTemp, Warning, TEXT("%d"), Slot.SlotType);
             return Slot.SlotType == DesiredSlot;
         });
-	if (TargetSlot)
-	{
+    if ((TargetSlot && TargetSlot->EquippedActor) || (TargetSlot && TargetSlot->SlotType == EEquipmentSlotType::MeleeWeapon))
+    {
         NET_LOG("");
-		CurrentUsingSlot = DesiredSlot;
-		//서버에서 attach하면 동기화됨 클라에서 불필요
-		ChangeWeaponEquip();
-	}
+        CurrentUsingSlot = DesiredSlot;
+        //서버에서 attach하면 동기화됨 클라에서 불필요
+        ChangeWeaponEquip();
+    }
     else
     {
         NET_LOG("TargetSlot Null");
     }
 }
+
 
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
 {
@@ -288,7 +318,7 @@ void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
         bool bIsAdd = false;
         switch (CurrentUsingSlot)
         {
-        case EEquipmentSlotType::None:
+        case EEquipmentSlotType::MeleeWeapon:
             bIsAdd = false;
             break;
         case EEquipmentSlotType::MainWeapon1:
@@ -315,7 +345,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
 
     switch (CurrentUsingSlot)
     {
-    case EEquipmentSlotType::None:
+    case EEquipmentSlotType::MeleeWeapon:
     {
         if (EquipmentSlots[0].EquippedActor)
         {
@@ -537,4 +567,12 @@ USceneComponent* UATGPlayerEquipComponent::GetSlaveMesh()
     }
 
     return nullptr;
+}
+
+void UATGPlayerEquipComponent::InitSlot(EEquipmentSlotType InEquipmentSlotType)
+{
+    FEquipmentSlot EquipmentSlot;
+    EquipmentSlot.SlotType = InEquipmentSlotType;
+    EquipmentSlot.EquippedActor = nullptr; // 초기엔 장비 없음
+    EquipmentSlots.Add(EquipmentSlot);
 }

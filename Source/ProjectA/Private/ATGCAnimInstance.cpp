@@ -17,6 +17,10 @@ void UATGCAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	UATGPlayerEquipComponent* PlayerEquip = TryGetPawnOwner() ? TryGetPawnOwner()->GetComponentByClass<UATGPlayerEquipComponent>() : nullptr;
 	if (IsValid(PlayerEquip))
 	{
+		if (CurrentEquippedWeaponSlotType != PlayerEquip->CurrentUsingSlot)
+		{
+			OnEquipSlotChange();
+		}
 		CurrentEquippedWeaponSlotType = PlayerEquip->CurrentUsingSlot;
 		FRotator AimOffset = GetAimOffset();
 		AOYaw = AimOffset.Yaw;

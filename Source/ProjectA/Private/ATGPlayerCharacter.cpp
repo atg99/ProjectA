@@ -125,6 +125,8 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 		EnhancedInputComponent->BindAction(IA_SecondMainEquip, ETriggerEvent::Started, this, &AATGPlayerCharacter::TrySecondFirstMain);
 
+		EnhancedInputComponent->BindAction(IA_Unarmed, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryMelee);
+
 		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryFire);
 		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Completed, this, &AATGPlayerCharacter::StopFire);
 
@@ -351,7 +353,7 @@ void AATGPlayerCharacter::TryEquipFirstMain(const FInputActionValue& Value)
 	if (PlayerEquipComp)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("!!! PlayerEquipComp Valid"));
-		PlayerEquipComp->ServerChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon1);
+		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon1);
 	}
 }
 
@@ -359,7 +361,15 @@ void AATGPlayerCharacter::TrySecondFirstMain(const FInputActionValue& Value)
 {
 	if (PlayerEquipComp)
 	{
-		PlayerEquipComp->ServerChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon2);
+		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon2);
+	}
+}
+
+void AATGPlayerCharacter::TryMelee(const FInputActionValue& Value)
+{
+	if (PlayerEquipComp)
+	{
+		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MeleeWeapon);
 	}
 }
 

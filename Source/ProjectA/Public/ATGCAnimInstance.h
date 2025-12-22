@@ -21,13 +21,16 @@ public:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
-	EEquipmentSlotType CurrentEquippedWeaponSlotType = EEquipmentSlotType::None;
+	EEquipmentSlotType CurrentEquippedWeaponSlotType = EEquipmentSlotType::MeleeWeapon;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
 	float AOYaw;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
 	float AOPitch;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnEquipSlotChange();
 
 	FRotator GetAimOffset() const;
 };

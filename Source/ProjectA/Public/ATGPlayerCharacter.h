@@ -77,10 +77,15 @@ protected:
 	UInputAction* IA_SecondMainEquip;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* IA_Unarmed;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* IA_Fire;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* IA_GunAim;
+
+
 protected:
 
 	/** Called for movement input */
@@ -99,6 +104,7 @@ protected:
 
 	void TryEquipFirstMain(const FInputActionValue& Value);
 	void TrySecondFirstMain(const FInputActionValue& Value);
+	void TryMelee(const FInputActionValue& Value);
 
 public:
 

@@ -39,15 +39,19 @@ public:
 
 	//현재 사용중인 슬롯
 	UPROPERTY(ReplicatedUsing = "OnRep_CurrentUsingSlot", BlueprintReadOnly, Category = "Equipment")
-	EEquipmentSlotType CurrentUsingSlot = EEquipmentSlotType::None;
+	EEquipmentSlotType CurrentUsingSlot = EEquipmentSlotType::MeleeWeapon;
 
 	UFUNCTION()
 	void OnRep_CurrentUsingSlot();
 
 	void ChangeWeaponEquip();
 
+	void TryChangePlayerUsingSlot(EEquipmentSlotType DesiredSlot);
+
 	UFUNCTION(Server, Reliable)
 	void ServerChangePlayerUsingSlot(EEquipmentSlotType DesiredSlot);
+
+	void ChangePlayerUsingSlot(EEquipmentSlotType DesiredSlot);
 
 	void TryFire();
 
@@ -93,7 +97,7 @@ protected:
 	UFUNCTION()
 	void HandleSecondMainWeaponChanged(FInventoryEntry InSecondMainWeapon);
 
-	void ToDefaultSlot(FEquipmentSlot& Slot);
+	void ClearSlot(FEquipmentSlot& Slot);
 
 	bool CheckPlayerStateCompReady();
 
@@ -110,4 +114,5 @@ protected:
 	float MoveRecoveryTime = 0.5f;
 protected:
 
+	void InitSlot(EEquipmentSlotType InEquipmentSlotType);
 };
