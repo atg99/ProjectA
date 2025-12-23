@@ -201,12 +201,13 @@ void AZombieEnemy::MultiPlayEffectHitReact_Implementation(const class UATGDamage
 		FRotator HitRotator = UKismetMathLibrary::MakeRotFromX(HitNormal);
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SelectedVFX, HitLocation, HitRotator);
 
-
-		if (SliceSystemComponent)
-		{
-			SliceSystemComponent->SliceBone(BoneName, HitLocation, HitNormal, ImpulseScale);
-		}
+	
 	}
+
+	LastDamageCapture.BoneName = BoneName;
+	LastDamageCapture.HitLocation = HitLocation;
+	LastDamageCapture.HitNormal = HitNormal;
+	LastDamageCapture.ImpulseScale = ImpulseScale;
 
 	//GetMesh()->GlobalAnimRateScale = 0;
 	CustomTimeDilation = 0.01f;
@@ -223,6 +224,15 @@ void AZombieEnemy::MultiPlayEffectHitReact_Implementation(const class UATGDamage
 
 }
 
+void AZombieEnemy::StartSlice()
+{
+	//bp에서 호출 죽음이벤트
+	//절단
+	if (SliceSystemComponent)
+	{
+		SliceSystemComponent->SliceBone(LastDamageCapture.BoneName, LastDamageCapture.HitLocation, LastDamageCapture.HitNormal, LastDamageCapture.ImpulseScale);
+	}
+}
 
 void AZombieEnemy::MultiStartDeath_Implementation()
 {

@@ -14,6 +14,7 @@
 #include "ATGHUDWidget.h"
 #include "ATGInventoryWidget.h"
 #include "ATGInventoryGirdWidget.h"
+#include "Utils/NetworkUtil.h"
 
 void AATGPlayerController::SetupInputComponent()
 {
@@ -138,37 +139,22 @@ void AATGPlayerController::ToggleInventoryInputMapping(bool bIsInvent)
 }
 
 //√—±‚ ¡∂¿€ input mapping
-void AATGPlayerController::GunWeaponInputMapping(bool bIsAdd)
+void AATGPlayerController::WeaponInputMapping(EEquipmentSlotType CurrentUsingSlot)
 {
 	if (IsLocalPlayerController())
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
-			if (bIsAdd)
+			NET_LOG(FString::Printf(TEXT("%d"), CurrentUsingSlot));
+			if (CurrentUsingSlot == EEquipmentSlotType::MainWeapon1 || CurrentUsingSlot == EEquipmentSlotType::MainWeapon2)
 			{
 				Subsystem->AddMappingContext(GunWeaponMappingContexts, 2);
+				Subsystem->RemoveMappingContext(MeleeWeaponMappingContexts);
 			}
-			else
-			{
-				Subsystem->RemoveMappingContext(GunWeaponMappingContexts);
-			}
-		}
-	}
-}
-
-void AATGPlayerController::MeleeWeaponInputMapping(bool bIsAdd)
-{
-	if (IsLocalPlayerController())
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
-		{
-			if (bIsAdd)
+			else if(CurrentUsingSlot == EEquipmentSlotType::MeleeWeapon)
 			{
 				Subsystem->AddMappingContext(MeleeWeaponMappingContexts, 2);
-			}
-			else
-			{
-				Subsystem->RemoveMappingContext(MeleeWeaponMappingContexts);
+				Subsystem->RemoveMappingContext(GunWeaponMappingContexts);
 			}
 		}
 	}

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "ATGEnum.h"
 #include "ATGPlayerController.generated.h"
 
 class UInputMappingContext;
@@ -71,9 +72,7 @@ public:
 
 	void ToggleInventoryInputMapping(bool bIsInvent);
 
-	void GunWeaponInputMapping(bool bIsAdd);
-
-	void MeleeWeaponInputMapping(bool bIsAdd);
+	void WeaponInputMapping(EEquipmentSlotType CurrentUsingSlot);
 	//void ToggleInventoryUI();
 	
 };

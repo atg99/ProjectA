@@ -8,6 +8,15 @@
 #include "ATGEnum.h"
 #include "ZombieEnemy.generated.h"
 
+struct FLastDamageCapture
+{
+	FName BoneName;
+	FVector HitLocation;
+	FVector HitNormal;
+	float ImpulseScale;
+
+};
+
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterStateChanged, EMonsterState, InState);
 
 class UNiagaraSystem;
@@ -52,6 +61,8 @@ public:
 
 protected:
 
+	FLastDamageCapture LastDamageCapture;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<USliceSystemComponent> SliceSystemComponent;
 
@@ -85,7 +96,11 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiStartDeath();
+
 	bool bIsDying = false;
+
+	UFUNCTION(BlueprintCallable)
+	void StartSlice();
 
 protected:
 	float DeathBlendWeight = 0.0f;

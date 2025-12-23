@@ -80,6 +80,9 @@ protected:
 	UInputAction* IA_Unarmed;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* IA_MeleeAttack;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* IA_Fire;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
@@ -105,6 +108,8 @@ protected:
 	void TryEquipFirstMain(const FInputActionValue& Value);
 	void TrySecondFirstMain(const FInputActionValue& Value);
 	void TryMelee(const FInputActionValue& Value);
+
+	void TryMeleeAttack(const FInputActionValue& Value);
 
 public:
 

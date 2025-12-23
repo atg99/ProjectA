@@ -32,6 +32,7 @@
 #include "GameFramework/HUD.h"
 #include "ATGPlayerEquipComponent.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Utils/NetworkUtil.h"
 
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
@@ -127,12 +128,13 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 		EnhancedInputComponent->BindAction(IA_Unarmed, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryMelee);
 
+		EnhancedInputComponent->BindAction(IA_MeleeAttack, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryMeleeAttack);
+
 		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryFire);
 		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Completed, this, &AATGPlayerCharacter::StopFire);
 
 		EnhancedInputComponent->BindAction(IA_GunAim, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryGunAim);
 		EnhancedInputComponent->BindAction(IA_GunAim, ETriggerEvent::Completed, this, &AATGPlayerCharacter::StopGunAim);
-
 	}
 	else
 	{
@@ -325,14 +327,14 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 
 void AATGPlayerCharacter::ToggleInventory(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Display, TEXT("ToggleInventory"));
+	//UE_LOG(LogTemp, Display, TEXT("ToggleInventory"));
 	if (UATGHUDComponent* HUDComp = Cast<AATGPlayerController>(GetController())->GetHUD()->FindComponentByClass<UATGHUDComponent>())
 	{
 		HUDComp->ToggleInventoryUI();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Can't Find HUDComponent at HUD"));
+		//UE_LOG(LogTemp, Error, TEXT("Can't Find HUDComponent at HUD"));
 	}
 }
 
@@ -349,10 +351,10 @@ void AATGPlayerCharacter::RotateHeldItem(const FInputActionValue& Value)
 
 void AATGPlayerCharacter::TryEquipFirstMain(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("!!! AATGPlayerCharacter::TryEquipFirstMain"));
+	//UE_LOG(LogTemp, Warning, TEXT("!!! AATGPlayerCharacter::TryEquipFirstMain"));
 	if (PlayerEquipComp)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("!!! PlayerEquipComp Valid"));
+		//UE_LOG(LogTemp, Warning, TEXT("!!! PlayerEquipComp Valid"));
 		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon1);
 	}
 }
@@ -371,6 +373,11 @@ void AATGPlayerCharacter::TryMelee(const FInputActionValue& Value)
 	{
 		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MeleeWeapon);
 	}
+}
+
+void AATGPlayerCharacter::TryMeleeAttack(const FInputActionValue& Value)
+{
+	NET_LOG("");
 }
 
 void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InteractionData)

@@ -79,6 +79,8 @@ void UATGPlayerEquipComponent::BeginPlay()
         );
     }
 
+    OnRep_CurrentUsingSlot();
+
 }
 
 void UATGPlayerEquipComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -294,8 +296,19 @@ void UATGPlayerEquipComponent::ChangePlayerUsingSlot(EEquipmentSlotType DesiredS
     {
         NET_LOG("");
         CurrentUsingSlot = DesiredSlot;
+        
         //서버에서 attach하면 동기화됨 클라에서 불필요
         ChangeWeaponEquip();
+
+        //클라 예측이면 OnRep함수 수동호출 (인풋맵핑변경함수임) 서버와 다른 값이면 수정됨
+        ACharacter* Character = GetOwningPlayerCharacter();
+        if (Character)
+        {
+            if (Character->GetController() && Character->GetController()->IsLocalController())
+            {
+                OnRep_CurrentUsingSlot();
+            }
+        }
     }
     else
     {
@@ -312,23 +325,11 @@ void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
     {
         return;
     }
+
     //총기 인풋 맵핑
     if (AATGPlayerController* APC = Cast<AATGPlayerController>(Character->GetController()))
     {
-        bool bIsAdd = false;
-        switch (CurrentUsingSlot)
-        {
-        case EEquipmentSlotType::MeleeWeapon:
-            bIsAdd = false;
-            break;
-        case EEquipmentSlotType::MainWeapon1:
-            bIsAdd = true;
-            break;
-        case EEquipmentSlotType::MainWeapon2:
-            bIsAdd = true;
-            break;
-        }
-        APC->GunWeaponInputMapping(bIsAdd);
+        APC->WeaponInputMapping(CurrentUsingSlot);
     }
 
     //서버에서 attach하면 동기화됨 클라에서 불필요

@@ -52,6 +52,7 @@ void ABulletManager::Tick(float DeltaTime)
 	//역for문
 	for (int32 i = ActiveBullets.Num() - 1; i >= 0; i--)
 	{
+		
 		NET_LOG(FString::Printf(TEXT("%d"), i));
 		FBullet& Bullet = ActiveBullets[i];
 
@@ -64,6 +65,7 @@ void ABulletManager::Tick(float DeltaTime)
 		if (Bullet.DragCoefficient > 0.0f)
 		{
 			Bullet.Velocity *= (1.0f - (Bullet.DragCoefficient * DeltaTime));
+
 		}
 
 		if (Bullet.Velocity.SizeSquared() < 10.0f) // 속도 느려지면 삭제
