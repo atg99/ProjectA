@@ -33,6 +33,7 @@
 #include "ATGPlayerEquipComponent.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Utils/NetworkUtil.h"
+#include "MeleeComponent.h"
 
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
@@ -75,6 +76,8 @@ AATGPlayerCharacter::AATGPlayerCharacter()
 	AIStimuliSourceComp = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("AIPerceptionStimuliSourceComponent"));
 
 	PlayerEquipComp = CreateDefaultSubobject<UATGPlayerEquipComponent>(TEXT("PlayerEquipComp"));
+
+	MeleeComp = CreateDefaultSubobject<UMeleeComponent>(TEXT("MeleeComponent"));
 
 	SetGenericTeamId(1);
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
@@ -160,6 +163,8 @@ void AATGPlayerCharacter::Look(const FInputActionValue& Value)
 	// route the input
 	DoLook(LookAxisVector.X, LookAxisVector.Y);
 }
+
+
 
 void AATGPlayerCharacter::DoMove(float Right, float Forward)
 {
@@ -378,6 +383,11 @@ void AATGPlayerCharacter::TryMelee(const FInputActionValue& Value)
 void AATGPlayerCharacter::TryMeleeAttack(const FInputActionValue& Value)
 {
 	NET_LOG("");
+	if (MeleeComp)
+	{
+		MeleeComp->MeleeAttack();
+	}
+	//PlayAnimMontage();
 }
 
 void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InteractionData)

@@ -17,6 +17,7 @@ struct FInteractionData;
 struct FInventoryEntry;
 class UATGPlayerEquipComponent;
 class UAIPerceptionStimuliSourceComponent;
+class UMeleeComponent;
 
 UCLASS()
 class PROJECTA_API AATGPlayerCharacter : public ACharacter, public IGenericTeamAgentInterface
@@ -45,6 +46,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	UATGPlayerEquipComponent* PlayerEquipComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	UMeleeComponent* MeleeComp;
 
 protected:
 
@@ -108,8 +112,8 @@ protected:
 	void TryEquipFirstMain(const FInputActionValue& Value);
 	void TrySecondFirstMain(const FInputActionValue& Value);
 	void TryMelee(const FInputActionValue& Value);
-
 	void TryMeleeAttack(const FInputActionValue& Value);
+
 
 public:
 
