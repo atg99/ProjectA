@@ -8,6 +8,20 @@
 #include "AbilitySystemInterface.h" // gas
 #include "ATGPlayerCharacter.generated.h"
 
+UENUM(BlueprintType)
+enum class EPlayerAbilityInputID : uint8
+{
+	None,
+
+	// GAS 필수 예약어 Confirm
+	Confirm,
+
+	// GAS 필수 예약어 Cancel
+	Cancel,
+
+	MeleeAttack,
+};
+
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;

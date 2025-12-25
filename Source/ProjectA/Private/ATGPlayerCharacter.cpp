@@ -131,7 +131,7 @@ void AATGPlayerCharacter::GiveDefaultAbilities()
 {
 	if (HasAuthority() && AbilitySystemComponent && DefaultAbility)
 	{
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(DefaultAbility, 1, 0));
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(DefaultAbility, 1, static_cast<int32>(EPlayerAbilityInputID::MeleeAttack), this));
 	}
 }
 
@@ -432,11 +432,19 @@ void AATGPlayerCharacter::TryMeleeAttack(const FInputActionValue& Value)
 	//	MeleeComp->MeleeAttack();
 	//}
 
-	if (AbilitySystemComponent && DefaultAbility)
-	{
-		// 클래스 기반으로 스킬 발동 시도
-		AbilitySystemComponent->TryActivateAbilityByClass(DefaultAbility);
-	}
+	//if (AbilitySystemComponent && DefaultAbility)
+	//{
+	//	// 클래스 기반으로 스킬 발동 시도
+	//	AbilitySystemComponent->TryActivateAbilityByClass(DefaultAbility);
+	//}
+	
+	// Enum::MeleeAttack : 3
+	int32 InputID = static_cast<int32>(EPlayerAbilityInputID::MeleeAttack);
+
+	// GAS에 InputID 알림
+	// 스킬이 꺼져 있으면 -> TryActivate 스킬 발동 시도
+	// 스킬이 켜져 있고 WaitInputPress 중이면 -> 콤보 작동
+	AbilitySystemComponent->AbilityLocalInputPressed(InputID);
 }
 
 void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InteractionData)
