@@ -22,7 +22,8 @@ public class ProjectA : ModuleRules
             "Niagara",
             "ProceduralMeshComponent",
             "RenderCore",
-            "RHI"
+            "RHI",
+            "GameplayAbilities", "GameplayTags", "GameplayTasks" //gameplay Ability System
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });

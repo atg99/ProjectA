@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "GenericTeamAgentInterface.h"
+#include "AbilitySystemInterface.h" // gas
 #include "ATGPlayerCharacter.generated.h"
 
 class USpringArmComponent;
@@ -18,9 +19,11 @@ struct FInventoryEntry;
 class UATGPlayerEquipComponent;
 class UAIPerceptionStimuliSourceComponent;
 class UMeleeComponent;
+class UPlayerAttributeSet;
+class UAbilitySystemComponent;
 
 UCLASS()
-class PROJECTA_API AATGPlayerCharacter : public ACharacter, public IGenericTeamAgentInterface
+class PROJECTA_API AATGPlayerCharacter : public ACharacter, public IGenericTeamAgentInterface, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -28,9 +31,29 @@ public:
 	// Sets default values for this character's properties
 	AATGPlayerCharacter();
 
+	//GAS
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override; // 서버용 초기화
+	virtual void OnRep_Controller() override; // 클라이언트용 초기화
+
+public:
+	//GAS
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
+	UAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
+	UPlayerAttributeSet* AttributeSet;
+
+	// 블루프린트에서 스킬 할당할 변수
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
+	TSubclassOf<class UGameplayAbility> DefaultAbility;
+
+	void GiveDefaultAbilities();
+
 
 public:
 	/** Camera boom positioning the camera behind the character */

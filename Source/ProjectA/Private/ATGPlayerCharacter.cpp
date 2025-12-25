@@ -35,6 +35,10 @@
 #include "Utils/NetworkUtil.h"
 #include "MeleeComponent.h"
 
+//GAS
+#include "Gas/PlayerAttributeSet.h"
+#include "AbilitySystemComponent.h"
+
 // Sets default values
 AATGPlayerCharacter::AATGPlayerCharacter()
 {
@@ -83,12 +87,52 @@ AATGPlayerCharacter::AATGPlayerCharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
+	//GAS 컴포넌트
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+
+	AttributeSet = CreateDefaultSubobject<UPlayerAttributeSet>(TEXT("AttributeSet"));
+
+}
+
+UAbilitySystemComponent* AATGPlayerCharacter::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
 }
 
 // Called when the game starts or when spawned
 void AATGPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void AATGPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+		GiveDefaultAbilities(); 
+	}
+
+}
+
+void AATGPlayerCharacter::OnRep_Controller()
+{
+	Super::OnRep_Controller();
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
+}
+
+void AATGPlayerCharacter::GiveDefaultAbilities()
+{
+	if (HasAuthority() && AbilitySystemComponent && DefaultAbility)
+	{
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(DefaultAbility, 1, 0));
+	}
 }
 
 // Called every frame
@@ -383,11 +427,16 @@ void AATGPlayerCharacter::TryMelee(const FInputActionValue& Value)
 void AATGPlayerCharacter::TryMeleeAttack(const FInputActionValue& Value)
 {
 	NET_LOG("");
-	if (MeleeComp)
+	//if (MeleeComp)
+	//{
+	//	MeleeComp->MeleeAttack();
+	//}
+
+	if (AbilitySystemComponent && DefaultAbility)
 	{
-		MeleeComp->MeleeAttack();
+		// 클래스 기반으로 스킬 발동 시도
+		AbilitySystemComponent->TryActivateAbilityByClass(DefaultAbility);
 	}
-	//PlayAnimMontage();
 }
 
 void AATGPlayerCharacter::PutInAtInventory(FInteractionData& InteractionData)
