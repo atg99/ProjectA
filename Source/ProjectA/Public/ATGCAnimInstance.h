@@ -24,6 +24,9 @@ public:
 	EEquipmentSlotType CurrentEquippedWeaponSlotType = EEquipmentSlotType::None;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
+	EWeaponCategory CurrentEquippedWeaponCategory = EWeaponCategory::None;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
 	float AOYaw;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")

@@ -38,6 +38,9 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     EWeaponType WeaponType = EWeaponType::None;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+    EWeaponCategory WeaponCategory = EWeaponCategory::None;
+
     //Player equip skeletalmesh
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     USkeletalMesh* WeaponSkeletalMesh = nullptr;

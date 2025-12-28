@@ -21,6 +21,9 @@ void UATGCAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		{
 			OnEquipSlotChange();
 		}
+
+		CurrentEquippedWeaponCategory = PlayerEquip->GetCurrentEquippedWeaponCategory();
+
 		CurrentEquippedWeaponSlotType = PlayerEquip->CurrentUsingSlot;
 		FRotator AimOffset = GetAimOffset();
 		AOYaw = AimOffset.Yaw;

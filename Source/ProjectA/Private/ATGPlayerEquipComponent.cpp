@@ -290,33 +290,24 @@ void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
     {
         if (AATGPlayerController* APC = Cast<AATGPlayerController>(GetOwningPlayerCharacter()->GetController()))
         {
-            APC->WeaponInputMapping(EWeaponInputType::None);
+            APC->WeaponInputMapping(EWeaponCategory::None);
         }
 		return;
 	}
 
 	FEquipmentSlot* TargetSlot = GetSlotByType(CurrentUsingSlot);
 
-	EWeaponInputType WeaponInputType = EWeaponInputType::None;
-
     AATGWeaponBase* Weapon = Cast<AATGWeaponBase>(TargetSlot->EquippedActor);
-    if (ensure(Weapon))
+    if (ensure(Weapon) && Weapon->WeaponData)
     {
-        if (Cast<UATGRangeWeaponData>(Weapon->WeaponData))
+        if (AATGPlayerController* APC = Cast<AATGPlayerController>(GetOwningPlayerCharacter()->GetController()))
         {
-            WeaponInputType = EWeaponInputType::GunWeapon;
-        }
-        else if (Cast<UATGMeleeWeaponData>(Weapon->WeaponData))
-        {
-            WeaponInputType = EWeaponInputType::MeleeWeapon;
+            APC->WeaponInputMapping(Weapon->WeaponData->WeaponCategory);
         }
     }
 
     //총기 인풋 맵핑
-    if (AATGPlayerController* APC = Cast<AATGPlayerController>(GetOwningPlayerCharacter()->GetController()))
-    {
-        APC->WeaponInputMapping(WeaponInputType);
-    }
+
 
     //서버에서 attach하면 동기화됨 클라에서 불필요
     //ChangeWeaponEquip();
@@ -652,4 +643,19 @@ FEquipmentSlot* UATGPlayerEquipComponent::GetSlotByType(EEquipmentSlotType SlotT
         {
             return Slot.SlotType == SlotType;
         });
+}
+
+EWeaponCategory UATGPlayerEquipComponent::GetCurrentEquippedWeaponCategory()
+{
+    FEquipmentSlot* Slot = GetSlotByType(CurrentUsingSlot);
+
+    if (Slot && Slot->EquippedActor)
+    {
+        AATGWeaponBase* Weapon = Cast<AATGWeaponBase>(Slot->EquippedActor);
+        if (Weapon && Weapon->WeaponData)
+        {
+            return Weapon->WeaponData->WeaponCategory;
+        }
+	}
+    return EWeaponCategory::None;
 }

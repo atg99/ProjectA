@@ -133,4 +133,8 @@ protected:
 
 	FEquipmentSlot* GetSlotByType(EEquipmentSlotType SlotType);
 
+public:
+
+	EWeaponCategory GetCurrentEquippedWeaponCategory();
+
 };

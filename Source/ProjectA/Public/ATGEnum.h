@@ -84,6 +84,14 @@ enum class EPlayerAbilityInputID : uint8
 	MeleeAttack,
 };
 
+UENUM(BlueprintType)
+enum class EWeaponCategory : uint8
+{
+	None = 0			UMETA(DisplayName = "None"),
+	GunWeapon = 1		UMETA(DisplayName = "GunWeapon"),
+	MeleeWeapon = 2	UMETA(DisplayName = "MeleeWeapon"),
+};
+
 class UATGItemData;
 
 USTRUCT(BlueprintType)
