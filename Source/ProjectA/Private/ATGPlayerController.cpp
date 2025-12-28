@@ -139,19 +139,19 @@ void AATGPlayerController::ToggleInventoryInputMapping(bool bIsInvent)
 }
 
 //√—±‚ ¡∂¿€ input mapping
-void AATGPlayerController::WeaponInputMapping(EEquipmentSlotType CurrentUsingSlot)
+void AATGPlayerController::WeaponInputMapping(EWeaponInputType WeaponInputType)
 {
 	if (IsLocalPlayerController())
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
-			NET_LOG(FString::Printf(TEXT("%d"), CurrentUsingSlot));
-			if (CurrentUsingSlot == EEquipmentSlotType::MainWeapon1Slot || CurrentUsingSlot == EEquipmentSlotType::MainWeapon2Slot)
+			NET_LOG(FString::Printf(TEXT("%d"), WeaponInputType));
+			if (WeaponInputType == EWeaponInputType::GunWeapon)
 			{
 				Subsystem->AddMappingContext(GunWeaponMappingContexts, 2);
 				Subsystem->RemoveMappingContext(MeleeWeaponMappingContexts);
 			}
-			else if(CurrentUsingSlot == EEquipmentSlotType::None)
+			else if(WeaponInputType == EWeaponInputType::MeleeWeapon)
 			{
 				Subsystem->AddMappingContext(MeleeWeaponMappingContexts, 2);
 				Subsystem->RemoveMappingContext(GunWeaponMappingContexts);

@@ -8,20 +8,6 @@
 #include "AbilitySystemInterface.h" // gas
 #include "ATGPlayerCharacter.generated.h"
 
-UENUM(BlueprintType)
-enum class EPlayerAbilityInputID : uint8
-{
-	None,
-
-	// GAS 필수 예약어 Confirm
-	Confirm,
-
-	// GAS 필수 예약어 Cancel
-	Cancel,
-
-	MeleeAttack,
-};
-
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
@@ -35,6 +21,7 @@ class UAIPerceptionStimuliSourceComponent;
 class UMeleeComponent;
 class UCharacterAttributeSet;
 class UAbilitySystemComponent;
+class AATGWeaponBase;
 
 UCLASS()
 class PROJECTA_API AATGPlayerCharacter : public ACharacter, public IGenericTeamAgentInterface, public IAbilitySystemInterface
@@ -63,11 +50,12 @@ public:
 	UCharacterAttributeSet* AttributeSet;
 
 	// 블루프린트에서 스킬 할당할 변수
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
-	TSubclassOf<class UGameplayAbility> DefaultAbility;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
+	//TSubclassOf<class UGameplayAbility> DefaultAbility;
 
-	void GiveDefaultAbilities();
+	void EquipWeapon(AATGWeaponBase* Weapon);
 
+	void GiveAbilities(TArray<struct FWeaponAbilityBind> Abilities, AATGWeaponBase* Weapon);
 
 public:
 	/** Camera boom positioning the camera behind the character */

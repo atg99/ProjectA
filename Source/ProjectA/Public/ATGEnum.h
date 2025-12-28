@@ -70,6 +70,20 @@ enum class ECGait : uint8
 	Sprint = 2	UMETA(DisplayName = "Sprint"),
 };
 
+UENUM(BlueprintType)
+enum class EPlayerAbilityInputID : uint8
+{
+	None,
+
+	// GAS 필수 예약어 Confirm
+	Confirm,
+
+	// GAS 필수 예약어 Cancel
+	Cancel,
+
+	MeleeAttack,
+};
+
 class UATGItemData;
 
 USTRUCT(BlueprintType)

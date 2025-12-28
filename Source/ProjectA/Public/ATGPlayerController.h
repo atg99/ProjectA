@@ -7,6 +7,13 @@
 #include "ATGEnum.h"
 #include "ATGPlayerController.generated.h"
 
+enum class EWeaponInputType : uint8
+{
+	None = 0,
+	GunWeapon	= 10,
+	MeleeWeapon	= 20,
+};
+
 class UInputMappingContext;
 class UATGInventoryGirdWidget;
 class UATGInventoryComponent;
@@ -72,7 +79,7 @@ public:
 
 	void ToggleInventoryInputMapping(bool bIsInvent);
 
-	void WeaponInputMapping(EEquipmentSlotType CurrentUsingSlot);
+	void WeaponInputMapping(EWeaponInputType WeaponInputType);
 	//void ToggleInventoryUI();
 	
 };

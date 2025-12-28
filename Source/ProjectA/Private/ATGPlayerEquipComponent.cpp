@@ -11,12 +11,14 @@
 #include "Engine/World.h"
 #include "Weapon/ATGWeaponBase.h"
 #include "Data/ATGRangeWeaponData.h"
+#include "Data/ATGMeleeWeaponData.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/SceneComponent.h"
 #include "Utils/NetworkUtil.h"
 #include "ATGPlayerCharacter.h"
 #include "ATGPlayerController.h"
 #include "Weapon/ATGRangeWeapon.h"
+#include "Weapon/ATGMeleeWeapon.h"
 
 // Sets default values for this component's properties
 UATGPlayerEquipComponent::UATGPlayerEquipComponent()
@@ -159,6 +161,10 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
     {
 		SpawnRangeWeaponInSlot(*Main1Slot, RangeWeaponData);
     }
+    else if(UATGMeleeWeaponData* MeleeWeaponData = Cast<UATGMeleeWeaponData>(WeaponData))
+    {
+        SpawnMeleeWeaponInSlot(*Main1Slot, MeleeWeaponData);
+	}
 
 }
 
@@ -192,7 +198,11 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
     if( UATGRangeWeaponData* RangeWeaponData = Cast<UATGRangeWeaponData>(WeaponData))
     {
         SpawnRangeWeaponInSlot(*Main2Slot, RangeWeaponData);
-	}   
+	}
+    else if (UATGMeleeWeaponData* MeleeWeaponData = Cast<UATGMeleeWeaponData>(WeaponData))
+    {
+        SpawnMeleeWeaponInSlot(*Main2Slot, MeleeWeaponData);
+    }
 }
 
 void UATGPlayerEquipComponent::ClearSlot(FEquipmentSlot& Slot)
@@ -254,7 +264,13 @@ void UATGPlayerEquipComponent::ChangePlayerUsingSlot(EEquipmentSlotType DesiredS
             {
                 OnRep_CurrentUsingSlot();
             }
+
+            if (Character->HasAuthority())
+            {
+                Cast<AATGPlayerCharacter>(Character)->EquipWeapon((Cast<AATGWeaponBase>(TargetSlot->EquippedActor)));
+            }
         }
+
     }
 	else if (!TargetSlot)
     {
@@ -270,23 +286,36 @@ void UATGPlayerEquipComponent::ChangePlayerUsingSlot(EEquipmentSlotType DesiredS
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
 {
     NET_LOG("");
-    EEquipmentSlotType DesiredSlot = CurrentUsingSlot;
-    FEquipmentSlot* TargetSlot = EquipmentSlots.FindByPredicate([DesiredSlot](const FEquipmentSlot& Slot)
+    if(CurrentUsingSlot == EEquipmentSlotType::None)
+    {
+        if (AATGPlayerController* APC = Cast<AATGPlayerController>(GetOwningPlayerCharacter()->GetController()))
         {
-            UE_LOG(LogTemp, Warning, TEXT("OnRep_CurrentUsingSlot %d"), (uint8)Slot.SlotType);
-            return Slot.SlotType == DesiredSlot;
-        });
+            APC->WeaponInputMapping(EWeaponInputType::None);
+        }
+		return;
+	}
+
+	FEquipmentSlot* TargetSlot = GetSlotByType(CurrentUsingSlot);
+
+	EWeaponInputType WeaponInputType = EWeaponInputType::None;
 
     AATGWeaponBase* Weapon = Cast<AATGWeaponBase>(TargetSlot->EquippedActor);
     if (ensure(Weapon))
     {
-        Weapon->WeaponData;
+        if (Cast<UATGRangeWeaponData>(Weapon->WeaponData))
+        {
+            WeaponInputType = EWeaponInputType::GunWeapon;
+        }
+        else if (Cast<UATGMeleeWeaponData>(Weapon->WeaponData))
+        {
+            WeaponInputType = EWeaponInputType::MeleeWeapon;
+        }
     }
 
     //총기 인풋 맵핑
     if (AATGPlayerController* APC = Cast<AATGPlayerController>(GetOwningPlayerCharacter()->GetController()))
     {
-        APC->WeaponInputMapping(CurrentUsingSlot);
+        APC->WeaponInputMapping(WeaponInputType);
     }
 
     //서버에서 attach하면 동기화됨 클라에서 불필요
@@ -309,6 +338,9 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
         checkNoEntry();
         return;
 	}
+   
+    AATGWeaponBase* Weapon1 = Cast<AATGWeaponBase>(Main1Slot->EquippedActor);
+    AATGWeaponBase* Weapon2 = Cast<AATGWeaponBase>(Main2Slot->EquippedActor);
 
     switch (CurrentUsingSlot)
     {
@@ -319,7 +351,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
             Main1Slot->EquippedActor->AttachToComponent(
                 GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                Main1BackSocketName
+				Weapon1->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon1Slot, false)
             );
         }
         if (Main2Slot->EquippedActor)
@@ -327,7 +359,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
             Main2Slot->EquippedActor->AttachToComponent(
                 GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                Main2BackSocketName
+                Weapon2->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon2Slot, false)
             );
         }
         break;
@@ -339,7 +371,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
             Main1Slot->EquippedActor->AttachToComponent(
                 GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                SniperSocketName
+                Weapon1->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon1Slot, true)
             );
         }
         if (Main2Slot->EquippedActor)
@@ -347,8 +379,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
             Main2Slot->EquippedActor->AttachToComponent(
                 GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                Main2BackSocketName
-            );
+                Weapon2->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon2Slot, false));
         }
         break;
     }
@@ -359,7 +390,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
             Main1Slot->EquippedActor->AttachToComponent(
                 GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                Main1BackSocketName
+                Weapon1->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon1Slot, false)
             );
         }
         if (Main2Slot->EquippedActor)
@@ -367,7 +398,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
             Main2Slot->EquippedActor->AttachToComponent(
                 GetSlaveMesh(),
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                SniperSocketName
+                Weapon2->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon2Slot, true)
             );
         }
         break;
@@ -570,7 +601,43 @@ void UATGPlayerEquipComponent::SpawnRangeWeaponInSlot(FEquipmentSlot& Slot, UATG
         //BeginPlay 및 초기화 실행 
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
 
-        FName AttachSocketName = CurrentUsingSlot == EEquipmentSlotType::MainWeapon1Slot ? SniperSocketName : Main1BackSocketName;
+		FName AttachSocketName = RangeWeaponData->GetSocketName(Slot.SlotType, CurrentUsingSlot == Slot.SlotType);
+
+        if (USceneComponent* AttachComp = GetSlaveMesh())
+        {
+            SpawnedActor->AttachToComponent(AttachComp, FAttachmentTransformRules::SnapToTargetIncludingScale, AttachSocketName);
+        }
+    }
+}
+
+void UATGPlayerEquipComponent::SpawnMeleeWeaponInSlot(FEquipmentSlot& Slot, UATGMeleeWeaponData* MeleeWeaponData)
+{
+    NET_LOG("MeleeWeapon Spawn");
+
+    ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
+    FTransform SpawnTransform = OwnerCharacter->GetActorTransform();
+
+    AATGMeleeWeapon* SpawnedActor = GetWorld()->SpawnActorDeferred<AATGMeleeWeapon>(
+        MeleeWeaponData->WeaponClass,
+        SpawnTransform,
+        OwnerCharacter, // Owner
+        OwnerCharacter, // Instigator
+        ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+    );
+
+    if (SpawnedActor)
+    {
+        SpawnedActor->SetReplicates(true);
+
+        //정보 복제
+        SpawnedActor->WeaponData = MeleeWeaponData;
+
+        Slot.EquippedActor = SpawnedActor;
+
+        //BeginPlay 및 초기화 실행 
+        UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
+
+        FName AttachSocketName = MeleeWeaponData->GetSocketName(Slot.SlotType, CurrentUsingSlot == Slot.SlotType);
 
         if (USceneComponent* AttachComp = GetSlaveMesh())
         {

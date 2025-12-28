@@ -34,6 +34,8 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Utils/NetworkUtil.h"
 #include "MeleeComponent.h"
+#include "Data/ATGMeleeWeaponData.h"
+#include "Weapon/ATGWeaponBase.h"
 
 //GAS
 #include "Gas/CharacterAttributeSet.h"
@@ -113,7 +115,7 @@ void AATGPlayerCharacter::PossessedBy(AController* NewController)
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
-		GiveDefaultAbilities(); 
+		//GiveDefaultAbilities(); 
 	}
 
 }
@@ -127,13 +129,67 @@ void AATGPlayerCharacter::OnRep_Controller()
 	}
 }
 
-void AATGPlayerCharacter::GiveDefaultAbilities()
+void AATGPlayerCharacter::EquipWeapon(AATGWeaponBase* Weapon)
 {
-	if (HasAuthority() && AbilitySystemComponent && DefaultAbility)
+	if (ensure(Weapon) && ensure(Weapon->WeaponData))
 	{
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(DefaultAbility, 1, static_cast<int32>(EPlayerAbilityInputID::MeleeAttack), this));
+		GiveAbilities(Weapon->WeaponData->WeaponAbilitys, Weapon);
 	}
 }
+
+void AATGPlayerCharacter::GiveAbilities(TArray<FWeaponAbilityBind> Abilities, AATGWeaponBase* Weapon)
+{
+	// 방어 코드: 서버가 아니거나 ASC가 없으면 리턴
+	if (!HasAuthority() || !AbilitySystemComponent || Abilities.IsEmpty())
+	{
+		return;
+	}
+
+	TArray<FGameplayAbilitySpecHandle> AbilitiesToRemove;
+
+	// 모든 어빌리티 순회
+	for (const FGameplayAbilitySpec& Spec : AbilitySystemComponent->GetActivatableAbilities())
+	{
+		// if (Spec.Ability->IsA(UBaseGameplayAbility::StaticClass())) continue;
+
+		// SourceObject가 AATGWeaponBase라면 삭제 대상에 추가
+		if (Cast<AATGWeaponBase>(Spec.SourceObject))
+		{
+			AbilitiesToRemove.Add(Spec.Handle);
+		}
+	}
+
+	for (const FGameplayAbilitySpecHandle& Handle : AbilitiesToRemove)
+	{
+		AbilitySystemComponent->ClearAbility(Handle);
+	}
+
+	UObject* SourceObj = this; 
+	if (Weapon)
+	{
+		SourceObj = Weapon;
+	}
+
+	if (HasAuthority() && AbilitySystemComponent && !Abilities.IsEmpty())
+	{
+		for (const FWeaponAbilityBind& AbilityBind : Abilities)
+		{
+			if (!AbilityBind.AbilityClass)
+			{
+				continue;
+			}
+
+			if (AbilitySystemComponent->FindAbilitySpecFromClass(AbilityBind.AbilityClass))
+			{
+				// 이미 존재하는지 확인
+				continue;
+			}
+
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityBind.AbilityClass, 1, static_cast<int32>(AbilityBind.InputID), SourceObj));
+		}
+	}
+}
+
 
 // Called every frame
 void AATGPlayerCharacter::Tick(float DeltaTime)

@@ -9,6 +9,7 @@
 /**
  * 
  */
+
 class AATGMeleeWeapon;
 UCLASS()
 class PROJECTA_API UATGMeleeWeaponData : public UATGWeaponData
@@ -23,8 +24,4 @@ public:
     TSubclassOf<AATGMeleeWeapon> WeaponClass = nullptr;
 
     virtual TSubclassOf<class AATGWeaponBase> GetWeaponClass() const override;
-
-    // GA
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
-    TArray<TSubclassOf<class UGameplayAbility>> WeaponAbilitys;
 };

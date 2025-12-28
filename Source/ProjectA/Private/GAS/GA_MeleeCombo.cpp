@@ -5,6 +5,7 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "AbilitySystemComponent.h"
+#include "Utils/NetworkUtil.h"
 
 UGA_MeleeCombo::UGA_MeleeCombo()
 {
@@ -16,7 +17,7 @@ UGA_MeleeCombo::UGA_MeleeCombo()
 void UGA_MeleeCombo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-
+    NET_LOG(TEXT(""));
 	FName StartSection = ComboSections.IsValidIndex(CurrentComboIndex) ? ComboSections[CurrentComboIndex] : NAME_None;
 
     //CreatePlayMontageAndWaitProxy 같은 함수로 태스크를 만들면 태스크는 생성만 된 상태이고 일시정지 델리게이트를 다 연결한 뒤에 마지막에 반드시 ReadyForActivation을 호출

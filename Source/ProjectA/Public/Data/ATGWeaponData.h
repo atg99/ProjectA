@@ -9,6 +9,21 @@
 /**
  * 
  */
+
+// ¾îºô¸®Æ¼¿Í ÀÎÇ²
+USTRUCT(BlueprintType)
+struct FWeaponAbilityBind
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+    EPlayerAbilityInputID InputID;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+    TSubclassOf<class UGameplayAbility> AbilityClass;
+};
+
+
 class AATGWeaponBase;
 
 UCLASS(Abstract)
@@ -27,6 +42,19 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     USkeletalMesh* WeaponSkeletalMesh = nullptr;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Socket");
+    FName HandSocketName = TEXT("");
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Socket");
+    FName Main1BackSocketName = TEXT("");
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Socket");
+    FName Main2BackSocketName = TEXT("");
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Socket");
+    FName SubBackSocketName = TEXT("");
+
+    virtual FName GetSocketName(EEquipmentSlotType SlotType, bool bIsEquipped) const;
     //weaponclass to equip
     //UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     //TSubclassOf<AATGWeaponBase> WeaponClass = nullptr;
@@ -35,5 +63,9 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     TSubclassOf<UDamageType> DamageTypeClass = nullptr;
+public:
+    // GA
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
+    TArray<FWeaponAbilityBind> WeaponAbilitys;
 
 };

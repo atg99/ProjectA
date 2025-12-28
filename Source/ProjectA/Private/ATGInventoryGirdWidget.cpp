@@ -38,7 +38,6 @@ void UATGInventoryGirdWidget::NativeConstruct()
 	{
 		UE_LOG(LogTemp, Display, TEXT("Invalid Btn_Sort"));
 	}
-
 }
 
 void UATGInventoryGirdWidget::InitializeFromOwner()

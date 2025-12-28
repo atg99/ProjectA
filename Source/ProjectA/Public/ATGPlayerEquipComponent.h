@@ -11,6 +11,7 @@ class UATGEquipmentComponent;
 class USceneComponent;
 class AATGWeaponBase;
 class UATGRangeWeaponData;
+class UATGMeleeWeaponData;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTA_API UATGPlayerEquipComponent : public UActorComponent
@@ -79,14 +80,23 @@ public:
 
 protected:
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
-	FName SniperSocketName = TEXT("HandGrip_Sniper");
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
+	//FName Sniper_SocketName = TEXT("HandGrip_Sniper");
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
-	FName Main1BackSocketName = TEXT("Main1Back_Sniper");
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
+	//FName Sniper_Main1BackSocketName = TEXT("Main1Back_Sniper");
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
-	FName Main2BackSocketName = TEXT("Main2Back_Sniper");
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
+	//FName Sniper_Main2BackSocketName = TEXT("Main2Back_Sniper");
+
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
+	//FName Sword_SocketName = TEXT("HandGrip_Sword");
+
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
+	//FName Sword_Main1BackSocketName = TEXT("Main1Back_Sword");
+
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
+	//FName Sword_Main2BackSocketName = TEXT("Main2Back_Sword");
 
 	FTimerHandle TimerHandle_InitCheck;
 
@@ -118,6 +128,8 @@ protected:
 	void InitSlot(EEquipmentSlotType InEquipmentSlotType);
 
 	void SpawnRangeWeaponInSlot(FEquipmentSlot& Slot, UATGRangeWeaponData* RangeWeaponData);
+
+	void SpawnMeleeWeaponInSlot(FEquipmentSlot& Slot, UATGMeleeWeaponData* MeleeWeaponData);
 
 	FEquipmentSlot* GetSlotByType(EEquipmentSlotType SlotType);
 
