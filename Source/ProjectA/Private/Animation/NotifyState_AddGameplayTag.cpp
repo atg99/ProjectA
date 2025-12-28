@@ -17,11 +17,10 @@ void UNotifyState_AddGameplayTag::NotifyBegin(USkeletalMeshComponent* MeshComp, 
 
 	if (MeshComp && MeshComp->GetOwner())
 	{
-		// 액터에서 ASC 가져오기
 		UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(MeshComp->GetOwner());
 		if (ASC)
 		{
-			// 태그 붙이기 복제되지 않는 로컬 
+			// 복제되지 않는 로컬 태그
 			ASC->AddLooseGameplayTag(GameplayTag);
 		}
 	}
@@ -36,7 +35,6 @@ void UNotifyState_AddGameplayTag::NotifyEnd(USkeletalMeshComponent* MeshComp, UA
 		UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(MeshComp->GetOwner());
 		if (ASC)
 		{
-			// 태그 떼기
 			ASC->RemoveLooseGameplayTag(GameplayTag);
 		}
 	}

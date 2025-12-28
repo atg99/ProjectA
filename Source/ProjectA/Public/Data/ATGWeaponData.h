@@ -11,7 +11,7 @@
  */
 class AATGWeaponBase;
 
-UCLASS()
+UCLASS(Abstract)
 class PROJECTA_API UATGWeaponData : public UATGEquipmentData
 {
 	GENERATED_BODY()
@@ -28,23 +28,12 @@ public:
     USkeletalMesh* WeaponSkeletalMesh = nullptr;
 
     //weaponclass to equip
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
-    TSubclassOf<AATGWeaponBase> WeaponClass = nullptr;
+    //UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+    //TSubclassOf<AATGWeaponBase> WeaponClass = nullptr;
+
+    virtual TSubclassOf<class AATGWeaponBase> GetWeaponClass() const PURE_VIRTUAL(UATGWeaponData::GetWeaponClass, return nullptr;);
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     TSubclassOf<UDamageType> DamageTypeClass = nullptr;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
-    FWeaponBulletData WeaponBulletData;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item | delay")
-    float ADSTime;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item | delay")
-    float SprinttoFireTime;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Data, meta = (ClampMin = 0.01f, ClampMax = 2.0f, Unit = "s"))
-    float RefireRate = 0.5f;
-
 
 };

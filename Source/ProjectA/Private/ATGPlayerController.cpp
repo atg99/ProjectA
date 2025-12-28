@@ -146,12 +146,12 @@ void AATGPlayerController::WeaponInputMapping(EEquipmentSlotType CurrentUsingSlo
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			NET_LOG(FString::Printf(TEXT("%d"), CurrentUsingSlot));
-			if (CurrentUsingSlot == EEquipmentSlotType::MainWeapon1 || CurrentUsingSlot == EEquipmentSlotType::MainWeapon2)
+			if (CurrentUsingSlot == EEquipmentSlotType::MainWeapon1Slot || CurrentUsingSlot == EEquipmentSlotType::MainWeapon2Slot)
 			{
 				Subsystem->AddMappingContext(GunWeaponMappingContexts, 2);
 				Subsystem->RemoveMappingContext(MeleeWeaponMappingContexts);
 			}
-			else if(CurrentUsingSlot == EEquipmentSlotType::MeleeWeapon)
+			else if(CurrentUsingSlot == EEquipmentSlotType::None)
 			{
 				Subsystem->AddMappingContext(MeleeWeaponMappingContexts, 2);
 				Subsystem->RemoveMappingContext(GunWeaponMappingContexts);

@@ -44,34 +44,28 @@ void UGA_MeleeCombo::WaitForNextInput()
 
 void UGA_MeleeCombo::OnInputPressed(float TimeWaited)
 {
-    // [중요] 사용자가 키를 눌렀다!
-   // 1. 지금 콤보가 가능한 타이밍인가? (태그 확인)
-   // 몽타주 NotifyState에서 붙여준 'State.ComboWindow' 태그가 있는지 확인
+   // 몽타주 NotifyState에서 붙여준 태그가 있는지 확인
     bool bCanCombo = GetAbilitySystemComponentFromActorInfo()->HasMatchingGameplayTag(ComboTag);
 
     if (bCanCombo && ComboSections.IsValidIndex(CurrentComboIndex))
     {
-        // 2. 콤보 가능하면 다음 섹션으로 점프! (기존 코드의 Montage_JumpToSection 역할)
         USkeletalMeshComponent* Mesh = GetOwningComponentFromActorInfo();
         if (Mesh && Mesh->GetAnimInstance())
         {
             Mesh->GetAnimInstance()->Montage_JumpToSection(ComboSections[CurrentComboIndex], MeleeMontage);
             CurrentComboIndex++;
 
-            // 인덱스 순환 (필요하다면)
             if (CurrentComboIndex >= ComboSections.Num())
             {
                 CurrentComboIndex = 0;
             }
         }
 
-        // 3. 다음 입력을 또 기다리기 위해 재귀 호출
         WaitForNextInput();
     }
     else
     {
-        // 콤보 타이밍이 아니면 입력 무시하거나, 선입력(Queue) 처리 가능
-        // 여기선 일단 다시 기다림
+        // 콤보 타이밍이 아니면 입력 무시하거나 선입력 Queue 처리
         WaitForNextInput();
     }
 }

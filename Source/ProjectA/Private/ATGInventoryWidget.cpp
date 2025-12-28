@@ -101,8 +101,8 @@ void UATGInventoryWidget::InjectInvenComp(UATGInventoryComponent* InInventoryCom
 	{
 		EquipmentComponent = InEquipmentComponent;
 
-		MainWeapon1Grid->EquipmentSlot = EEquipmentSlotType::MainWeapon1;
-		MainWeapon2Grid->EquipmentSlot = EEquipmentSlotType::MainWeapon2;
+		MainWeapon1Grid->EquipmentSlot = EEquipmentSlotType::MainWeapon1Slot;
+		MainWeapon2Grid->EquipmentSlot = EEquipmentSlotType::MainWeapon2Slot;
 
 		MainWeapon1Grid->Inven = InEquipmentComponent;
 		MainWeapon2Grid->Inven = InEquipmentComponent;

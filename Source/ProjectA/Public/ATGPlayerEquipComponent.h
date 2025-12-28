@@ -10,6 +10,7 @@
 class UATGEquipmentComponent;
 class USceneComponent;
 class AATGWeaponBase;
+class UATGRangeWeaponData;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTA_API UATGPlayerEquipComponent : public UActorComponent
@@ -34,12 +35,12 @@ public:
 	FATGCharacterInputState ATGCharacterInputState;
 
 	//슬롯의 상태
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Equipment")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Equipment")
 	TArray<FEquipmentSlot> EquipmentSlots;
 
 	//현재 사용중인 슬롯
 	UPROPERTY(ReplicatedUsing = "OnRep_CurrentUsingSlot", BlueprintReadOnly, Category = "Equipment")
-	EEquipmentSlotType CurrentUsingSlot = EEquipmentSlotType::MeleeWeapon;
+	EEquipmentSlotType CurrentUsingSlot = EEquipmentSlotType::None;
 
 	UFUNCTION()
 	void OnRep_CurrentUsingSlot();
@@ -115,4 +116,9 @@ protected:
 protected:
 
 	void InitSlot(EEquipmentSlotType InEquipmentSlotType);
+
+	void SpawnRangeWeaponInSlot(FEquipmentSlot& Slot, UATGRangeWeaponData* RangeWeaponData);
+
+	FEquipmentSlot* GetSlotByType(EEquipmentSlotType SlotType);
+
 };

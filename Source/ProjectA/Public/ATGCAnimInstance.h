@@ -21,7 +21,7 @@ public:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
-	EEquipmentSlotType CurrentEquippedWeaponSlotType = EEquipmentSlotType::MeleeWeapon;
+	EEquipmentSlotType CurrentEquippedWeaponSlotType = EEquipmentSlotType::None;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Weapon")
 	float AOYaw;

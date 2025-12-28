@@ -36,7 +36,7 @@
 #include "MeleeComponent.h"
 
 //GAS
-#include "Gas/PlayerAttributeSet.h"
+#include "Gas/CharacterAttributeSet.h"
 #include "AbilitySystemComponent.h"
 
 // Sets default values
@@ -90,9 +90,9 @@ AATGPlayerCharacter::AATGPlayerCharacter()
 	//GAS ÄÄÆ÷³ÍÆ®
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
-	AttributeSet = CreateDefaultSubobject<UPlayerAttributeSet>(TEXT("AttributeSet"));
+	AttributeSet = CreateDefaultSubobject<UCharacterAttributeSet>(TEXT("AttributeSet"));
 
 }
 
@@ -173,7 +173,7 @@ void AATGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 		EnhancedInputComponent->BindAction(IA_SecondMainEquip, ETriggerEvent::Started, this, &AATGPlayerCharacter::TrySecondFirstMain);
 
-		EnhancedInputComponent->BindAction(IA_Unarmed, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryMelee);
+		EnhancedInputComponent->BindAction(IA_Unarmed, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryUnarmed);
 
 		EnhancedInputComponent->BindAction(IA_MeleeAttack, ETriggerEvent::Started, this, &AATGPlayerCharacter::TryMeleeAttack);
 
@@ -404,7 +404,7 @@ void AATGPlayerCharacter::TryEquipFirstMain(const FInputActionValue& Value)
 	if (PlayerEquipComp)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("!!! PlayerEquipComp Valid"));
-		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon1);
+		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon1Slot);
 	}
 }
 
@@ -412,15 +412,15 @@ void AATGPlayerCharacter::TrySecondFirstMain(const FInputActionValue& Value)
 {
 	if (PlayerEquipComp)
 	{
-		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon2);
+		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MainWeapon2Slot);
 	}
 }
 
-void AATGPlayerCharacter::TryMelee(const FInputActionValue& Value)
+void AATGPlayerCharacter::TryUnarmed(const FInputActionValue& Value)
 {
 	if (PlayerEquipComp)
 	{
-		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::MeleeWeapon);
+		PlayerEquipComp->TryChangePlayerUsingSlot(EEquipmentSlotType::None);
 	}
 }
 

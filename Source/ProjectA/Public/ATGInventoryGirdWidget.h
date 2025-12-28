@@ -59,7 +59,7 @@ public:
 
 	UATGStackSplitWidget* SplitUI;
 
-	FIntPoint PrevCell;
+	FIntPoint PrevCell = FIntPoint(-1, -1);
 
 	// 인벤토리 소스
 	UPROPERTY()

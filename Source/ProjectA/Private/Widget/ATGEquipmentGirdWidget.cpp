@@ -34,13 +34,13 @@ void UATGEquipmentGirdWidget::BindInventoryComp()
 	{
 	case EEquipmentSlotType::None:
 		break;
-	case EEquipmentSlotType::MainWeapon1:
+	case EEquipmentSlotType::MainWeapon1Slot:
 		EquipmentComp->OnFirstMainWeaponChanged.AddDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
 
 		FitEquipmentType = EEquipmentType::Weapon;
 		FitWeaponType = EWeaponType::MainWeapon;
 		break;
-	case EEquipmentSlotType::MainWeapon2:
+	case EEquipmentSlotType::MainWeapon2Slot:
 		EquipmentComp->OnSecondMainWeaponChanged.AddDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
 
 		FitEquipmentType = EEquipmentType::Weapon;
@@ -113,12 +113,12 @@ void UATGEquipmentGirdWidget::BuildCellBackground()
 
 	switch (EquipmentSlot)
 	{
-	case EEquipmentSlotType::MainWeapon1:
+	case EEquipmentSlotType::MainWeapon1Slot:
 		W = EquipmentComp->WeaponSlotSize.X;
 		H = EquipmentComp->WeaponSlotSize.Y;
 		UE_LOG(LogTemp, Warning, TEXT("!!! EEquipmentSlotType::MainWeapon1"));
 		break;
-	case EEquipmentSlotType::MainWeapon2:
+	case EEquipmentSlotType::MainWeapon2Slot:
 		W = EquipmentComp->WeaponSlotSize.X;
 		H = EquipmentComp->WeaponSlotSize.Y;
 		UE_LOG(LogTemp, Warning, TEXT("!!! EEquipmentSlotType::MainWeapon2"));

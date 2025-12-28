@@ -32,7 +32,7 @@ void UATGEquipmentComponent::BeginPlay()
 	if(GetOwner()->HasAuthority())
 	{
 		//=========== FirstMainWeapon ==========
-		FirstMainWeapon.Id = (int32)EEquipmentSlotType::MainWeapon1;
+		FirstMainWeapon.Id = (int32)EEquipmentSlotType::MainWeapon1Slot;
 
 		FirstMainWeapon.Width = WeaponSlotSize.X;
 		FirstMainWeapon.Height = WeaponSlotSize.Y;
@@ -41,7 +41,7 @@ void UATGEquipmentComponent::BeginPlay()
 		FirstMainWeapon.Y = 0;
 
 		//=========== SecondMainWeapon ==========
-		SecondMainWeapon.Id = (int32)EEquipmentSlotType::MainWeapon2;
+		SecondMainWeapon.Id = (int32)EEquipmentSlotType::MainWeapon2Slot;
 
 		SecondMainWeapon.Width = WeaponSlotSize.X;
 		SecondMainWeapon.Height = WeaponSlotSize.Y;
@@ -120,11 +120,11 @@ void UATGEquipmentComponent::TryHandleTransItemResult(int32 EntryId, int32 Remov
 
 	switch (EntryId)
 	{
-	case (int32)EEquipmentSlotType::MainWeapon1:
+	case (int32)EEquipmentSlotType::MainWeapon1Slot:
 		FirstMainWeapon.Item = nullptr;
 		OnRep_FirstMainWeapon();
 		break;
-	case (int32)EEquipmentSlotType::MainWeapon2:
+	case (int32)EEquipmentSlotType::MainWeapon2Slot:
 		SecondMainWeapon.Item = nullptr;
 		OnRep_SecondMainWeapon();
 		break;
@@ -141,10 +141,10 @@ void UATGEquipmentComponent::GetEquipmentEntry(EEquipmentSlotType EquipSlotType,
 	{
 	case EEquipmentSlotType::None:
 		break;
-	case EEquipmentSlotType::MainWeapon1:
+	case EEquipmentSlotType::MainWeapon1Slot:
 		OutEntry = FirstMainWeapon;
 		break;
-	case EEquipmentSlotType::MainWeapon2:
+	case EEquipmentSlotType::MainWeapon2Slot:
 		OutEntry = SecondMainWeapon;
 		break;
 	default:
@@ -170,12 +170,12 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 
 	FInventoryEntry* TargetEntry = nullptr;
 	int32 TargetId = 0;
-	if (SlotType == EEquipmentSlotType::MainWeapon1)
+	if (SlotType == EEquipmentSlotType::MainWeapon1Slot)
 	{
 		TargetEntry = &FirstMainWeapon;
 		TargetId = TargetEntry->Id;
 	}
-	else if (SlotType == EEquipmentSlotType::MainWeapon2)
+	else if (SlotType == EEquipmentSlotType::MainWeapon2Slot)
 	{
 		TargetEntry = &SecondMainWeapon;
 		TargetId = TargetEntry->Id;
@@ -214,10 +214,10 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 		{
 		case EEquipmentSlotType::None:
 			break;
-		case EEquipmentSlotType::MainWeapon1:
+		case EEquipmentSlotType::MainWeapon1Slot:
 			OnRep_FirstMainWeapon();
 			break;
-		case EEquipmentSlotType::MainWeapon2:
+		case EEquipmentSlotType::MainWeapon2Slot:
 			OnRep_SecondMainWeapon();
 			break;
 		default:
@@ -239,13 +239,13 @@ bool UATGEquipmentComponent::CheckItemFitSlot(UATGItemData* ItemData, EEquipment
 	{
 		switch (SlotType)
 		{
-		case EEquipmentSlotType::MainWeapon1:
+		case EEquipmentSlotType::MainWeapon1Slot:
 		{
 			UATGWeaponData* WeaponData = Cast<UATGWeaponData>(EquipData);
 			return WeaponData ? WeaponData->WeaponType == EWeaponType::MainWeapon : false;
 			break;
 		}
-		case EEquipmentSlotType::MainWeapon2:
+		case EEquipmentSlotType::MainWeapon2Slot:
 		{
 			UATGWeaponData* WeaponData = Cast<UATGWeaponData>(EquipData);
 			return WeaponData ? WeaponData->WeaponType == EWeaponType::MainWeapon : false;

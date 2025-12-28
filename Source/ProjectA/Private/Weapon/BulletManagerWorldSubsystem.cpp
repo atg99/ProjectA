@@ -3,7 +3,7 @@
 
 #include "Weapon/BulletManagerWorldSubsystem.h"
 #include "Utils/NetworkUtil.h"
-#include "Weapon/ATGWeaponBase.h"
+#include "Weapon/ATGRangeWeapon.h"
 
 UBulletManagerWorldSubsystem::UBulletManagerWorldSubsystem()
 {
@@ -94,7 +94,7 @@ void UBulletManagerWorldSubsystem::SimulateBullets()
 				DrawDebugSphere(GetWorld(), HitResult.Location, 5.f, 5, FColor::Red, false, 3.f);
 
 				// 충돌 처리 
-				AATGWeaponBase* WeaponBase = Bullet.BulletOwner ? Cast<AATGWeaponBase>(Bullet.BulletOwner) : nullptr;
+				AATGRangeWeapon* WeaponBase = Bullet.BulletOwner ? Cast<AATGRangeWeapon>(Bullet.BulletOwner) : nullptr;
 				if (WeaponBase)
 				{
 					FBulletHitResult BulletHitResult;

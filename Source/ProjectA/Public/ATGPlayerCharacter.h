@@ -33,7 +33,7 @@ struct FInventoryEntry;
 class UATGPlayerEquipComponent;
 class UAIPerceptionStimuliSourceComponent;
 class UMeleeComponent;
-class UPlayerAttributeSet;
+class UCharacterAttributeSet;
 class UAbilitySystemComponent;
 
 UCLASS()
@@ -60,7 +60,7 @@ public:
 	UAbilitySystemComponent* AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
-	UPlayerAttributeSet* AttributeSet;
+	UCharacterAttributeSet* AttributeSet;
 
 	// 블루프린트에서 스킬 할당할 변수
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
@@ -148,7 +148,7 @@ protected:
 
 	void TryEquipFirstMain(const FInputActionValue& Value);
 	void TrySecondFirstMain(const FInputActionValue& Value);
-	void TryMelee(const FInputActionValue& Value);
+	void TryUnarmed(const FInputActionValue& Value);
 	void TryMeleeAttack(const FInputActionValue& Value);
 
 
