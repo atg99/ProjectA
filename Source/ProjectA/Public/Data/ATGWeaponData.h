@@ -67,6 +67,7 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     TSubclassOf<UDamageType> DamageTypeClass = nullptr;
 public:
+
     // GA
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
     TArray<FWeaponAbilityBind> WeaponAbilitys;

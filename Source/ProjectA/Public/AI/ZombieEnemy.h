@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "Interface/ATGBTInterface.h"
 #include "ATGEnum.h"
+#include "Interface/DamageableInterface.h"
+#include "AbilitySystemInterface.h" 
 #include "ZombieEnemy.generated.h"
 
 struct FLastDamageCapture
@@ -23,7 +25,7 @@ class UNiagaraSystem;
 class USliceSystemComponent;
 
 UCLASS()
-class PROJECTA_API AZombieEnemy : public ACharacter, public IATGBTInterface
+class PROJECTA_API AZombieEnemy : public ACharacter, public IATGBTInterface, public IDamageableInterface, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -34,6 +36,35 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+public:
+
+	//-----------IAbilitySystemInterface
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+
+	//-----------IDamageableInterface
+	UFUNCTION(BlueprintCallable, Category = "Damageable")
+	virtual void ApplyDamage(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse) override;
+
+	/** Handles death events */
+	UFUNCTION(BlueprintCallable, Category = "Damageable")
+	virtual void HandleDeath() override;
+
+	/** Handles healing events */
+	UFUNCTION(BlueprintCallable, Category = "Damageable")
+	virtual void ApplyHealing(float Healing, AActor* Healer) override;
+	//------------------------------------
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
+	class UAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY()
+	class UCharacterAttributeSet* AttributeSet;
+
+	// 데미지 적용용 GE (블루프린트에서 설정: Instant, Modifier: Damage + SetByCaller)
+	UPROPERTY(EditDefaultsOnly, Category = "GAS")
+	TSubclassOf<class UGameplayEffect> DefaultDamageEffectClass;
 
 public:
 

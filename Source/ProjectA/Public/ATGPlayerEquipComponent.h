@@ -131,9 +131,8 @@ protected:
 
 	void SpawnMeleeWeaponInSlot(FEquipmentSlot& Slot, UATGMeleeWeaponData* MeleeWeaponData);
 
-	FEquipmentSlot* GetSlotByType(EEquipmentSlotType SlotType);
-
 public:
+	FEquipmentSlot* GetSlotByType(EEquipmentSlotType SlotType);
 
 	EWeaponCategory GetCurrentEquippedWeaponCategory();
 

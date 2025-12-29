@@ -108,11 +108,11 @@ void ABaseAIController::HandleActorPerceptionInfoUpdated(const FActorPerceptionU
 
 void ABaseAIController::SetState(EMonsterState NewEnemyState)
 {
-		/*	None = 0
-			Normal = 10
-			Chase = 20
-			Battle = 30
-			Death = 40*/
+		/*	None	= 0
+			Normal	= 10
+			Chase	= 20
+			Battle	= 30
+			Death	= 40	*/
 	if (UBlackboardComponent* BB = GetBlackboardComponent())
 	{
 		BB->SetValueAsEnum(FName("CurrentState"), (uint8)NewEnemyState); //Chase

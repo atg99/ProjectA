@@ -39,4 +39,15 @@ protected:
 
     UFUNCTION()
     void OnMontageEnded();
+
+    UFUNCTION()
+    void OnHitReceived(const FGameplayAbilityTargetDataHandle& Data);
+
+protected:
+ 
+    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    FGameplayTag HitEventTag;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Combat")
+    TSubclassOf<UGameplayEffect> MeleeGameplayEffectClass;
 };

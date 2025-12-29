@@ -12,6 +12,11 @@
 #include "Components/CapsuleComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "SliceSystemComponent.h"
+#include "AI/BaseAIController.h"
+#include "GAS/CharacterAttributeSet.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemBlueprintLibrary.h" 
+#include "GameplayTagContainer.h"
 
 
 // Sets default values
@@ -20,8 +25,13 @@ AZombieEnemy::AZombieEnemy()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	
-	
 	SliceSystemComponent = CreateDefaultSubobject<USliceSystemComponent>(TEXT("SliceComponent"));
+
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal); // AI는 Minimal
+
+	AttributeSet = CreateDefaultSubobject<UCharacterAttributeSet>(TEXT("AttributeSet"));
 }
 
 // Called when the game starts or when spawned
@@ -29,6 +39,27 @@ void AZombieEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
+}
+
+void AZombieEnemy::ApplyDamage(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse)
+{
+}
+
+void AZombieEnemy::HandleDeath()
+{
+	StartDeath();
+	if (ABaseAIController* AICon = Cast<ABaseAIController>(GetController()))
+	{
+		AICon->SetState(EMonsterState::Death);
+	}
+}
+
+void AZombieEnemy::ApplyHealing(float Healing, AActor* Healer)
+{
 }
 
 void AZombieEnemy::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -76,24 +107,32 @@ void AZombieEnemy::MultiStopMontage_Implementation(UAnimMontage* Montage)
 	return;
 }
 
+//기존 TakeDamage와 GAS 호환 (임시)
 float AZombieEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	if (!AbilitySystemComponent || !DefaultDamageEffectClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("GAS Setup Error on %s: ASC or DefaultDamageEffectClass is MISSING!"), *GetName())
+		return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	}
+
+	FGameplayEffectContextHandle ContextHandle = AbilitySystemComponent->MakeEffectContext();
+	ContextHandle.AddInstigator(EventInstigator ? EventInstigator->GetPawn() : DamageCauser, DamageCauser);
+	
 	//CDO
 	UATGDamageType const* const DamageTypeCDO = DamageEvent.DamageTypeClass ? DamageEvent.DamageTypeClass->GetDefaultObject<UATGDamageType>() : GetDefault<UATGDamageType>();
 	//const UATGDamageType* MyDamageCDO = Cast<UATGDamageType>(DamageTypeCDO);
+	
+	FGameplayTagContainer OwnedTags;
 
-	if (CurrentHP <= 0)
-	{
-		return Damage;
-	}
 	if (DamageEvent.IsOfType(FGunPointDamageEvent::ClassID))
 	{
 		const FGunPointDamageEvent* Event = (FGunPointDamageEvent*)(&DamageEvent);
 		if (Event)
 		{
-			//Event->DamageTypeClass
-			ReceiveGunPointDamage(Event, Damage, DamageTypeCDO, Event->HitInfo.ImpactPoint, Event->HitInfo.ImpactNormal, Event->HitInfo.GetComponent(), Event->HitInfo.BoneName, Event->ShotDirection, EventInstigator, DamageCauser, Event->HitInfo);
+			ContextHandle.AddHitResult(Event->HitInfo);
+			OwnedTags = Event->OwnedTags;
+			//ReceiveGunPointDamage(Event, Damage, DamageTypeCDO, Event->HitInfo.ImpactPoint, Event->HitInfo.ImpactNormal, Event->HitInfo.GetComponent(), Event->HitInfo.BoneName, Event->ShotDirection, EventInstigator, DamageCauser, Event->HitInfo);
 		}
 	}
 	else if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
@@ -101,22 +140,32 @@ float AZombieEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 		FPointDamageEvent* Event = (FPointDamageEvent*)(&DamageEvent);
 		if (Event)
 		{
-			CurrentHP -= Damage;
+			ContextHandle.AddHitResult(Event->HitInfo);
 		}
-		//SpawnHitEffect(Event->HitInfo);
-		//UE_LOG(LogTemp, Warning, TEXT("Point Damage %f %s"), Damage, *Event->DamageTypeClass->GetName());
 	}
 	else if (DamageEvent.IsOfType(FRadialDamageEvent::ClassID))
 	{
 		FRadialDamageEvent* Event = (FRadialDamageEvent*)(&DamageEvent);
 		if (Event)
 		{
-			CurrentHP -= Damage;
+			
 		}
 	}
 	else //(DamageEvent.IsOfType(FDamageEvent::ClassID))
 	{
-		CurrentHP -= Damage;
+	}
+
+	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultDamageEffectClass, 1.0f, ContextHandle);
+
+	if (SpecHandle.IsValid())
+	{
+		//데미지 수치를 SetByCaller로 전달 (GE_Damage 블루프린트에서 SetByCaller "Data.Damage"로 설정되어 있어야 함)
+		SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Damage.Amount")), Damage);
+
+		SpecHandle.Data.Get()->AppendDynamicAssetTags(OwnedTags);
+
+		//나 자신에게 적용 (이 순간 AttributeSet::PostGameplayEffectExecute가 실행됨)
+		AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
 
 	return Damage;

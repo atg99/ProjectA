@@ -6,12 +6,17 @@
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "AbilitySystemComponent.h"
 #include "Utils/NetworkUtil.h"
+#include "GAS/AbilityTask_WaitMeleeTargetData.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Data/ATGMeleeWeaponData.h"
 
 UGA_MeleeCombo::UGA_MeleeCombo()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
     NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
     CurrentComboIndex = 0;
+
+    HitEventTag = FGameplayTag::RequestGameplayTag(FName("Event.Montage.Hit"));
 }
 
 void UGA_MeleeCombo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -33,6 +38,11 @@ void UGA_MeleeCombo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, co
     CurrentComboIndex = 1;
 
     WaitForNextInput();
+
+    // HitCheck 태스크 실행
+    UAbilityTask_WaitMeleeTargetData* HitTask = UAbilityTask_WaitMeleeTargetData::WaitMeleeTargetData(this, HitEventTag);
+    HitTask->ValidData.AddDynamic(this, &UGA_MeleeCombo::OnHitReceived);
+    HitTask->ReadyForActivation();
 }
 
 void UGA_MeleeCombo::WaitForNextInput()
@@ -74,4 +84,35 @@ void UGA_MeleeCombo::OnInputPressed(float TimeWaited)
 void UGA_MeleeCombo::OnMontageEnded()
 {
     EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+}
+
+void UGA_MeleeCombo::OnHitReceived(const FGameplayAbilityTargetDataHandle& Data)
+{
+    // Client: 여기서 즉시 실행됨 (예측)
+    // Server: 클라이언트 데이터가 도착하면 실행됨
+    NET_LOG(TEXT(""));
+
+    //GameplayEffect Spec 생성
+    FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(MeleeGameplayEffectClass, 1.0f);
+    //SpecHandle.Data.Co
+    if (SpecHandle.IsValid())
+    {
+        // 데미지 수치 동적 변경 (SetByCaller)
+        // SpecHandle.Data가 TSharedPtr이므로 .Get()으로 접근
+        SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.Amount"), 40.0f);
+
+        //무기 Tag추가
+        if (UATGMeleeWeaponData* MeleeWeaponData = Cast<UATGMeleeWeaponData>(GetCurrentSourceObject()))
+        {
+            SpecHandle.Data.Get()->AppendDynamicAssetTags(MeleeWeaponData->OwnedTags);
+        }
+
+        // UGameplayAbility::ApplyGameplayEffectSpecToTarget
+        TArray<FActiveGameplayEffectHandle> AppliedEffects = ApplyGameplayEffectSpecToTarget(CurrentSpecHandle, 
+            CurrentActorInfo, 
+            CurrentActivationInfo,
+            SpecHandle,
+            Data
+        );
+    }
 }

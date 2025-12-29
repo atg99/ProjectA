@@ -167,7 +167,7 @@ void AATGPlayerCharacter::GiveAbilities(TArray<FWeaponAbilityBind> Abilities, AA
 	UObject* SourceObj = this; 
 	if (Weapon)
 	{
-		SourceObj = Weapon;
+		SourceObj = Weapon->WeaponData;
 	}
 
 	if (HasAuthority() && AbilitySystemComponent && !Abilities.IsEmpty())

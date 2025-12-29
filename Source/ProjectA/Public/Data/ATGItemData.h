@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "ATGEnum.h"
+#include "GameplayTagContainer.h"
 #include "ATGItemData.generated.h"
 
 /**
@@ -18,7 +19,7 @@ class PROJECTA_API UATGItemData : public UPrimaryDataAsset
 
 public:
 
-    // Display Item Name
+    //Display Item Name
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     FText DisplayName;
 
@@ -49,4 +50,7 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Grid")
     int32 Height = 1;
 	
+    //GAS Tag
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
+    FGameplayTagContainer OwnedTags;
 };

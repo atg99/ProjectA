@@ -3,10 +3,105 @@
 
 #include "GAS/CharacterAttributeSet.h"
 #include "Net/UnrealNetwork.h"
+#include "Interface/DamageableInterface.h"
+#include "GameplayEffectExtension.h"
 
 UCharacterAttributeSet::UCharacterAttributeSet()
 {
-	InitHealth(100.f);	
+	InitHealth(100.0f);
+	InitMaxHealth(100.0f);
+}
+
+//값이 반영되기전 강제
+void UCharacterAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
+{
+	Super::PreAttributeChange(Attribute, NewValue);
+
+	// 최대 체력 넘지 않게 조절
+	if (Attribute == GetHealthAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
+	}
+}
+
+void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
+{
+	Super::PostGameplayEffectExecute(Data);
+
+	// 변경된 속성이 Damage일 경우에
+	if (Data.EvaluatedData.Attribute == GetDamageAttribute())
+	{
+		float LocalDamage = GetDamage(); // 들어온 데미지 수치
+		SetDamage(0.0f); // 소비했으니 0으로 초기화
+
+		if (LocalDamage > 0.0f)
+		{
+			// 현재 체력 가져오기
+			float CurrentHealth = GetHealth();
+
+			// 체력 깎기, 방어력 계산 여기서 
+			float NewHealth = FMath::Clamp(CurrentHealth - LocalDamage, 0.0f, GetMaxHealth());
+			SetHealth(NewHealth);
+
+			// 맞은 대상
+			AActor* TargetActor = Data.Target.GetAvatarActor();
+
+			// 사망 처리
+			if (NewHealth <= 0.0f)
+			{
+				if (IDamageableInterface* Damageable = Cast<IDamageableInterface>(TargetActor))
+				{
+					Damageable->HandleDeath();
+				}
+			}
+			else
+			{
+				//GameplayCue 실행
+				if (Data.Target.AbilityActorInfo->IsNetAuthority())
+				{
+					FGameplayEffectContextHandle Context = Data.EffectSpec.GetContext();
+					const FHitResult* HitResult = Context.GetHitResult();
+
+					FGameplayCueParameters CueParams;
+					CueParams.EffectContext = Context;
+					if (HitResult)
+					{
+						CueParams.Location = HitResult->ImpactPoint;
+						CueParams.Normal = HitResult->ImpactNormal;
+					}
+
+					//속성별 태그 
+					FGameplayTag CueTag = FGameplayTag::RequestGameplayTag("GameplayCue.Hit.Physical");
+
+					if (Data.EffectSpec.CapturedSourceTags.GetSpecTags().HasTag(FGameplayTag::RequestGameplayTag("Damage.Type.Fire")) // 시전자속성
+						|| Data.EffectSpec.GetDynamicAssetTags().HasTag(FGameplayTag::RequestGameplayTag("Damage.Type.Fire"))) // 무기속성
+					{
+						CueTag = FGameplayTag::RequestGameplayTag("GameplayCue.Hit.Fire");
+					}
+					else if (Data.EffectSpec.CapturedSourceTags.GetSpecTags().HasTag(FGameplayTag::RequestGameplayTag("Damage.Type.Ice"))
+						|| Data.EffectSpec.GetDynamicAssetTags().HasTag(FGameplayTag::RequestGameplayTag("Damage.Type.Ice")))
+					{
+						CueTag = FGameplayTag::RequestGameplayTag("GameplayCue.Hit.Ice");
+					}
+
+					// 큐 실행
+					Data.Target.ExecuteGameplayCue(CueTag, CueParams);
+
+					//피격 액션(경직)을 위한 Gameplay Event 전송
+					// 단순 VFX가 아니라 상태이상(기절, 경직)
+					//FGameplayEventData EventData;
+					//EventData.EventTag = FGameplayTag::RequestGameplayTag("Event.Montage.HitReact");
+
+					//// 타겟의 ASC에 이벤트를 보내서 GA_HitReact를 발동시킴
+					//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+					//	Data.Target.GetAvatarActor(),
+					//	EventData.EventTag,
+					//	EventData
+					//);
+				}
+			}
+		}
+	}
 }
 
 void UCharacterAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

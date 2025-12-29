@@ -226,7 +226,7 @@ float AATGRangeWeapon::ApplayGunDamage(AActor* DamagedActor, float BaseDamage, f
 	{
 		// make sure we have a good damage type
 		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
-		FGunPointDamageEvent GunDamageEvent(BaseDamage, ImpulseScale, HitInfo, HitFromDirection, ValidDamageTypeClass);
+		FGunPointDamageEvent GunDamageEvent(WeaponData->OwnedTags, BaseDamage, ImpulseScale, HitInfo, HitFromDirection, ValidDamageTypeClass);
 
 		return DamagedActor->TakeDamage(BaseDamage, GunDamageEvent, EventInstigator, DamageCauser);
 	}
