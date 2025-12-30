@@ -550,4 +550,18 @@ FGenericTeamId AATGPlayerCharacter::GetGenericTeamId() const
 	return TeamID;
 }
 
+USkeletalMeshComponent* AATGPlayerCharacter::GetSlaveMesh()
+{
+	TArray<USceneComponent*> ChildrenComp;
+	GetMesh()->GetChildrenComponents(false, ChildrenComp);
+	for (auto Comp : ChildrenComp)
+	{
+		if (Comp->ComponentHasTag(FName("SlaveMesh")))
+		{
+			
+			return Cast<USkeletalMeshComponent>(Comp);
+		}
+	}
 
+	return nullptr;
+}

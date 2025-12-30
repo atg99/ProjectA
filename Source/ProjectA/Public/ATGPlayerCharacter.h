@@ -22,6 +22,7 @@ class UMeleeComponent;
 class UCharacterAttributeSet;
 class UAbilitySystemComponent;
 class AATGWeaponBase;
+class USkeletalMeshComponent;
 
 UCLASS()
 class PROJECTA_API AATGPlayerCharacter : public ACharacter, public IGenericTeamAgentInterface, public IAbilitySystemInterface
@@ -214,6 +215,9 @@ protected:
 	virtual FGenericTeamId GetGenericTeamId() const override;
 
 public:
+
+	USkeletalMeshComponent* GetSlaveMesh();
+
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnCharacterFire();
 

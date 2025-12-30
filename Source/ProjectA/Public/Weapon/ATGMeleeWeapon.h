@@ -43,7 +43,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "GAS")
     FGameplayTag HitEventTag;
 
-private:
+protected:
     // 중복 피격 방지용
     UPROPERTY()
     TSet<AActor*> IgnoreActors;
@@ -53,5 +53,36 @@ private:
     FVector PreviousEndLocation;
 
     void ProcessHit(const FHitResult& HitResult);
+
+
+    void TrajectoryInterpolationbySubFrame();
+
+    float PreviousMontagePosition = 0.0f;
+
+    // 무기 길이 방향으로 몇 번 쪼개서 면을 만들지
+    UPROPERTY(EditAnywhere, Category = "Combat")
+    int32 BladeSegmentCount = 5;
+
+    // 프레임 사이를 몇 번 쪼갤지
+    UPROPERTY(EditAnywhere, Category = "Combat")
+    int32 SubFrameSteps = 4;
+
+    UPROPERTY(EditAnywhere, Category = "Combat")
+    FName CurveName_Start = FName("hand_r_melee_start");
+
+    UPROPERTY(EditAnywhere, Category = "Combat")
+    FName CurveName_End = FName("hand_r_melee_end");
+
+    // 이전 프레임의 검 상태 저장
+    struct FBladeState
+    {
+        FVector Start;
+        FVector End;
+    };
+    FBladeState PrevBladeState;
+
+    FVector GetVectorFromCurves(const UAnimSequenceBase* AnimSeq, FName BaseName, float Time) const;
+
+    const UAnimSequence* GetCurrentAnimSequenceWithTime(UAnimInstance* AnimInst, UAnimMontage* Montage, float& OutLocalTime);
 
 };
