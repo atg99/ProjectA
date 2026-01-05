@@ -83,7 +83,7 @@ void UBulletManagerWorldSubsystem::SimulateBullets()
 		bool bHit = GetWorld()->LineTraceMultiByChannel(HitResults, StartLocation, EndLocation, ECC_Visibility, CollisionQueryParams);
 		for (const auto& HitResult : HitResults)
 		{
-			NET_LOG(FString::Printf(TEXT("%s"), *HitResult.GetActor()->GetName()));
+			//NET_LOG(FString::Printf(TEXT("%s"), *HitResult.GetActor()->GetName()));
 			if (!HitResult.bBlockingHit)
 			{
 				Bullet.PierceActors.Add(HitResult.GetActor());

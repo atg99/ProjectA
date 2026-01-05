@@ -49,17 +49,25 @@ void AZombieEnemy::ApplyDamage(float Damage, AActor* DamageCauser, const FVector
 {
 }
 
-void AZombieEnemy::HandleDeath()
+void AZombieEnemy::HandleDeath(const FHitResult& InHitResult)
 {
-	StartDeath();
 	if (ABaseAIController* AICon = Cast<ABaseAIController>(GetController()))
 	{
 		AICon->SetState(EMonsterState::Death);
 	}
+	Multi_HandleDeath(InHitResult);
 }
 
+void AZombieEnemy::Multi_HandleDeath_Implementation(const FHitResult& InHitResult)
+{
+	//BP
+	StartDeath();
+
+	StartSlice(InHitResult);
+}
 void AZombieEnemy::ApplyHealing(float Healing, AActor* Healer)
 {
+
 }
 
 void AZombieEnemy::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -207,7 +215,7 @@ void AZombieEnemy::GunPointApplyDamageMomentum(float InImpulseScale, const FVect
 
 void AZombieEnemy::ReceiveGunPointDamage(const struct FGunPointDamageEvent* Event, float Damage, const UATGDamageType* DamageType, FVector HitLocation, FVector HitNormal, UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, AController* InstigatedBy, AActor* DamageCauser, const FHitResult& HitInfo)
 {
-	NET_LOG(TEXT("FGunPointDamageEvent"));
+	////NET_LOG(TEXT("FGunPointDamageEvent"));
 	if (!Event)
 	{
 		return;
@@ -230,19 +238,19 @@ void AZombieEnemy::MultiPlayEffectHitReact_Implementation(const class UATGDamage
 		case EDamageType::Normal:
 		{
 			SelectedVFX = NormalDamageImpactVFX;
-			NET_LOG(TEXT("Normal Damage VFX"));
+			////NET_LOG(TEXT("Normal Damage VFX"));
 			break;
 		}
 		case EDamageType::Fire:
 		{
 			SelectedVFX = FireDamageImpactVFX;
-			NET_LOG(TEXT("Fire Damage VFX"));
+			////NET_LOG(TEXT("Fire Damage VFX"));
 			break;
 		}
 		default:
 		{
 			SelectedVFX = NormalDamageImpactVFX;
-			NET_LOG(TEXT("Default Damage VFX"));
+			////NET_LOG(TEXT("Default Damage VFX"));
 			break;
 		}
 		}
@@ -273,13 +281,13 @@ void AZombieEnemy::MultiPlayEffectHitReact_Implementation(const class UATGDamage
 
 }
 
-void AZombieEnemy::StartSlice()
+void AZombieEnemy::StartSlice(const FHitResult& InHitResult)
 {
 	//bp에서 호출 죽음이벤트
 	//절단
 	if (SliceSystemComponent)
-	{
-		SliceSystemComponent->SliceBone(LastDamageCapture.BoneName, LastDamageCapture.HitLocation, LastDamageCapture.HitNormal, LastDamageCapture.ImpulseScale);
+	{	//TraceEnd에 CutNormal저장함
+		SliceSystemComponent->SliceBone(InHitResult.BoneName, InHitResult.ImpactPoint, InHitResult.ImpactNormal, InHitResult.TraceEnd, LastDamageCapture.ImpulseScale);
 	}
 }
 

@@ -36,7 +36,7 @@ void AATGWeaponBase::BeginPlay()
 	{
 		if (Mesh && WeaponData && WeaponData->WeaponSkeletalMesh)
 		{
-			NET_LOG(TEXT("SetSkeletalMeshAsset"));
+			//NET_LOG(TEXT("SetSkeletalMeshAsset"));
 			Mesh->SetSkeletalMeshAsset(WeaponData->WeaponSkeletalMesh);
 		}
 	}
@@ -62,7 +62,7 @@ void AATGWeaponBase::OnRep_WeaponData()
 	//WeaponBulletData = WeaponData->WeaponBulletData;
 	if (Mesh && WeaponData && WeaponData->WeaponSkeletalMesh)
 	{
-		NET_LOG(TEXT("SetSkeletalMeshAsset"));
+		//NET_LOG(TEXT("SetSkeletalMeshAsset"));
 		Mesh->SetSkeletalMeshAsset(WeaponData->WeaponSkeletalMesh);
 	}
 }
@@ -70,7 +70,7 @@ void AATGWeaponBase::OnRep_WeaponData()
 //void AATGWeaponBase::Fire()
 //{
 //	//클라에서 요청
-//	NET_LOG(TEXT("fire"));
+//	//NET_LOG(TEXT("fire"));
 //	if (bFullAuto)
 //	{
 //		//GetWorld()->GetTimerManager().SetTimer(RefireTimer, this, &AATGWeaponBase::Fire, WeaponData->RefireRate, false);

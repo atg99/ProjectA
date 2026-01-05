@@ -126,7 +126,7 @@ void ABaseAIController::SetState(EMonsterState NewEnemyState)
 
 void ABaseAIController::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
 {
-	NET_LOG(TEXT(""));
+	//NET_LOG(TEXT(""));
 	AZombieEnemy* Zombie = Cast<AZombieEnemy>(DamagedActor);
 	if (Zombie)
 	{

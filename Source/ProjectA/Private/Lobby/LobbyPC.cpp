@@ -44,7 +44,7 @@ void ALobbyPC::ServerSendMessage_Implementation(const FText& Message)
 	{
 		if (ALobbyPC* PC = Cast<ALobbyPC>(*Iter))
 		{
-			NET_LOG(Message.ToString());
+			//NET_LOG(Message.ToString());
 			PC->ClientSendMessage(Message);
 		}
 	}
@@ -52,6 +52,6 @@ void ALobbyPC::ServerSendMessage_Implementation(const FText& Message)
 
 void ALobbyPC::ClientSendMessage_Implementation(const FText& Message)
 {
-	NET_LOG(Message.ToString());
+	//NET_LOG(Message.ToString());
 	LobbyWidgetObject->AddMessage(Message);
 }

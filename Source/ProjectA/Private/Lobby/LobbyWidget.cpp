@@ -103,7 +103,7 @@ void ULobbyWidget::UpdatePlayerNum(int32 InPlayerNum)
 
 void ULobbyWidget::AddMessage(const FText& Message)
 {
-	NET_LOG(TEXT("Add"));
+	//NET_LOG(TEXT("Add"));
 	if (ScrollBox_Chat)
 	{
 		
@@ -118,12 +118,12 @@ void ULobbyWidget::AddMessage(const FText& Message)
 
 			if (ChatStyleSet)
 			{
-				NET_LOG(TEXT("ChatStyleSet"));
+				//NET_LOG(TEXT("ChatStyleSet"));
 				NewMessageBlock->SetTextStyleSet(ChatStyleSet);
 			}
 			if (!RichTextImageDecorators.IsEmpty())
 			{
-				NET_LOG(TEXT("RichTextImageDecorator"));
+				//NET_LOG(TEXT("RichTextImageDecorator"));
 
 				NewMessageBlock->SetDecorators(RichTextImageDecorators);
 			}

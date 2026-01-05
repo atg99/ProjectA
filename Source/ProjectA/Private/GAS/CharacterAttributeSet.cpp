@@ -4,6 +4,7 @@
 #include "GAS/CharacterAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 #include "Interface/DamageableInterface.h"
+#include "Utils/NetworkUtil.h"
 #include "GameplayEffectExtension.h"
 
 UCharacterAttributeSet::UCharacterAttributeSet()
@@ -42,16 +43,22 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
 			// 체력 깎기, 방어력 계산 여기서 
 			float NewHealth = FMath::Clamp(CurrentHealth - LocalDamage, 0.0f, GetMaxHealth());
 			SetHealth(NewHealth);
-
+			NET_LOG(FString::Printf(TEXT("%f"), NewHealth));
 			// 맞은 대상
 			AActor* TargetActor = Data.Target.GetAvatarActor();
 
+			FGameplayEffectContextHandle Context = Data.EffectSpec.GetContext();
+			const FHitResult* HitResult = Context.GetHitResult();
+			if (!ensure(HitResult))
+			{
+				return;
+			}
 			// 사망 처리
 			if (NewHealth <= 0.0f)
 			{
 				if (IDamageableInterface* Damageable = Cast<IDamageableInterface>(TargetActor))
 				{
-					Damageable->HandleDeath();
+					Damageable->HandleDeath(*HitResult);
 				}
 			}
 			else
@@ -59,9 +66,7 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
 				//GameplayCue 실행
 				if (Data.Target.AbilityActorInfo->IsNetAuthority())
 				{
-					FGameplayEffectContextHandle Context = Data.EffectSpec.GetContext();
-					const FHitResult* HitResult = Context.GetHitResult();
-
+					
 					FGameplayCueParameters CueParams;
 					CueParams.EffectContext = Context;
 					if (HitResult)

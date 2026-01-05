@@ -145,7 +145,7 @@ void AATGPlayerController::WeaponInputMapping(EWeaponCategory WeaponInputType)
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
-			NET_LOG(FString::Printf(TEXT("%d"), WeaponInputType));
+			//NET_LOG(FString::Printf(TEXT("%d"), WeaponInputType));
 			if (WeaponInputType == EWeaponCategory::GunWeapon)
 			{
 				Subsystem->AddMappingContext(GunWeaponMappingContexts, 2);

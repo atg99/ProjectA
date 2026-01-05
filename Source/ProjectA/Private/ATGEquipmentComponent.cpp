@@ -72,7 +72,7 @@ void UATGEquipmentComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 //변경시 클라에 전파
 void UATGEquipmentComponent::OnRep_FirstMainWeapon()
 {	//위젯과 플레어어가 구독
-	NET_LOG("");
+	//NET_LOG("");
 	OnFirstMainWeaponChanged.Broadcast(FirstMainWeapon);
 }
 

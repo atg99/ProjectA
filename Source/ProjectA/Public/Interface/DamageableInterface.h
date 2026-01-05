@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "Engine/HitResult.h"
 #include "DamageableInterface.generated.h"
 
 // This class does not need to be modified.
@@ -29,7 +30,7 @@ public:
 
 	/** Handles death events */
 	UFUNCTION(BlueprintCallable, Category = "Damageable")
-	virtual void HandleDeath() = 0;
+	virtual void HandleDeath(const FHitResult& InHitResult) = 0;
 
 	/** Handles healing events */
 	UFUNCTION(BlueprintCallable, Category = "Damageable")

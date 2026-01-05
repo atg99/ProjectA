@@ -482,7 +482,7 @@ void AATGPlayerCharacter::TryUnarmed(const FInputActionValue& Value)
 
 void AATGPlayerCharacter::TryMeleeAttack(const FInputActionValue& Value)
 {
-	NET_LOG("");
+	////NET_LOG("");
 	//if (MeleeComp)
 	//{
 	//	MeleeComp->MeleeAttack();

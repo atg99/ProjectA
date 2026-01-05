@@ -85,4 +85,5 @@ protected:
 
     const UAnimSequence* GetCurrentAnimSequenceWithTime(UAnimInstance* AnimInst, UAnimMontage* Montage, float& OutLocalTime);
 
+    bool IsFirstFrame = false;
 };

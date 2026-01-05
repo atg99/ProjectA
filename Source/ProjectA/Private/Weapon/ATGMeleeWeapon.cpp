@@ -40,6 +40,8 @@ void AATGMeleeWeapon::StartHitCheck()
             PreviousMontagePosition = AnimInst->Montage_GetPosition(CurrentMontage);
         }
     }
+
+    IsFirstFrame = true;
 }
 
 void AATGMeleeWeapon::TickHitCheck()
@@ -111,7 +113,7 @@ void AATGMeleeWeapon::ProcessHit(const FHitResult& HitResult)
     AActor* HitActor = HitResult.GetActor();
     if (!HitActor || IgnoreActors.Contains(HitActor)) return;
 
-    NET_LOG(TEXT(""));
+    //NET_LOG(TEXT(""));
     IgnoreActors.Add(HitActor);
     AActor* OwnerActor = GetOwner();
 
@@ -137,6 +139,12 @@ void AATGMeleeWeapon::TrajectoryInterpolationbySubFrame()
     float CurrentPos = AnimInst->Montage_GetPosition(Montage);
     float DeltaTime = CurrentPos - PreviousMontagePosition;
 
+    FVector SocketStart = Mesh->GetSocketLocation(StartSocketName);
+    FVector SocketEnd = Mesh->GetSocketLocation(EndSocketName);
+    DrawDebugPoint(GetWorld(), SocketStart, 10.f, FColor::Magenta, false, 5.f);
+    DrawDebugPoint(GetWorld(), SocketEnd, 10.f, FColor::Magenta, false, 5.f);
+    DrawDebugLine(GetWorld(), SocketStart, SocketEnd, FColor::Cyan, false, 5.f);
+
     // 시간이 튀거나 0이면 초기화
     if (FMath::IsNearlyZero(DeltaTime) || DeltaTime < 0.f)
     {
@@ -144,8 +152,8 @@ void AATGMeleeWeapon::TrajectoryInterpolationbySubFrame()
         // 튀는 현상 방지: 현재 실제 소켓 위치로 초기화
         if (Mesh)
         {
-            PrevBladeState.Start = Mesh->GetSocketLocation(StartSocketName);
-            PrevBladeState.End = Mesh->GetSocketLocation(EndSocketName);
+            PrevBladeState.Start = SocketStart;
+            PrevBladeState.End = SocketEnd;
         }
         return;
     }
@@ -158,22 +166,16 @@ void AATGMeleeWeapon::TrajectoryInterpolationbySubFrame()
     FTransform MeshTrans = Character->GetMesh()->GetComponentTransform();
     float StepSize = DeltaTime / (float)SubFrameSteps;
 
-    FVector SocketStart = Mesh->GetSocketLocation(StartSocketName);
-    FVector SocketEnd = Mesh->GetSocketLocation(EndSocketName);
-
-    FTransform HandRTransform;
-    if (AATGPlayerCharacter* ATGCharacter = Cast<AATGPlayerCharacter>(Character))
-    {
-        if (ATGCharacter->GetSlaveMesh())
-        {
-            HandRTransform = ATGCharacter->GetSlaveMesh()->GetSocketTransform(TEXT("Socket_Ref_Hand"), ERelativeTransformSpace::RTS_World);
-        }
-    }
-
-    DrawDebugPoint(GetWorld(), SocketStart, 10.f, FColor::Magenta, true);
-    DrawDebugPoint(GetWorld(), SocketEnd, 10.f, FColor::Magenta, true);
-
-    // === [시간 루프] 과거 -> 현재로 오면서 ===
+    //FTransform HandRTransform;
+    //if (AATGPlayerCharacter* ATGCharacter = Cast<AATGPlayerCharacter>(Character))
+    //{
+    //    if (ATGCharacter->GetSlaveMesh())
+    //    {
+    //        HandRTransform = ATGCharacter->GetSlaveMesh()->GetSocketTransform(TEXT("Socket_Ref_Hand"), ERelativeTransformSpace::RTS_World);
+    //    }
+    //}
+   
+    // 과거 -> 현재
     for (int32 i = 1; i <= SubFrameSteps; ++i)
     {
         float SampleTime = CorrectLocalTime - DeltaTime + (StepSize * i);
@@ -187,40 +189,76 @@ void AATGMeleeWeapon::TrajectoryInterpolationbySubFrame()
         CurrBladeState.Start = MeshTrans.TransformPosition(LocalStart);
         CurrBladeState.End = MeshTrans.TransformPosition(LocalEnd);
 
-        DrawDebugPoint(GetWorld(), CurrBladeState.Start, 10.f, FColor::Yellow, true);
-        DrawDebugPoint(GetWorld(), CurrBladeState.End, 10.f, FColor::Yellow, true);
+        DrawDebugPoint(GetWorld(), CurrBladeState.Start, 10.f, FColor::Yellow, false, 5.f);
+        DrawDebugPoint(GetWorld(), CurrBladeState.End, 10.f, FColor::Yellow, false, 5.f);
 
-        // === [공간 루프] 칼의 면 채우기 (절단용) ===
-        for (int32 Seg = 0; Seg <= BladeSegmentCount; ++Seg)
+        //삼각형
+        TArray<FBladeState> StartEndLocs;
+        if (IsFirstFrame)
         {
-            float Alpha = (float)Seg / (float)BladeSegmentCount;
+            IsFirstFrame = false;
+        }
+        else
+        {
+            StartEndLocs.Add(FBladeState(PrevBladeState.Start, CurrBladeState.Start));
+            StartEndLocs.Add(FBladeState(PrevBladeState.End, CurrBladeState.End));
+            StartEndLocs.Add(FBladeState(PrevBladeState.End, CurrBladeState.Start));
+        }
+        StartEndLocs.Add(FBladeState(CurrBladeState.Start, CurrBladeState.End));
 
-            // "이전 시간의 칼 위의 점" ~ "현재 시간의 칼 위의 점"을 연결
-            FVector TraceStart = FMath::Lerp(PrevBladeState.Start, PrevBladeState.End, Alpha);
-            FVector TraceEnd = FMath::Lerp(CurrBladeState.Start, CurrBladeState.End, Alpha);
-
-            // 절단 판정 (LineTrace)
+        for (const FBladeState& Locs : StartEndLocs)
+        {
             FHitResult Hit;
             FCollisionQueryParams Params;
             Params.AddIgnoredActor(GetOwner());
             Params.AddIgnoredActors(IgnoreActors.Array());
-            Params.bReturnPhysicalMaterial = true; // 절단면 재질 확인용
+            Params.bReturnPhysicalMaterial = true;
+            bool bHit = false;
 
-            bool bHit = GetWorld()->LineTraceSingleByChannel(
-                Hit, TraceStart, TraceEnd, ECC_GameTraceChannel1, Params
-            );
-
-            // 디버그 (빨간색 면이 그려지는지 확인)
-            DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Red, false, 0.5f);
-
+            DrawDebugLine(GetWorld(), Locs.Start, Locs.End, FColor::Red, false, 5.f);
+            bHit = GetWorld()->LineTraceSingleByChannel(Hit, Locs.Start, Locs.End, ECC_GameTraceChannel1, Params);
             if (bHit)
             {
+                //Cut Normal
+                FVector BladeNormal = (CurrBladeState.Start - CurrBladeState.End).GetSafeNormal();
+                FVector SwingNormal = (CurrBladeState.Start - PrevBladeState.Start).GetSafeNormal();
+                FVector CutNormal = FVector::CrossProduct(BladeNormal, SwingNormal).GetSafeNormal();
+
+                //TraceEnd에 저장
+                Hit.TraceEnd = CutNormal;
+
                 ProcessHit(Hit);
             }
         }
 
         // 상태 업데이트
         PrevBladeState = CurrBladeState;
+        //for (int32 Seg = 0; Seg <= BladeSegmentCount; ++Seg)
+        //{
+        //    float Alpha = (float)Seg / (float)BladeSegmentCount;
+
+        //    FVector TraceStart = FMath::Lerp(PrevBladeState.Start, PrevBladeState.End, Alpha);
+        //    FVector TraceEnd = FMath::Lerp(CurrBladeState.Start, CurrBladeState.End, Alpha);
+
+        //    FHitResult Hit;
+        //    FCollisionQueryParams Params;
+        //    Params.AddIgnoredActor(GetOwner());
+        //    Params.AddIgnoredActors(IgnoreActors.Array());
+        //    Params.bReturnPhysicalMaterial = true;
+
+        //    bool bHit = GetWorld()->LineTraceSingleByChannel(
+        //        Hit, TraceStart, TraceEnd, ECC_GameTraceChannel1, Params
+        //    );
+
+        //    DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Red, false, 0.5f);
+
+        //    if (bHit)
+        //    {
+        //        ProcessHit(Hit);
+        //    }
+        //}
+
+
     }
 
     PreviousMontagePosition = CurrentPos;

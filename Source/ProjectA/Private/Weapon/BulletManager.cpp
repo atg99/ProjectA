@@ -53,7 +53,7 @@ void ABulletManager::Tick(float DeltaTime)
 	for (int32 i = ActiveBullets.Num() - 1; i >= 0; i--)
 	{
 		
-		NET_LOG(FString::Printf(TEXT("%d"), i));
+		//NET_LOG(FString::Printf(TEXT("%d"), i));
 		FBullet& Bullet = ActiveBullets[i];
 
 		FVector StartLocation = Bullet.Location;

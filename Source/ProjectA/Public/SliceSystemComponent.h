@@ -35,7 +35,7 @@ public:
 
 	// 외부에서 함수 호출하면 알아서 처리
 	UFUNCTION(BlueprintCallable, Category = "Slicing")
-	void SliceBone(FName TargetBone, FVector HitLocation, FVector HitNormal, float ImpulsePower);
+	void SliceBone(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower);
 
 protected:
 	// 내부 로직 분리

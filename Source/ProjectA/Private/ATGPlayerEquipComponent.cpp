@@ -131,7 +131,7 @@ void UATGPlayerEquipComponent::InitEquipComponent(UATGEquipmentComponent* Equipm
 
 void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFirstMainWeapon)
 {
-    NET_LOG("");
+    //NET_LOG("");
     if (!GetOwner()->HasAuthority())
     {
         return;
@@ -217,7 +217,7 @@ void UATGPlayerEquipComponent::ClearSlot(FEquipmentSlot& Slot)
         Slot.EquippedActor->Destroy();
         Slot.EquippedActor = nullptr;
     }
-    NET_LOG("");
+    //NET_LOG("");
     ServerChangePlayerUsingSlot(EEquipmentSlotType::None);
 }
 
@@ -250,7 +250,7 @@ void UATGPlayerEquipComponent::ChangePlayerUsingSlot(EEquipmentSlotType DesiredS
         });
     if ((TargetSlot && TargetSlot->EquippedActor) || (TargetSlot && TargetSlot->SlotType == EEquipmentSlotType::None))
     {
-        NET_LOG("");
+        //NET_LOG("");
         CurrentUsingSlot = DesiredSlot;
         
         //서버에서 attach하면 동기화됨 클라에서 불필요
@@ -274,18 +274,18 @@ void UATGPlayerEquipComponent::ChangePlayerUsingSlot(EEquipmentSlotType DesiredS
     }
 	else if (!TargetSlot)
     {
-        NET_LOG("TargetSlot Null");
+        //NET_LOG("TargetSlot Null");
     }
     else if (!TargetSlot->EquippedActor)
     {
-        NET_LOG("TargetSlot EquippedActor Null");
+        //NET_LOG("TargetSlot EquippedActor Null");
     }
 }
 
 
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
 {
-    NET_LOG("");
+    //NET_LOG("");
     if(CurrentUsingSlot == EEquipmentSlotType::None)
     {
         if (AATGPlayerController* APC = Cast<AATGPlayerController>(GetOwningPlayerCharacter()->GetController()))
@@ -319,7 +319,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
     {
         return;
     }
-    NET_LOG("");
+    //NET_LOG("");
 
 	FEquipmentSlot* NoneSlot = GetSlotByType(EEquipmentSlotType::None);
 	FEquipmentSlot* Main1Slot = GetSlotByType(EEquipmentSlotType::MainWeapon1Slot);
@@ -417,7 +417,7 @@ void UATGPlayerEquipComponent::ServerDoFire_Implementation()
 
 void UATGPlayerEquipComponent::TryWeaponFire()
 {
-    NET_LOG(TEXT("fire"));
+    //NET_LOG(TEXT("fire"));
     //현재 사용하고 있는 슬롯의 무기 유효성 검사
     EEquipmentSlotType D_CurSlotType = CurrentUsingSlot;
 	FEquipmentSlot* TargetSlot = GetSlotByType(D_CurSlotType);
@@ -555,7 +555,7 @@ USceneComponent* UATGPlayerEquipComponent::GetSlaveMesh()
 
 void UATGPlayerEquipComponent::InitSlot(EEquipmentSlotType InEquipmentSlotType)
 {
-	NET_LOG(FString::Printf(TEXT("Init Slot %d"), (uint8)InEquipmentSlotType));
+	//NET_LOG(FString::Printf(TEXT("Init Slot %d"), (uint8)InEquipmentSlotType));
     FEquipmentSlot EquipmentSlot;
     EquipmentSlot.SlotType = InEquipmentSlotType;
     EquipmentSlot.EquippedActor = nullptr; // 초기엔 장비 없음
@@ -564,7 +564,7 @@ void UATGPlayerEquipComponent::InitSlot(EEquipmentSlotType InEquipmentSlotType)
 
 void UATGPlayerEquipComponent::SpawnRangeWeaponInSlot(FEquipmentSlot& Slot, UATGRangeWeaponData* RangeWeaponData)
 {
-    NET_LOG("RangeWeapon Spawn");
+    //NET_LOG("RangeWeapon Spawn");
 
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     FTransform SpawnTransform = OwnerCharacter->GetActorTransform();
@@ -603,7 +603,7 @@ void UATGPlayerEquipComponent::SpawnRangeWeaponInSlot(FEquipmentSlot& Slot, UATG
 
 void UATGPlayerEquipComponent::SpawnMeleeWeaponInSlot(FEquipmentSlot& Slot, UATGMeleeWeaponData* MeleeWeaponData)
 {
-    NET_LOG("MeleeWeapon Spawn");
+    //NET_LOG("MeleeWeapon Spawn");
 
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     FTransform SpawnTransform = OwnerCharacter->GetActorTransform();

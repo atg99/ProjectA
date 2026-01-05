@@ -21,7 +21,7 @@ UAbilityTask_WaitMeleeTargetData* UAbilityTask_WaitMeleeTargetData::WaitMeleeTar
 void UAbilityTask_WaitMeleeTargetData::Activate()
 {
 	if (!Ability || !AbilitySystemComponent.Get()) return;
-	NET_LOG(TEXT(""));
+	//NET_LOG(TEXT(""));
 	// 1. [Server] 클라이언트가 보낸 데이터 수신 대기
 	// (Replicated Target Data는 SpecHandle을 통해 관리됩니다)
 	AbilitySystemComponent->AbilityTargetDataSetDelegate(GetAbilitySpecHandle(), GetActivationPredictionKey()).AddUObject(this, &UAbilityTask_WaitMeleeTargetData::OnTargetDataReplicated);
@@ -37,7 +37,7 @@ void UAbilityTask_WaitMeleeTargetData::Activate()
 
 void UAbilityTask_WaitMeleeTargetData::OnDestroy(bool bInOwnerFinished)
 {
-	NET_LOG(TEXT(""));
+	//NET_LOG(TEXT(""));
 	if (AbilitySystemComponent.Get())
 	{
 		//TargetData 델리게이트 해제
@@ -60,7 +60,7 @@ void UAbilityTask_WaitMeleeTargetData::OnDestroy(bool bInOwnerFinished)
 void UAbilityTask_WaitMeleeTargetData::OnLocalGameplayEvent(FGameplayTag EventTag, const FGameplayEventData* Payload)
 {
 	if (!Payload) return;
-	NET_LOG(TEXT(""));
+	//NET_LOG(TEXT(""));
 	// TargetData 추출
 	FGameplayAbilityTargetDataHandle TargetData = Payload->TargetData;
 
@@ -112,7 +112,7 @@ void UAbilityTask_WaitMeleeTargetData::OnLocalGameplayEvent(FGameplayTag EventTa
 
 void UAbilityTask_WaitMeleeTargetData::OnTargetDataReplicated(const FGameplayAbilityTargetDataHandle& Data, FGameplayTag ActivationTag)
 {
-	NET_LOG(TEXT(""));
+	//NET_LOG(TEXT(""));
 	//데이터를 소비했다고 표시 (메모리 정리)
 	AbilitySystemComponent->ConsumeClientReplicatedTargetData(GetAbilitySpecHandle(), GetActivationPredictionKey());
 

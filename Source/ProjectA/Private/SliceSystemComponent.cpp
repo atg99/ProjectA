@@ -47,7 +47,7 @@ void USliceSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	// ...
 }
 
-void USliceSystemComponent::SliceBone(FName TargetBone, FVector HitLocation, FVector HitNormal, float ImpulsePower)
+void USliceSystemComponent::SliceBone(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower)
 {
     ACharacter* Character = Cast<ACharacter>(GetOwner());
     if (!Character) return;
@@ -66,7 +66,6 @@ void USliceSystemComponent::SliceBone(FName TargetBone, FVector HitLocation, FVe
     // 2. 자르기
     // PMC_Stump가 이미 본 위치에 가 있으므로, Slice 함수가 내부적으로 HitLocation을 로컬로 잘 변환함
     FVector CutLocation = PMC_Stump->Bounds.Origin;
-    FVector CutNormal = FVector::UpVector;
 
 	UMaterialInterface* CapMaterial = SliceCapMaterial ? SliceCapMaterial : Mesh->GetMaterial(0);
     UKismetProceduralMeshLibrary::SliceProceduralMesh(

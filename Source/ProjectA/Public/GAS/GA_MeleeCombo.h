@@ -33,6 +33,7 @@ protected:
     int32 CurrentComboIndex;
 
     void WaitForNextInput();
+    void WaitForHitTask();
 
     UFUNCTION()
     void OnInputPressed(float TimeWaited);

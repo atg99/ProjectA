@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Interface/ATGBTInterface.h"
 #include "ATGEnum.h"
+#include "Engine/HitResult.h"
 #include "Interface/DamageableInterface.h"
 #include "AbilitySystemInterface.h" 
 #include "ZombieEnemy.generated.h"
@@ -48,12 +49,16 @@ public:
 
 	/** Handles death events */
 	UFUNCTION(BlueprintCallable, Category = "Damageable")
-	virtual void HandleDeath() override;
+	virtual void HandleDeath(const FHitResult& InHitResult) override;
 
 	/** Handles healing events */
 	UFUNCTION(BlueprintCallable, Category = "Damageable")
 	virtual void ApplyHealing(float Healing, AActor* Healer) override;
 	//------------------------------------
+protected:
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multi_HandleDeath(const FHitResult& InHitResult);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
@@ -131,7 +136,7 @@ public:
 	bool bIsDying = false;
 
 	UFUNCTION(BlueprintCallable)
-	void StartSlice();
+	void StartSlice(const FHitResult& InHitResult);
 
 protected:
 	float DeathBlendWeight = 0.0f;
