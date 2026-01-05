@@ -20,6 +20,11 @@ AATGMeleeWeapon::AATGMeleeWeapon()
 
 void AATGMeleeWeapon::StartHitCheck()
 {
+    if (GetOwner()->GetLocalRole() == ROLE_Authority)
+    {
+        return;
+    }
+
     IgnoreActors.Empty();
     IgnoreActors.Add(GetOwner()); 
 
@@ -46,6 +51,10 @@ void AATGMeleeWeapon::StartHitCheck()
 
 void AATGMeleeWeapon::TickHitCheck()
 {
+    if (GetOwner()->GetLocalRole() == ROLE_Authority)
+    {
+        return;
+    }
     if (!Mesh) return;
 
     TrajectoryInterpolationbySubFrame();
@@ -105,6 +114,10 @@ void AATGMeleeWeapon::TickHitCheck()
 
 void AATGMeleeWeapon::EndHitCheck()
 {
+    if (GetOwner()->GetLocalRole() == ROLE_Authority)
+    {
+        return;
+    }
     IgnoreActors.Empty();
 }
 
@@ -112,8 +125,7 @@ void AATGMeleeWeapon::ProcessHit(const FHitResult& HitResult)
 {
     AActor* HitActor = HitResult.GetActor();
     if (!HitActor || IgnoreActors.Contains(HitActor)) return;
-
-    //NET_LOG(TEXT(""));
+    NET_LOG(TEXT(""));
     IgnoreActors.Add(HitActor);
     AActor* OwnerActor = GetOwner();
 
@@ -213,20 +225,25 @@ void AATGMeleeWeapon::TrajectoryInterpolationbySubFrame()
             Params.AddIgnoredActor(GetOwner());
             Params.AddIgnoredActors(IgnoreActors.Array());
             Params.bReturnPhysicalMaterial = true;
+            Params.bTraceComplex = true;
+
+            //Params.bReturnFaceIndex;
             bool bHit = false;
 
             DrawDebugLine(GetWorld(), Locs.Start, Locs.End, FColor::Red, false, 5.f);
-            bHit = GetWorld()->LineTraceSingleByChannel(Hit, Locs.Start, Locs.End, ECC_GameTraceChannel1, Params);
+            
+            bHit = GetWorld()->LineTraceSingleByChannel(Hit, Locs.Start, Locs.End, ECC_GameTraceChannel2, Params);
             if (bHit)
             {
+                DrawDebugPoint(GetWorld(), Hit.Location, 50.f, FColor::Green, false, 5.f);
                 //Cut Normal
                 FVector BladeNormal = (CurrBladeState.Start - CurrBladeState.End).GetSafeNormal();
                 FVector SwingNormal = (CurrBladeState.Start - PrevBladeState.Start).GetSafeNormal();
                 FVector CutNormal = FVector::CrossProduct(BladeNormal, SwingNormal).GetSafeNormal();
 
-                //TraceEnd에 저장
-                Hit.TraceEnd = CutNormal;
-
+                //Normal에 저장
+                Hit.Normal = CutNormal;
+                NET_LOG(FString::Printf(TEXT("CutNormal : %s"), *CutNormal.ToString()));
                 ProcessHit(Hit);
             }
         }

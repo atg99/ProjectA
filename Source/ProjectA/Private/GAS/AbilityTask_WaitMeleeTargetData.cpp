@@ -60,7 +60,7 @@ void UAbilityTask_WaitMeleeTargetData::OnDestroy(bool bInOwnerFinished)
 void UAbilityTask_WaitMeleeTargetData::OnLocalGameplayEvent(FGameplayTag EventTag, const FGameplayEventData* Payload)
 {
 	if (!Payload) return;
-	//NET_LOG(TEXT(""));
+	NET_LOG(TEXT(""));
 	// TargetData 추출
 	FGameplayAbilityTargetDataHandle TargetData = Payload->TargetData;
 
@@ -77,7 +77,7 @@ void UAbilityTask_WaitMeleeTargetData::OnLocalGameplayEvent(FGameplayTag EventTa
 	// FScopedPredictionWindow를 열어줘야 서버와 클라이언트 간의 예측 키가 동기화됨
 	FScopedPredictionWindow ScopedPrediction(AbilitySystemComponent.Get());
 
-	//내가 클라이언트라면 -> 서버로 전송
+	//클라이언트 -> 서버로 전송
 	if (AbilitySystemComponent->GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		AbilitySystemComponent->CallServerSetReplicatedTargetData(
@@ -88,8 +88,8 @@ void UAbilityTask_WaitMeleeTargetData::OnLocalGameplayEvent(FGameplayTag EventTa
 			AbilitySystemComponent->ScopedPredictionKey
 		);
 	}
-	//내가 서버(Host)라면 -> 전송할 필요 없이 바로 소비하고 브로드캐스트
-	else if (AbilitySystemComponent->GetOwnerRole() == ROLE_Authority)
+	//서버 -> 전송할 필요 없이 바로 소비하고 브로드캐스트
+	if (AbilitySystemComponent->GetOwnerRole() == ROLE_Authority)
 	{
 		// 서버는 받은 데이터를 바로 ValidData로 쏘면 됨
 		if (ShouldBroadcastAbilityTaskDelegates())
@@ -98,8 +98,8 @@ void UAbilityTask_WaitMeleeTargetData::OnLocalGameplayEvent(FGameplayTag EventTa
 		}
 	}
 
-	//Client 로컬 타격감 즉시 처리 (소리/이펙트 예측 실행)
-	//서버(Host)의 경우 위 2번에서 Broadcast했으므로 중복 방지를 위해 AutonomousProxy일 때만 하거나,
+	//Client 로컬 타격감 즉시 처리
+	//서버의 경우 위 2번에서 Broadcast했으므로 중복 방지를 위해 AutonomousProxy일 때만 하거나,
 	//ValidData에 연결된 함수에서 IsLocallyControlled 체크를 해야 함.
 	if (AbilitySystemComponent->GetOwnerRole() == ROLE_AutonomousProxy)
 	{

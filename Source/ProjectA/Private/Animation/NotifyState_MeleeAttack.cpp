@@ -14,6 +14,7 @@ FString UNotifyState_MeleeAttack::GetNotifyName_Implementation() const
 void UNotifyState_MeleeAttack::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
+	
 	if (IMeleeWeaponInterface* Interface = GetWeaponInterface(MeshComp))
 	{
 		Interface->StartHitCheck();

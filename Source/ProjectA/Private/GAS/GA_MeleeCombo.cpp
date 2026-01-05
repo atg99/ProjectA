@@ -112,6 +112,13 @@ void UGA_MeleeCombo::OnHitReceived(const FGameplayAbilityTargetDataHandle& Data)
             SpecHandle.Data.Get()->AppendDynamicAssetTags(MeleeWeaponData->OwnedTags);
         }
 
+        //클라 HitResult 복사
+  /*      const FHitResult* HitResultPtr = Data.Get(0)->GetHitResult();
+        if (HitResultPtr)
+        {
+            SpecHandle.Data->GetContext().AddHitResult(*HitResultPtr);
+        }*/
+
         // UGameplayAbility::ApplyGameplayEffectSpecToTarget
         TArray<FActiveGameplayEffectHandle> AppliedEffects = ApplyGameplayEffectSpecToTarget(CurrentSpecHandle, 
             CurrentActorInfo, 

@@ -51,6 +51,7 @@ void AZombieEnemy::ApplyDamage(float Damage, AActor* DamageCauser, const FVector
 
 void AZombieEnemy::HandleDeath(const FHitResult& InHitResult)
 {
+	NET_LOG(TEXT(""));
 	if (ABaseAIController* AICon = Cast<ABaseAIController>(GetController()))
 	{
 		AICon->SetState(EMonsterState::Death);
@@ -285,9 +286,10 @@ void AZombieEnemy::StartSlice(const FHitResult& InHitResult)
 {
 	//bp에서 호출 죽음이벤트
 	//절단
+	NET_LOG(FString::Printf(TEXT("HitLocation: %s ,CutNormal : %s"), *InHitResult.ImpactPoint.ToString(), *InHitResult.Normal.ToString()));
 	if (SliceSystemComponent)
-	{	//TraceEnd에 CutNormal저장함
-		SliceSystemComponent->SliceBone(InHitResult.BoneName, InHitResult.ImpactPoint, InHitResult.ImpactNormal, InHitResult.TraceEnd, LastDamageCapture.ImpulseScale);
+	{	//Normal에 CutNormal저장함
+		SliceSystemComponent->SliceBone(InHitResult.BoneName, InHitResult.ImpactPoint, InHitResult.ImpactNormal, InHitResult.Normal, LastDamageCapture.ImpulseScale);
 	}
 }
 

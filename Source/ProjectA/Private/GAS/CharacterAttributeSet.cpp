@@ -58,6 +58,7 @@ void UCharacterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
 			{
 				if (IDamageableInterface* Damageable = Cast<IDamageableInterface>(TargetActor))
 				{
+					NET_LOG(FString::Printf(TEXT("HitLocation: %s ,CutNormal : %s"), *HitResult->ImpactPoint.ToString(), *HitResult->Normal.ToString()));
 					Damageable->HandleDeath(*HitResult);
 				}
 			}

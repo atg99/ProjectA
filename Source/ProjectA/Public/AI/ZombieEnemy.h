@@ -57,7 +57,7 @@ public:
 	//------------------------------------
 protected:
 
-	UFUNCTION(NetMulticast, Reliable)
+	UFUNCTION(NetMulticast, Reliable) //복사로 전송
 	void Multi_HandleDeath(const FHitResult& InHitResult);
 
 protected:
