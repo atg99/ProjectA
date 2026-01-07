@@ -139,6 +139,9 @@ public:
 	void StartSlice(const FHitResult& InHitResult);
 
 protected:
+	UPROPERTY(EditAnywhere)
+	float DefaultImpulsePower = 10000;
+
 	float DeathBlendWeight = 0.0f;
 
 	float DeathBlendDecreaseSpeed = 0.2f;

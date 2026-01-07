@@ -8,6 +8,7 @@
 
 class UProceduralMeshComponent;
 class UMaterialInterface;
+class UDynamicMeshComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PROJECTA_API USliceSystemComponent : public UActorComponent
@@ -37,12 +38,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Slicing")
 	void SliceBone(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower);
 
+	UFUNCTION(BlueprintCallable)
+	void SliceBone_DMC(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower);
+
 protected:
-	// 내부 로직 분리
+	
 	void SetupPMCs();
+
+	void SetupDMCs();
 
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* SliceCapMaterial;
 
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UDynamicMeshComponent> DMC_Stump;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UDynamicMeshComponent> DMC_Debris;
 		
 };

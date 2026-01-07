@@ -113,7 +113,7 @@ void UGA_MeleeCombo::OnHitReceived(const FGameplayAbilityTargetDataHandle& Data)
         }
 
         //클라 HitResult 복사
-  /*      const FHitResult* HitResultPtr = Data.Get(0)->GetHitResult();
+        /* const FHitResult* HitResultPtr = Data.Get(0)->GetHitResult();
         if (HitResultPtr)
         {
             SpecHandle.Data->GetContext().AddHitResult(*HitResultPtr);

@@ -7,6 +7,7 @@
 #include "Rendering/SkeletalMeshRenderData.h" 
 #include "Rendering/PositionVertexBuffer.h" // 위치 데이터 접근용
 #include "Rendering/StaticMeshVertexBuffer.h" // 노멀/UV 데이터 접근용
+#include "KismetProceduralMeshLibrary.h"
 
 void USliceUtils::ConvertBoneToProcMesh(USkeletalMeshComponent* SkeletalMeshComp, FName BoneName, UProceduralMeshComponent* ProcMeshComp)
 {
@@ -230,6 +231,169 @@ void USliceUtils::ConvertBoneToProcMesh(USkeletalMeshComponent* SkeletalMeshComp
     }
 }
 
+void USliceUtils::ConvertBoneToProcMesh_2(USkeletalMeshComponent* SkeletalMeshComp, FName BoneName, UProceduralMeshComponent* ProcMeshComp)
+{
+    if (!SkeletalMeshComp || !ProcMeshComp) return;
+
+    USkeletalMesh* SkelMesh = SkeletalMeshComp->GetSkeletalMeshAsset();
+    if (!SkelMesh) return;
+
+    int32 TargetBoneIndex = SkeletalMeshComp->GetBoneIndex(BoneName);
+    if (TargetBoneIndex == INDEX_NONE) return;
+
+    FSkeletalMeshRenderData* RenderData = SkelMesh->GetResourceForRendering();
+    if (!RenderData || !RenderData->LODRenderData.IsValidIndex(0)) return;
+
+    const FSkeletalMeshLODRenderData& LODData = RenderData->LODRenderData[0];
+    const FSkinWeightVertexBuffer& SkinWeightBuffer = LODData.SkinWeightVertexBuffer;
+    const FPositionVertexBuffer& PosBuffer = LODData.StaticVertexBuffers.PositionVertexBuffer;
+    const FStaticMeshVertexBuffer& StaticMeshBuffer = LODData.StaticVertexBuffers.StaticMeshVertexBuffer;
+
+    // Bone Transform 계산
+    FTransform BoneToComponent = FTransform::Identity;
+    const FReferenceSkeleton& RefSkeleton = SkelMesh->GetRefSkeleton();
+    int32 CurrentBoneIndex = TargetBoneIndex;
+    while (CurrentBoneIndex != INDEX_NONE)
+    {
+        const FTransform& LocalTransform = RefSkeleton.GetRefBonePose()[CurrentBoneIndex];
+        BoneToComponent = BoneToComponent * LocalTransform;
+        CurrentBoneIndex = RefSkeleton.GetParentIndex(CurrentBoneIndex);
+    }
+    FTransform WorldToLocal = BoneToComponent.Inverse();
+
+    ProcMeshComp->ClearAllMeshSections();
+
+    for (int32 SectionIdx = 0; SectionIdx < LODData.RenderSections.Num(); SectionIdx++)
+    {
+        const FSkelMeshRenderSection& Section = LODData.RenderSections[SectionIdx];
+
+        TArray<FVector> NewVertices;
+        TArray<int32> NewTriangles;
+        TArray<FVector> NewNormals;
+        TArray<FVector2D> NewUVs;
+        TArray<FProcMeshTangent> NewTangents;
+        TArray<FLinearColor> NewColors;
+
+        // [핵심 수정] 오차 허용 용접을 위한 맵
+        // Key: FIntVector (좌표에 1000을 곱해 정수화, 0.001 단위 오차 무시)
+        TMap<FIntVector, int32> WeldedVertexMap;
+
+        for (uint32 TriIdx = 0; TriIdx < Section.NumTriangles; TriIdx++)
+        {
+            uint32 BaseIndex = Section.BaseIndex + TriIdx * 3;
+            int32 Indices[3];
+            Indices[0] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(BaseIndex + 0);
+            Indices[1] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(BaseIndex + 1);
+            Indices[2] = LODData.MultiSizeIndexContainer.GetIndexBuffer()->Get(BaseIndex + 2);
+
+            bool bIsTargetBone = false;
+
+            // 웨이트 체크
+            for (int32 i = 0; i < 3; i++)
+            {
+                int32 OriginalVertIdx = Indices[i];
+                int32 NumInfluences = SkinWeightBuffer.GetMaxBoneInfluences();
+
+                for (int32 InfluenceIdx = 0; InfluenceIdx < NumInfluences; InfluenceIdx++)
+                {
+                    int32 BufferBoneIndex = SkinWeightBuffer.GetBoneIndex(OriginalVertIdx, InfluenceIdx);
+                    float Weight = SkinWeightBuffer.GetBoneWeight(OriginalVertIdx, InfluenceIdx);
+
+                    if (Weight < 0.01f) continue;
+
+                    int32 RealBoneIndex = BufferBoneIndex;
+                    if (Section.BoneMap.Num() > 0 && Section.BoneMap.IsValidIndex(BufferBoneIndex))
+                    {
+                        RealBoneIndex = Section.BoneMap[BufferBoneIndex];
+                    }
+
+                    if (RealBoneIndex == TargetBoneIndex)
+                    {
+                        bIsTargetBone = true;
+                        break;
+                    }
+                }
+                if (bIsTargetBone) break;
+            }
+
+            if (bIsTargetBone)
+            {
+                for (int32 i = 0; i < 3; i++)
+                {
+                    int32 OriginalIdx = Indices[i];
+
+                    FVector Pos = (FVector)PosBuffer.VertexPosition(OriginalIdx);
+                    Pos = WorldToLocal.TransformPosition(Pos);
+
+                    // [핵심 해결] 위치를 정수화하여 미세 오차 무시 (소수점 3자리 정도까지 정밀도 유지)
+                    // 100.0f ~ 1000.0f 정도를 곱해서 비교
+                    FIntVector PosKey = FIntVector(FMath::RoundToInt(Pos.X * 1000.f), FMath::RoundToInt(Pos.Y * 1000.f), FMath::RoundToInt(Pos.Z * 1000.f));
+
+                    if (WeldedVertexMap.Contains(PosKey))
+                    {
+                        // 이미 존재하면 인덱스 재사용 (완벽한 용접)
+                        NewTriangles.Add(WeldedVertexMap[PosKey]);
+                    }
+                    else
+                    {
+                        // 없다면 새로 추가
+                        // *주의: 노멀은 나중에 재계산하므로 여기서는 더미나 원본을 넣음
+                        FVector Normal = FVector::UpVector;
+                        FProcMeshTangent Tangent(FVector::RightVector, false);
+                        FVector2D UV = (FVector2D)StaticMeshBuffer.GetVertexUV(OriginalIdx, 0);
+                        FLinearColor VertColor = FLinearColor::White;
+
+                        int32 NewIdx = NewVertices.Add(Pos);
+                        NewNormals.Add(Normal);
+                        NewUVs.Add(UV);
+                        NewTangents.Add(Tangent);
+                        NewColors.Add(VertColor);
+
+                        WeldedVertexMap.Add(PosKey, NewIdx);
+                        NewTriangles.Add(NewIdx);
+                    }
+                }
+            }
+        }
+
+        // 데이터가 있을 때만 섹션 생성
+        if (NewVertices.Num() > 0 && NewTriangles.Num() > 0)
+        {
+            CloseMeshHoles(NewVertices, NewTriangles, NewNormals, NewUVs, NewTangents, NewColors);
+
+            // [중요] 용접으로 인해 노멀이 깨질 수 있으므로 강제 재계산
+            // 이 함수는 용접된 메쉬의 표면을 따라 부드러운 노멀을 새로 만듭니다.
+            UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
+                NewVertices,
+                NewTriangles,
+                NewUVs,
+                NewNormals,
+                NewTangents
+            );
+
+            ProcMeshComp->CreateMeshSection_LinearColor(
+                SectionIdx,
+                NewVertices,
+                NewTriangles,
+                NewNormals,
+                NewUVs,
+                TArray<FVector2D>(),
+                TArray<FVector2D>(),
+                TArray<FVector2D>(),
+                NewColors,
+                NewTangents,
+                true
+            );
+
+            // 머터리얼 할당
+            if (SkelMesh->GetMaterials().IsValidIndex(Section.MaterialIndex))
+            {
+                ProcMeshComp->SetMaterial(SectionIdx, SkelMesh->GetMaterials()[Section.MaterialIndex].MaterialInterface);
+            }
+        }
+    }
+}
+
 void USliceUtils::MaskTargetBoneOnly(USkeletalMeshComponent* SkeletalMeshComp, FName TargetBoneName)
 {
     if (!SkeletalMeshComp) return;
@@ -329,5 +493,86 @@ void USliceUtils::MaskTargetBoneOnly(USkeletalMeshComponent* SkeletalMeshComp, F
                 LODData.StaticVertexBuffers.ColorVertexBuffer.UpdateRHI(RHICmdList);
             });
         SkeletalMeshComp->MarkRenderStateDirty();
+    }
+}
+
+void USliceUtils::CloseMeshHoles(TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents, TArray<FLinearColor>& Colors)
+{
+    // 1. 엣지 사용 횟수 카운팅
+    TMap<FMeshEdge, int32> EdgeCountMap;
+
+    for (int32 i = 0; i < Triangles.Num(); i += 3)
+    {
+        int32 I0 = Triangles[i];
+        int32 I1 = Triangles[i + 1];
+        int32 I2 = Triangles[i + 2];
+
+        FMeshEdge E1(I0, I1);
+        FMeshEdge E2(I1, I2);
+        FMeshEdge E3(I2, I0);
+
+        EdgeCountMap.FindOrAdd(E1)++;
+        EdgeCountMap.FindOrAdd(E2)++;
+        EdgeCountMap.FindOrAdd(E3)++;
+    }
+
+    // 2. 경계선 엣지(Boundary Edges) 추출
+    // 사용 횟수가 1인 엣지가 구멍의 테두리입니다.
+    TArray<FMeshEdge> BoundaryEdges;
+    for (const auto& Pair : EdgeCountMap)
+    {
+        if (Pair.Value == 1) // 공유되지 않은 엣지
+        {
+            BoundaryEdges.Add(Pair.Key);
+        }
+    }
+
+    if (BoundaryEdges.Num() == 0) return; // 이미 닫힌 도형임
+
+    // 3. 루프(Loop)별로 그룹화 및 캡 생성
+    // (간단한 구현을 위해 모든 경계선 엣지의 중심점을 구해 부채꼴로 막습니다)
+    // * 복잡한 형상은 루프 분리가 필요하지만, 팔다리 같은 원통형은 중심점 방식으로 대부분 해결됨 *
+
+    // 경계선 버텍스들의 평균 위치(Centroid) 계산
+    FVector Centroid = FVector::ZeroVector;
+    TSet<int32> BoundaryVerts;
+
+    for (const FMeshEdge& Edge : BoundaryEdges)
+    {
+        BoundaryVerts.Add(Edge.VertA);
+        BoundaryVerts.Add(Edge.VertB);
+    }
+
+    for (int32 VertIdx : BoundaryVerts)
+    {
+        Centroid += Vertices[VertIdx];
+    }
+    Centroid /= BoundaryVerts.Num();
+
+    // 4. 중심점 버텍스 추가
+    int32 CenterIndex = Vertices.Add(Centroid);
+
+    // 더미 데이터 채우기 (나중에 CalculateTangentsForMesh로 덮어씌워짐)
+    Normals.Add(FVector::UpVector);
+    UVs.Add(FVector2D::ZeroVector);
+    Tangents.Add(FProcMeshTangent(FVector::RightVector, false));
+    Colors.Add(FLinearColor::Black); // 캡 부분은 검은색 처리 (디버깅용)
+
+    // 5. 경계선 엣지와 중심점을 연결해 삼각형 생성
+    for (const FMeshEdge& Edge : BoundaryEdges)
+    {
+        // 엣지의 방향성을 맞춰야 함 (Winding Order)
+        // 기존 삼각형에서 Edge가 어떻게 쓰였는지 확인해야 법선 방향이 맞음
+        // 하지만 여기서는 간단히 양면 렌더링을 가정하거나, Slice 함수가 알아서 처리하게 둡니다.
+        // SliceProceduralMesh는 닫힌 부피만 있으면 내부를 인식합니다.
+
+        Triangles.Add(Edge.VertA);
+        Triangles.Add(Edge.VertB);
+        Triangles.Add(CenterIndex);
+
+        // 뒷면도 추가 (확실하게 막기 위해 양면 생성)
+        Triangles.Add(Edge.VertB);
+        Triangles.Add(Edge.VertA);
+        Triangles.Add(CenterIndex);
     }
 }

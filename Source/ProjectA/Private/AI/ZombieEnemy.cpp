@@ -289,7 +289,7 @@ void AZombieEnemy::StartSlice(const FHitResult& InHitResult)
 	NET_LOG(FString::Printf(TEXT("HitLocation: %s ,CutNormal : %s"), *InHitResult.ImpactPoint.ToString(), *InHitResult.Normal.ToString()));
 	if (SliceSystemComponent)
 	{	//Normal에 CutNormal저장함
-		SliceSystemComponent->SliceBone(InHitResult.BoneName, InHitResult.ImpactPoint, InHitResult.ImpactNormal, InHitResult.Normal, LastDamageCapture.ImpulseScale);
+		SliceSystemComponent->SliceBone(InHitResult.BoneName, InHitResult.ImpactPoint, InHitResult.ImpactNormal, InHitResult.Normal, DefaultImpulsePower);
 	}
 }
 

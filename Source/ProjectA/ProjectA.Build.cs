@@ -23,7 +23,10 @@ public class ProjectA : ModuleRules
             "ProceduralMeshComponent",
             "RenderCore",
             "RHI",
-            "GameplayAbilities", "GameplayTags", "GameplayTasks" //gameplay Ability System
+            "GameplayAbilities", "GameplayTags", "GameplayTasks", //gameplay Ability System
+			"GeometryFramework",
+            "GeometryScriptingCore",
+            "DynamicMesh"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });
