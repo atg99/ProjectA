@@ -36,6 +36,7 @@ struct FMeshEdge
 };
 
 class UProceduralMeshComponent;
+class UDynamicMeshComponent;
 
 UCLASS()
 class PROJECTA_API USliceUtils : public UBlueprintFunctionLibrary
@@ -52,6 +53,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Slicing")
 	static void MaskTargetBoneOnly(USkeletalMeshComponent* SkeletalMeshComp, FName TargetBoneName);
 	
+    UFUNCTION(BlueprintCallable, Category = "Slicing")
+    static void ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp);
 private:
     // 구멍을 찾아서 메우는 함수
     static void CloseMeshHoles(TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents, TArray<FLinearColor>& Colors);

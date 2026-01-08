@@ -9,6 +9,7 @@
 class UProceduralMeshComponent;
 class UMaterialInterface;
 class UDynamicMeshComponent;
+class UStaticMesh;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PROJECTA_API USliceSystemComponent : public UActorComponent
@@ -41,14 +42,25 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SliceBone_DMC(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower);
 
+	UFUNCTION(BlueprintCallable)
+	void CopyWeightAndSlice_DMC(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower);
+
+	UFUNCTION(BlueprintCallable)
+	void ApplySkinningWithDMCData(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp);
+
 protected:
 	
 	void SetupPMCs();
 
 	void SetupDMCs();
 
+	float GetBoneRadius(USkeletalMeshComponent* Mesh, FName BoneName);
+
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* SliceCapMaterial;
+
+	UPROPERTY(EditAnywhere)
+	UStaticMesh* MeatCrossSectionMesh;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -56,5 +68,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UDynamicMeshComponent> DMC_Debris;
+
 		
 };

@@ -8,6 +8,11 @@
 #include "Rendering/PositionVertexBuffer.h" // 위치 데이터 접근용
 #include "Rendering/StaticMeshVertexBuffer.h" // 노멀/UV 데이터 접근용
 #include "KismetProceduralMeshLibrary.h"
+#include "GeometryScript/MeshQueryFunctions.h"
+#include "GeometryScript/MeshAssetFunctions.h"
+#include "DynamicMesh/DynamicMesh3.h"
+#include "Components/DynamicMeshComponent.h"
+#include "GeometryScript/GeometryScriptTypes.h"
 
 void USliceUtils::ConvertBoneToProcMesh(USkeletalMeshComponent* SkeletalMeshComp, FName BoneName, UProceduralMeshComponent* ProcMeshComp)
 {
@@ -494,6 +499,158 @@ void USliceUtils::MaskTargetBoneOnly(USkeletalMeshComponent* SkeletalMeshComp, F
             });
         SkeletalMeshComp->MarkRenderStateDirty();
     }
+}
+
+void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp)
+{
+    if (!DynamicMeshComp || !ProcMeshComp) return;
+
+    // 1. 초기화
+    ProcMeshComp->ClearAllMeshSections();
+
+    // 2. DynamicMesh 데이터 접근
+    UDynamicMesh* DynMesh = DynamicMeshComp->GetDynamicMesh();
+    if (!DynMesh) return;
+
+    // ProcessMesh를 통해 로우 레벨 메시 데이터(FDynamicMesh3)에 접근
+    DynMesh->ProcessMesh([&](const UE::Geometry::FDynamicMesh3& Mesh)
+        {
+            // Weight
+            struct FProcMeshVertexWeight
+            {
+                int32 BoneIndex[4]; // 최대 4개의 뼈
+                float BoneWeight[4];
+            };
+
+            // 머터리얼 ID 별로 데이터를 모으기 위한 구조체
+            struct FMeshSectionData
+            {
+                TArray<FVector> Vertices;
+                TArray<int32> Triangles;
+                TArray<FVector> Normals;
+                TArray<FVector2D> UVs;
+                TArray<FProcMeshTangent> Tangents;
+                TArray<FLinearColor> Colors;
+                TMap<int32, int32> VertexMap; // OldIndex -> NewIndex
+                TArray<FProcMeshVertexWeight> SkinWeights;
+            };
+
+            TMap<int32, FMeshSectionData> Sections;
+
+            // 3. 머터리얼 속성 확인 (없으면 기본값 0 사용)
+            bool bHasMaterials = Mesh.HasAttributes() && Mesh.Attributes()->HasMaterialID();
+            const auto* MaterialIDAttrib = bHasMaterials ? Mesh.Attributes()->GetMaterialID() : nullptr;
+
+            // 4. 노멀/UV/Tangent 속성 접근
+            bool bHasNormals = Mesh.HasVertexNormals();
+            bool bHasUVs = Mesh.HasAttributes() && Mesh.Attributes()->NumUVLayers() > 0;
+            const auto* UVAttrib = bHasUVs ? Mesh.Attributes()->GetUVLayer(0) : nullptr;
+            // GeometryScript는 보통 오버레이 노멀을 사용함
+            const auto* NormalAttrib = Mesh.HasAttributes() ? Mesh.Attributes()->PrimaryNormals() : nullptr;
+
+            // 5. 삼각형 순회
+            for (int32 TriID : Mesh.TriangleIndicesItr())
+            {
+                // 이 삼각형의 머터리얼 ID 가져오기
+                int32 MatID = 0;
+                if (MaterialIDAttrib)
+                {
+                    MatID = MaterialIDAttrib->GetValue(TriID);
+                }
+
+                FMeshSectionData& Section = Sections.FindOrAdd(MatID);
+                UE::Geometry::FIndex3i TriVerts = Mesh.GetTriangle(TriID);
+
+                // 삼각형 구성 (0, 1, 2)
+                for (int32 j = 0; j < 3; j++)
+                {
+                    int32 VertID = TriVerts[j];
+
+                    // PMC는 버텍스 공유를 인덱스로 처리하므로, 같은 위치/속성의 버텍스는 재활용해야 함.
+                    // 하지만 여기서는 단순화를 위해 삼각형마다(Flat) 혹은 GeometryScript의 Topology 그대로 복사.
+                    // DynamicMesh는 'Compact' 하지 않을 수 있으므로 인덱스 매핑이 필요함.
+
+                    // 간단한 구현: 이미 처리된 VertID라면 인덱스만 추가 (Topology 유지)
+                    if (Section.VertexMap.Contains(VertID))
+                    {
+                        Section.Triangles.Add(Section.VertexMap[VertID]);
+                    }
+                    else
+                    {
+                        // 위치
+                        FVector Pos = (FVector)Mesh.GetVertex(VertID);
+
+                        // 노멀
+                        FVector Normal = FVector::UpVector;
+                        if (NormalAttrib)
+                        {
+                            // 오버레이 노멀은 요소 ID 기반
+                            int32 ElemID = NormalAttrib->GetElementIDAtVertex(TriID, j); // TriID와 코너 인덱스로 찾음
+                            if (ElemID != -1/*UE::Geometry::FIndexConstants::InvalidID*/)
+                            {
+                                Normal = (FVector)NormalAttrib->GetElement(ElemID);
+                            }
+                        }
+                        else if (bHasNormals)
+                        {
+                            Normal = (FVector)Mesh.GetVertexNormal(VertID);
+                        }
+
+                        // UV
+                        FVector2D UV = FVector2D::ZeroVector;
+                        if (UVAttrib)
+                        {
+                            int32 ElemID = UVAttrib->GetElementIDAtVertex(TriID, j);
+                            if (ElemID != -1)
+                            {
+                                UV = (FVector2D)UVAttrib->GetElement(ElemID);
+                            }
+                        }
+
+                        // 탄젠트 (없으면 자동 계산 혹은 임시값)
+                        FProcMeshTangent Tangent(FVector::ForwardVector, false);
+                        // 필요 시 GeometryScriptLibrary_MeshTangentsFunctions::ComputeTangents 사용 후 가져와야 함
+
+                        int32 NewIndex = Section.Vertices.Add(Pos);
+                        Section.Normals.Add(Normal);
+                        Section.UVs.Add(UV);
+                        Section.Tangents.Add(Tangent);
+                        Section.Colors.Add(FLinearColor::White); // 버텍스 컬러 기본값
+
+                        Section.VertexMap.Add(VertID, NewIndex);
+                        Section.Triangles.Add(NewIndex);
+                    }
+                }
+            }
+
+            // 6. PMC 섹션 생성
+            for (auto& Elem : Sections)
+            {
+                int32 MatIndex = Elem.Key;
+                FMeshSectionData& Data = Elem.Value;
+
+                if (Data.Vertices.Num() > 0)
+                {
+                    ProcMeshComp->CreateMeshSection_LinearColor(
+                        MatIndex,
+                        Data.Vertices,
+                        Data.Triangles,
+                        Data.Normals,
+                        Data.UVs,
+                        TArray<FVector2D>(), TArray<FVector2D>(), TArray<FVector2D>(),
+                        Data.Colors,
+                        Data.Tangents,
+                        true // Collision
+                    );
+
+                    // 머터리얼 할당
+                    if (DynamicMeshComp->GetMaterial(MatIndex))
+                    {
+                        ProcMeshComp->SetMaterial(MatIndex, DynamicMeshComp->GetMaterial(MatIndex));
+                    }
+                }
+            }
+        });
 }
 
 void USliceUtils::CloseMeshHoles(TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents, TArray<FLinearColor>& Colors)

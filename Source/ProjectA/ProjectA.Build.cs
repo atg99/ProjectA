@@ -26,7 +26,8 @@ public class ProjectA : ModuleRules
             "GameplayAbilities", "GameplayTags", "GameplayTasks", //gameplay Ability System
 			"GeometryFramework",
             "GeometryScriptingCore",
-            "DynamicMesh"
+            "DynamicMesh",
+            "GeometryCore"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });
