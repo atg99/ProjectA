@@ -27,7 +27,16 @@ public class ProjectA : ModuleRules
 			"GeometryFramework",
             "GeometryScriptingCore",
             "DynamicMesh",
-            "GeometryCore"
+            "GeometryCore",
+            "MeshConversion",
+            "MeshConversionEngineTypes", 
+            
+            // RenderData Á¢±Ù¿ë
+            "RenderCore",
+            "RHI",
+
+            "MeshDescription",
+			"SkeletalMeshDescription"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });

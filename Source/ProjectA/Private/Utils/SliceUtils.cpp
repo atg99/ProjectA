@@ -5,14 +5,32 @@
 #include "ProceduralMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Rendering/SkeletalMeshRenderData.h" 
-#include "Rendering/PositionVertexBuffer.h" // 위치 데이터 접근용
-#include "Rendering/StaticMeshVertexBuffer.h" // 노멀/UV 데이터 접근용
+#include "Rendering/PositionVertexBuffer.h"
+#include "Rendering/StaticMeshVertexBuffer.h" 
 #include "KismetProceduralMeshLibrary.h"
 #include "GeometryScript/MeshQueryFunctions.h"
 #include "GeometryScript/MeshAssetFunctions.h"
 #include "DynamicMesh/DynamicMesh3.h"
 #include "Components/DynamicMeshComponent.h"
 #include "GeometryScript/GeometryScriptTypes.h"
+
+#include "Rendering/SkeletalMeshLODRenderData.h"
+#include "SkeletalMeshLODRenderDataToDynamicMesh.h" 
+
+#include "MeshDescription.h" 
+#include "SkeletalMeshAttributes.h"
+
+#include "Kismet/KismetMathLibrary.h" 
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/SkeletalBodySetup.h"
+
+#include "DynamicMesh/MeshAttributeUtil.h"
+#include "DynamicMesh/DynamicMeshAttributeSet.h"
+#include "DynamicMesh/DynamicVertexSkinWeightsAttribute.h"
+#include "Operations/TransferBoneWeights.h"
+
+//#include "AnimationCore/Public/BoneWeights.h"
+
 
 void USliceUtils::ConvertBoneToProcMesh(USkeletalMeshComponent* SkeletalMeshComp, FName BoneName, UProceduralMeshComponent* ProcMeshComp)
 {
@@ -651,6 +669,408 @@ void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMes
                 }
             }
         });
+}
+
+void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp, TArray<FCachedSkinVertex>& OutCache)
+{
+    if (!DynamicMeshComp || !ProcMeshComp) return;
+
+    ProcMeshComp->ClearAllMeshSections();
+    OutCache.Reset(); // 캐시 초기화
+
+    UDynamicMesh* DynMesh = DynamicMeshComp->GetDynamicMesh();
+    if (!DynMesh) return;
+
+    DynMesh->ProcessMesh([&](const UE::Geometry::FDynamicMesh3& Mesh)
+        {
+            // 1. 스킨 웨이트 속성 가져오기 (가장 중요!)
+            const auto* SkinWeightsAttr = Mesh.Attributes()->GetSkinWeightsAttribute(FSkeletalMeshAttributes::DefaultSkinWeightProfileName);
+
+            // 웨이트가 없다면
+            if (!SkinWeightsAttr)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Warning: No SkinWeights attribute found on DynamicMesh!"));
+            }
+
+            struct FMeshSectionData
+            {
+                TArray<FVector> Vertices;
+                TArray<int32> Triangles;
+                TArray<FVector> Normals;
+                TArray<FVector2D> UVs;
+                TArray<FProcMeshTangent> Tangents;
+                TArray<FLinearColor> Colors;
+                TMap<int32, int32> VertexMap; // Old(DynamicMesh) -> New(PMC) Index
+            };
+
+            TMap<int32, FMeshSectionData> Sections;
+
+            // 머터리얼, 노멀, UV 속성 접근
+            bool bHasMaterials = Mesh.HasAttributes() && Mesh.Attributes()->HasMaterialID();
+            const auto* MaterialIDAttrib = bHasMaterials ? Mesh.Attributes()->GetMaterialID() : nullptr;
+
+            bool bHasNormals = Mesh.HasVertexNormals();
+            const auto* NormalAttrib = Mesh.HasAttributes() ? Mesh.Attributes()->PrimaryNormals() : nullptr;
+
+            bool bHasUVs = Mesh.HasAttributes() && Mesh.Attributes()->NumUVLayers() > 0;
+            const auto* UVAttrib = bHasUVs ? Mesh.Attributes()->GetUVLayer(0) : nullptr;
+
+            // 삼각형 순회
+            for (int32 TriID : Mesh.TriangleIndicesItr())
+            {
+                int32 MatID = 0;
+                if (MaterialIDAttrib)
+                {
+                    MatID = MaterialIDAttrib->GetValue(TriID);
+                }
+
+                FMeshSectionData& Section = Sections.FindOrAdd(MatID);
+                UE::Geometry::FIndex3i TriVerts = Mesh.GetTriangle(TriID);
+
+                for (int32 j = 0; j < 3; j++)
+                {
+                    int32 VertID = TriVerts[j];
+
+                    // 이미 처리된 버텍스라면 인덱스만 재사용
+                    if (Section.VertexMap.Contains(VertID))
+                    {
+                        Section.Triangles.Add(Section.VertexMap[VertID]);
+                    }
+                    else
+                    {
+                        // --- 1. 기본 정보 추출 ---
+                        FVector Pos = (FVector)Mesh.GetVertex(VertID);
+
+                        FVector Normal = FVector::UpVector;
+                        if (NormalAttrib)
+                        {
+                            int32 ElemID = NormalAttrib->GetElementIDAtVertex(TriID, j);
+                            if (ElemID != -1) Normal = (FVector)NormalAttrib->GetElement(ElemID);
+                        }
+                        else if (bHasNormals)
+                        {
+                            Normal = (FVector)Mesh.GetVertexNormal(VertID);
+                        }
+
+                        FVector2D UV = FVector2D::ZeroVector;
+                        if (UVAttrib)
+                        {
+                            int32 ElemID = UVAttrib->GetElementIDAtVertex(TriID, j);
+                            if (ElemID != -1) UV = (FVector2D)UVAttrib->GetElement(ElemID);
+                        }
+
+                        FProcMeshTangent Tangent(FVector::ForwardVector, false);
+
+                        // --- 2. PMC 데이터 채우기 ---
+                        int32 NewIndex = Section.Vertices.Add(Pos);
+                        Section.Normals.Add(Normal);
+                        Section.UVs.Add(UV);
+                        Section.Tangents.Add(Tangent);
+                        Section.Colors.Add(FLinearColor::White);
+                        Section.VertexMap.Add(VertID, NewIndex);
+                        Section.Triangles.Add(NewIndex);
+
+                        // --- 3. [핵심] 스킨 웨이트 캐싱 (OutCache에 저장) ---
+                        FCachedSkinVertex CachedVert;
+                        CachedVert.InitialPos = Pos;       // T-Pose 위치 저장
+                        CachedVert.InitialNormal = Normal; // T-Pose 노멀 저장
+                        CachedVert.SectionIndex = MatID;   // 나중에 어떤 섹션을 업데이트할지 알기 위해
+                        CachedVert.VertIndex = NewIndex;   // 해당 섹션의 몇 번째 버텍스인지
+
+                        // 초기화
+                        for (int k = 0; k < 4; k++) { CachedVert.BoneIndices[k] = 0; CachedVert.BoneWeights[k] = 0.f; }
+
+                        if (SkinWeightsAttr)
+                        {
+
+                            //UE::Geometry::FSkinWeights Weights;
+                            UE::AnimationCore::FBoneWeights Weights;
+                            SkinWeightsAttr->GetValue(VertID, Weights);
+
+                            int32 NumWeights = FMath::Min(Weights.Num(), 4);
+                            for (int32 k = 0; k < NumWeights; ++k)
+                            {
+                                //TArray<FBoneWeight>를 감싸고 있는 컨테이너
+                                //FBoneWeight 객체를 가져옴
+                                const UE::AnimationCore::FBoneWeight& BoneWeightObj = Weights[k];
+
+                                // 2. 객체 내부의 Getter 함수를 사용해 값을 추출합니다.
+                                CachedVert.BoneIndices[k] = BoneWeightObj.GetBoneIndex();
+                                CachedVert.BoneWeights[k] = BoneWeightObj.GetWeight();
+                            }
+                        }
+
+                        // 외부 배열에 추가
+                        OutCache.Add(CachedVert);
+                    }
+                }
+            }
+
+            // PMC 섹션 생성
+            for (auto& Elem : Sections)
+            {
+                int32 MatIndex = Elem.Key;
+                FMeshSectionData& Data = Elem.Value;
+
+                if (Data.Vertices.Num() > 0)
+                {
+                    ProcMeshComp->CreateMeshSection_LinearColor(
+                        MatIndex,
+                        Data.Vertices,
+                        Data.Triangles,
+                        Data.Normals,
+                        Data.UVs,
+                        TArray<FVector2D>(), TArray<FVector2D>(), TArray<FVector2D>(),
+                        Data.Colors,
+                        Data.Tangents,
+                        true
+                    );
+
+                    if (DynamicMeshComp->GetMaterial(MatIndex))
+                    {
+                        ProcMeshComp->SetMaterial(MatIndex, DynamicMeshComp->GetMaterial(MatIndex));
+                    }
+                }
+            }
+        });
+}
+
+void USliceUtils::InitializeDMCFromSkeletalMesh(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp, EGeometryScriptOutcomePins& OutCome)
+{
+
+    OutCome = EGeometryScriptOutcomePins::Failure;
+
+    if (!DMC || !SkelMeshComp)
+    {
+        UE_LOG(LogTemp, Error, TEXT("InitializeDMCFromSkeletalMesh: Invalid Components"));
+        return;
+    }
+
+    USkeletalMesh* SkelAsset = SkelMeshComp->GetSkeletalMeshAsset();
+    if (!SkelAsset)
+    {
+        UE_LOG(LogTemp, Error, TEXT("InitializeDMCFromSkeletalMesh: SkeletalMeshAsset is Null"));
+        return;
+    }
+
+    // 3. RenderData 가져오기 (Allow CPU Access 체크 필수)
+    FSkeletalMeshRenderData* RenderData = SkelAsset->GetResourceForRendering();
+    if (!RenderData || !RenderData->LODRenderData.IsValidIndex(0))
+    {
+        UE_LOG(LogTemp, Error, TEXT("InitializeDMCFromSkeletalMesh: RenderData invalid. Check 'Allow CPU Access' in Asset!"));
+        return;
+    }
+
+    UDynamicMesh* DynMesh = DMC->GetDynamicMesh();
+
+    // 내부 변환 성공 여부를 확인하기 위한 플래그
+    bool bConversionSuccess = false;
+
+    // 4. EditMesh로 안전하게 메쉬 수정 진입
+    // [&] 캡처를 통해 외부의 bConversionSuccess 변수에 접근합니다.
+    DynMesh->EditMesh([&](UE::Geometry::FDynamicMesh3& OutMesh)
+        {
+            OutMesh.Clear();
+
+            const FSkeletalMeshLODRenderData* LODData = &RenderData->LODRenderData[0];
+            const FReferenceSkeleton& RefSkeleton = SkelAsset->GetRefSkeleton();
+
+            UE::Geometry::FSkeletalMeshLODRenderDataToDynamicMesh::ConversionOptions Options;
+
+            Options.bWantSkinWeights = true;  // <--- 핵심!
+            Options.bWantNormals = true;
+            Options.bWantUVs = true;
+            Options.bWantTangents = true;
+
+            // Options.BuildScale = (FVector3d)SkelMeshComp->GetComponentScale();
+
+            // Convert 함수가 true를 반환해야 성공한 것입니다.
+            if (UE::Geometry::FSkeletalMeshLODRenderDataToDynamicMesh::Convert(
+                LODData,
+                RefSkeleton,
+                Options,
+                OutMesh
+            ))
+            {
+                bConversionSuccess = true;
+                // 속성 안전장치
+                OutMesh.EnableAttributes();
+                
+                FName ProfileName = FSkeletalMeshAttributes::DefaultSkinWeightProfileName;
+                UE_LOG(LogTemp, Log, TEXT("SkinWeights with name '%s'"), *ProfileName.ToString());
+                if (OutMesh.Attributes()->HasSkinWeightsAttribute(ProfileName))
+                {
+                    
+                }
+                else
+                {
+                    // 3. 없다면, 도대체 무슨 이름으로 들어있는지(혹은 아예 없는지) 전수 조사
+                    bConversionSuccess = false;
+                    UE_LOG(LogTemp, Error, TEXT("Error: Convert success but 'SkinWeights' attribute is missing!"));  
+                }
+            }
+            else
+
+            {
+                UE_LOG(LogTemp, Error, TEXT("InitializeDMCFromSkeletalMesh: Conversion Failed inside EditMesh"));
+            }
+
+        }, EDynamicMeshChangeType::GeneralEdit, EDynamicMeshAttributeChangeFlags::Unknown, true);
+
+    // 6. 결과 처리
+    if (bConversionSuccess)
+    {
+        DMC->NotifyMeshUpdated();
+        OutCome = EGeometryScriptOutcomePins::Success;
+        UE_LOG(LogTemp, Log, TEXT("InitializeDMCFromSkeletalMesh: Success"));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("InitializeDMCFromSkeletalMesh: Failed to initialize mesh"));
+    }
+}
+
+void USliceUtils::ApplySkinningWithDMCData(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp)
+{
+    // 1. 유효성 체크
+    if (!DMC || !SkelMeshComp)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Error: DMC or SkelMeshComp is Null"));
+        return;
+    }
+
+    USkeletalMesh* SkelAsset = SkelMeshComp->GetSkeletalMeshAsset();
+    if (!SkelAsset)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Error: SkelMeshAsset is Null"));
+        return;
+    }
+
+    UDynamicMesh* DynMesh = DMC->GetDynamicMesh();
+    if (!DynMesh)
+    {
+        UE_LOG(LogTemp, Warning, (TEXT("Error: DynamicMesh is Null")));
+        return;
+    }
+
+    UE_LOG(LogTemp, Warning, (TEXT("ApplySkinningWithDMCData: Start")));
+
+    // 2. 데이터 준비
+    const TArray<FTransform>& CurrentBoneTransforms = SkelMeshComp->GetComponentSpaceTransforms();
+
+    // UE5.0+ GetRefBasesInvMatrix()
+    const TArray<FMatrix44f>& RefInvMatrices = SkelAsset->GetRefBasesInvMatrix();
+
+    int32 NumBones = RefInvMatrices.Num();
+    int32 NumCurrentTransforms = CurrentBoneTransforms.Num();
+
+    // 디버그: 본 개수 확인
+    UE_LOG(LogTemp, Warning, TEXT("Bone Check - RefBones: %d, CurrentTransforms: %d"), NumBones, NumCurrentTransforms);
+
+    if (NumCurrentTransforms < NumBones)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Error: Bone count mismatch! Transforms are fewer than RefBones."));
+        return;
+    }
+
+    // 3. 스키닝 행렬 미리 계산
+    TArray<FMatrix> SkinningMatrices;
+    SkinningMatrices.SetNumUninitialized(NumBones);
+
+    for (int32 i = 0; i < NumBones; i++)
+    {
+        FMatrix RefInvMat = FMatrix(RefInvMatrices[i]);
+        FMatrix CurrentMat = CurrentBoneTransforms[i].ToMatrixWithScale();
+        SkinningMatrices[i] = RefInvMat * CurrentMat;
+    }
+
+    FTransform DMCToWorld = DMC->GetComponentTransform();
+    FTransform SkelToWorld = SkelMeshComp->GetComponentTransform();
+    FMatrix ComponentToDMCLocal = (SkelToWorld * DMCToWorld.Inverse()).ToMatrixWithScale();
+
+    // 디버그: DMC와 SkelMesh의 위치 차이 확인
+    UE_LOG(LogTemp, Warning, TEXT("Transform Check - SkelLoc: %s, DMCLoc: %s"), *SkelToWorld.GetLocation().ToString(), *DMCToWorld.GetLocation().ToString());
+
+
+    // 4. 메쉬 편집 (CPU Skinning)
+    DynMesh->EditMesh([&](UE::Geometry::FDynamicMesh3& Mesh)
+        {
+            // 디버그: 속성 확인
+            if (!Mesh.HasAttributes())
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Error: Mesh has no attributes set!"));
+                return;
+            }
+            FName ProfileName = FSkeletalMeshAttributes::DefaultSkinWeightProfileName;
+            if (!Mesh.Attributes()->HasSkinWeightsAttribute(ProfileName))
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Error: Mesh has no 'SkinWeights' attribute!"));
+                return;
+            }
+
+            const auto* SkinWeightsAttr = Mesh.Attributes()->GetSkinWeightsAttribute(ProfileName);
+
+            TArray<int32> BoneIndices;
+            TArray<float> BoneWeights;
+
+            int32 ProcessedVerts = 0;
+            int32 MovedVerts = 0;
+
+            // 버텍스 루프
+            for (int32 VertID : Mesh.VertexIndicesItr())
+            {
+                FVector OriginalPos = Mesh.GetVertex(VertID);
+                FVector FinalPosCompSpace = FVector::ZeroVector;
+
+                SkinWeightsAttr->GetValue(VertID, BoneIndices, BoneWeights);
+
+                float TotalWeight = 0.0f;
+
+                for (int32 i = 0; i < BoneWeights.Num(); ++i)
+                {
+                    int32 BoneIndex = BoneIndices[i];
+                    float Weight = BoneWeights[i];
+
+                    if (Weight < KINDA_SMALL_NUMBER) continue;
+
+                    if (SkinningMatrices.IsValidIndex(BoneIndex))
+                    {
+                        FinalPosCompSpace += SkinningMatrices[BoneIndex].TransformPosition(OriginalPos) * Weight;
+                        TotalWeight += Weight;
+                    }
+                }
+
+                // 디버그: 첫 번째 버텍스(ID 0)에 대해서만 상세 로그 출력 (모두 출력하면 너무 느려짐)
+                if (VertID == 0)
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("Debug Vert[0] - Org: %s, SkinSpace: %s, TotalWeight: %f, NumBonesInf: %d"),
+                        *OriginalPos.ToString(),
+                        *FinalPosCompSpace.ToString(),
+                        TotalWeight,
+                        BoneWeights.Num());
+                }
+
+                if (TotalWeight > 0.0f)
+                {
+                    FVector FinalPosLocal = ComponentToDMCLocal.TransformPosition(FinalPosCompSpace);
+                    Mesh.SetVertex(VertID, FinalPosLocal);
+                    MovedVerts++;
+                }
+
+                ProcessedVerts++;
+            }
+
+            // 디버그: 전체 처리 통계
+            UE_LOG(LogTemp, Warning, TEXT("Skinning Loop Done - TotalVerts: %d, MovedVerts: %d"), ProcessedVerts, MovedVerts);
+
+        }, EDynamicMeshChangeType::GeneralEdit, EDynamicMeshAttributeChangeFlags::VertexPositions, false);
+
+    // 5. 노멀 재계산 (주석 해제 권장)
+    // UE::Geometry::FMeshNormals::QuickComputeVertexNormals(*DynMesh->GetMeshPtr());
+
+    DMC->NotifyMeshUpdated();
+
+    UE_LOG(LogTemp, Warning, TEXT("ApplySkinningWithDMCData: Finished"));
 }
 
 void USliceUtils::CloseMeshHoles(TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents, TArray<FLinearColor>& Colors)

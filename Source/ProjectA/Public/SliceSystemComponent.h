@@ -4,7 +4,35 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Utils/SliceUtils.h"
 #include "SliceSystemComponent.generated.h"
+
+// 섹션별로 업데이트할 데이터를 보관하는 구조체
+struct FProcMeshSectionBuffer
+{
+	TArray<FVector> Vertices;
+	TArray<FVector> Normals;
+	// UV, Color, Tangent는 변하지 않거나 빈 배열로
+	TArray<FVector2D> UVs;
+	TArray<FLinearColor> Colors;
+	TArray<FProcMeshTangent> Tangents;
+};
+
+//메쉬 하나(Stump 또는 Debris)를 관리하는 통합 구조체
+struct FSlicePMC
+{
+	//시각적 컴포넌트
+	UProceduralMeshComponent* ProcMeshComp = nullptr;
+
+	//스키닝 계산용 데이터 (Ref Pose 정보)
+	TArray<FCachedSkinVertex> SkinCache;
+
+	//GPU 전송용 버퍼 (Key: Section Index)
+	TMap<int32, FProcMeshSectionBuffer> UpdateBuffers;
+
+	bool bUpdateSkinning = false;
+
+};
 
 class UProceduralMeshComponent;
 class UMaterialInterface;
@@ -28,12 +56,12 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	// 절단 시 사용할 PMC 풀 (미리 만들어두고 껐다 켰다 함)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UProceduralMeshComponent* PMC_Stump; // 몸에 붙을 쪽
+	//// 절단 시 사용할 PMC 풀 (미리 만들어두고 껐다 켰다 함)
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	//UProceduralMeshComponent* PMC_Stump; // 몸에 붙을 쪽
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UProceduralMeshComponent* PMC_Debris; // 떨어져 나갈 쪽
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	//UProceduralMeshComponent* PMC_Debris; // 떨어져 나갈 쪽
 
 	// 외부에서 함수 호출하면 알아서 처리
 	UFUNCTION(BlueprintCallable, Category = "Slicing")
@@ -45,9 +73,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void CopyWeightAndSlice_DMC(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower);
 
-	UFUNCTION(BlueprintCallable)
-	void ApplySkinningWithDMCData(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp);
-
 protected:
 	
 	void SetupPMCs();
@@ -56,6 +81,15 @@ protected:
 
 	float GetBoneRadius(USkeletalMeshComponent* Mesh, FName BoneName);
 
+	void RefineSkinWeights(FSlicePMC& InSlicePMC, FName CutBoneName, bool bIsStump);
+
+	// 초기화 함수
+	void InitializePMCBuffers(FSlicePMC& InSlicePMC);
+
+	void PrecomputeSkinningMatrices();
+	// Tick에서 호출할 함수
+	void UpdatePMCSkinning(FSlicePMC& InSlicePMC);
+
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* SliceCapMaterial;
 
@@ -63,11 +97,15 @@ protected:
 	UStaticMesh* MeatCrossSectionMesh;
 
 protected:
+
+	FSlicePMC PMC_Stump;
+	FSlicePMC PMC_Debris;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UDynamicMeshComponent> DMC_Stump;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UDynamicMeshComponent> DMC_Debris;
 
-		
+	TArray<FMatrix> SkinningMatrices;
 };

@@ -31,12 +31,18 @@
 #include "DynamicMesh/DynamicVertexSkinWeightsAttribute.h"
 #include "Operations/TransferBoneWeights.h"
 
+//#include "SkeletalMeshLODRenderDataToDynamicMesh.h" 
+
+//#include <GeometryScriptingCore/Private/MeshAssetFunctions.cpp>
+//#include <GeometryScriptingCore/Public/GeometryScript/MeshAssetFunctions.h>
+
 // Sets default values for this component's properties
 USliceSystemComponent::USliceSystemComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+    PrimaryComponentTick.bStartWithTickEnabled = true;
 
 	// ...
 }
@@ -46,7 +52,7 @@ USliceSystemComponent::USliceSystemComponent()
 void USliceSystemComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
+    
     SetupPMCs();
    
     SetupDMCs();
@@ -68,9 +74,12 @@ void USliceSystemComponent::BeginPlay()
 // Called every frame
 void USliceSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+    //NET_LOG(TEXT(""));
+    PrecomputeSkinningMatrices();
+    UpdatePMCSkinning(PMC_Stump);
+    UpdatePMCSkinning(PMC_Debris);
 }
 
 void USliceSystemComponent::SliceBone(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower)
@@ -81,22 +90,22 @@ void USliceSystemComponent::SliceBone(FName TargetBone, const FVector& HitLocati
     USkeletalMeshComponent* Mesh = Character->GetMesh();
 
     // 1. 유틸 함수 호출 (이제 PMC_Stump는 TargetBone의 로컬 좌표계로 데이터가 채워짐)
-    USliceUtils::ConvertBoneToProcMesh(Mesh, TargetBone, PMC_Stump);
+    USliceUtils::ConvertBoneToProcMesh(Mesh, TargetBone, PMC_Stump.ProcMeshComp);
 
     // [중요] 자르기 전에 'Stump'를 타겟 본에 먼저 붙여야, Slice 함수가 월드 좌표를 로컬로 올바르게 변환함
     // 또한 애니메이션 위치에 맞게 메시가 정렬됨
-    PMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
-    PMC_Stump->SetRelativeTransform(FTransform::Identity); // 로컬 좌표계이므로 0,0,0으로 초기화
-    PMC_Stump->UpdateComponentToWorld(); // 월드 좌표 갱신 보장
+    PMC_Stump.ProcMeshComp->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
+    PMC_Stump.ProcMeshComp->SetRelativeTransform(FTransform::Identity); // 로컬 좌표계이므로 0,0,0으로 초기화
+    PMC_Stump.ProcMeshComp->UpdateComponentToWorld(); // 월드 좌표 갱신 보장
 
     // 2. 자르기
     // PMC_Stump가 이미 본 위치에 가 있으므로, Slice 함수가 내부적으로 HitLocation을 로컬로 잘 변환함
-    FVector CutLocation = PMC_Stump->Bounds.Origin;
+    FVector CutLocation = PMC_Stump.ProcMeshComp->Bounds.Origin;
 
 	UMaterialInterface* CapMaterial = SliceCapMaterial ? SliceCapMaterial : Mesh->GetMaterial(0);
     UKismetProceduralMeshLibrary::SliceProceduralMesh(
-        PMC_Stump, HitLocation, FVector::UpVector, true,
-        PMC_Debris, EProcMeshSliceCapOption::CreateNewSectionForCap,
+        PMC_Stump.ProcMeshComp, HitLocation, FVector::UpVector, true,
+        PMC_Debris.ProcMeshComp, EProcMeshSliceCapOption::CreateNewSectionForCap,
         CapMaterial
     );
 
@@ -104,8 +113,8 @@ void USliceSystemComponent::SliceBone(FName TargetBone, const FVector& HitLocati
 
     // [Debris 설정] : 잘려나간 부위
     // Debris는 TargetBone(물리 시뮬레이션 될 본)에 붙입니다.
-    PMC_Debris->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
-    PMC_Debris->SetRelativeTransform(FTransform::Identity); // 오프셋 없이 본 위치에 일치시킴
+    PMC_Debris.ProcMeshComp->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
+    PMC_Debris.ProcMeshComp->SetRelativeTransform(FTransform::Identity); // 오프셋 없이 본 위치에 일치시킴
    /* PMC_Stump->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepWorld, false));
     PMC_Stump->SetWorldTransform(FTransform(PMC_Stump->GetComponentRotation(), PMC_Stump->GetComponentLocation() + FVector(0.f, 0.f, 15.f), FVector::OneVector));*/
      
@@ -120,16 +129,16 @@ void USliceSystemComponent::SliceBone(FName TargetBone, const FVector& HitLocati
     if (TargetBoneIndex != INDEX_NONE && ParentBone != NAME_None)
     {
         // 1. 부모 본에 부착
-        PMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, ParentBone);
+        PMC_Stump.ProcMeshComp->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, ParentBone);
 
         // 2. 오프셋 적용 (TargetBone의 로컬 Transform을 적용)
         FTransform RefBoneTransform = Mesh->GetSkeletalMeshAsset()->GetRefSkeleton().GetRefBonePose()[TargetBoneIndex];
-        PMC_Stump->SetRelativeTransform(RefBoneTransform);
+        PMC_Stump.ProcMeshComp->SetRelativeTransform(RefBoneTransform);
     }
     else
     {
         // 부모가 없는 루트 본이거나 오류 상황이면 그냥 둠
-        PMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
+        PMC_Stump.ProcMeshComp->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
     }
 
     ////단면 메쉬 덮기
@@ -179,8 +188,8 @@ void USliceSystemComponent::SliceBone(FName TargetBone, const FVector& HitLocati
     //    AddCapMesh(PMC_Debris, HitLocation, -CutNormal);
     //}
 
-    PMC_Stump->SetVisibility(true);
-    PMC_Debris->SetVisibility(true);
+    PMC_Stump.ProcMeshComp->SetVisibility(true);
+    PMC_Debris.ProcMeshComp->SetVisibility(true);
 
     // 4. 물리 분리 (기존 코드 유지)
     Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -200,7 +209,7 @@ void USliceSystemComponent::SliceBone_DMC(FName TargetBone, const FVector& HitLo
     if (!Character) return;
 
     USkeletalMeshComponent* Mesh = Character->GetMesh();
-    if (!Mesh || !DMC_Stump || !DMC_Debris || !PMC_Stump || !PMC_Debris) return;
+    if (!Mesh || !DMC_Stump || !DMC_Debris) return;
 
     // -------------------------------------------------------------------------
     // 1. 현재 포즈 복제 (Snapshot)
@@ -278,35 +287,36 @@ void USliceSystemComponent::SliceBone_DMC(FName TargetBone, const FVector& HitLo
 
     // [Debris 처리]
     // Debris는 월드에 독립적으로 떨어져야 하므로 월드 좌표 그대로 PMC에 넣음
-    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Debris, PMC_Debris);
+    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Debris, PMC_Debris.ProcMeshComp);
+    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Stump, PMC_Stump.ProcMeshComp);
 
-    PMC_Debris->SetWorldTransform(FTransform::Identity);
-    PMC_Debris->SetVisibility(true);
-    PMC_Debris->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
+    //PMC_Debris.ProcMeshComp->SetWorldTransform(FTransform::Identity);
+    //PMC_Debris.ProcMeshComp->SetVisibility(true);
+    //PMC_Debris.ProcMeshComp->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
+    //PMC_Stump->SetVisibility(true);
 
+    
 
-    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Stump, PMC_Stump);
-
-    PMC_Stump->SetVisibility(true);
+    
 
     FName ParentBone = Mesh->GetParentBone(TargetBone);
     int32 TargetBoneIndex = Mesh->GetBoneIndex(TargetBone);
 
     if (TargetBoneIndex != INDEX_NONE && ParentBone != NAME_None)
     {
-        PMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, ParentBone);
+        DMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, ParentBone);
 
         FTransform RefBoneTransform = Mesh->GetSkeletalMeshAsset()->GetRefSkeleton().GetRefBonePose()[TargetBoneIndex];
     }
     else
     {
-        PMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
+        DMC_Stump->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TargetBone);
     }
 
     Mesh->SetVisibility(true); // 원본 숨김
     
-    DMC_Stump->SetVisibility(false);
-    DMC_Debris->SetVisibility(false);
+    DMC_Stump->SetVisibility(true);
+    DMC_Debris->SetVisibility(true);
 
     // 4. 물리 분리 (기존 코드 유지)
     Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -320,11 +330,14 @@ void USliceSystemComponent::SliceBone_DMC(FName TargetBone, const FVector& HitLo
 
 void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower)
 {
+    /*
+    * 스켈레탈 메쉬 Allow CPU Access true !!
+    */
     ACharacter* Character = Cast<ACharacter>(GetOwner());
     if (!Character) return;
 
     USkeletalMeshComponent* Mesh = Character->GetMesh();
-    if (!Mesh || !DMC_Stump || !DMC_Debris || !PMC_Stump || !PMC_Debris) return;
+    if (!Mesh || !DMC_Stump || !DMC_Debris) return;
 
     FTransform MeshTransform;
     EGeometryScriptOutcomePins Outcome;
@@ -341,11 +354,28 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
 	const ConversionOptions& Options,
 	FDynamicMesh3& OutputMesh) 
     */
+
+    //UELocal::CopyMeshFromSkeletalMesh_RenderData()
+    //UE::Geometry::FSkelalmesh
+    /*	const FSkeletalMeshLODRenderData* SkeletalMeshResources,
+	const FReferenceSkeleton& RefSkeleton,
+	const ConversionOptions& Options,
+	FDynamicMesh3& OutputMesh,
+	bool bHasVertexColors,
+	TFunctionRef<FColor(int32)> GetVertexColorFromLODVertexIndex)
+    */
+ /*   UELocal::CopyMeshFromSkeletalMesh_RenderData(
+        Mesh->GetSkeletalMeshAsset(), 
+        CopyMeshFromAssetOptions, 
+        GeometryScriptMeshReadLOD.LODIndex, 
+        DMC_Stump->GetDynamicMesh(), 
+        nullptr);*/
     DMC_Stump->GetDynamicMesh()->Reset();
+    //USliceUtils::InitializeDMCFromSkeletalMesh(DMC_Stump, Mesh, Outcome);
     UGeometryScriptLibrary_StaticMeshFunctions::CopyMeshFromSkeletalMesh(
         Mesh->GetSkeletalMeshAsset(),
-        DMC_Stump->GetDynamicMesh(), 
-        CopyMeshFromAssetOptions, 
+        DMC_Stump->GetDynamicMesh(),
+        CopyMeshFromAssetOptions,
         GeometryScriptMeshReadLOD,
         Outcome,
         nullptr
@@ -353,11 +383,12 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
 
     if (Outcome == EGeometryScriptOutcomePins::Failure)
     {
-        NET_LOG(TEXT("!!!!!! CopyMeshFromSkeletalMesh Fail"));
+        NET_LOG(TEXT("Error: InitializeDMCFromSkeletalMesh fail"));
         return;
     }
 
     DMC_Debris->GetDynamicMesh()->Reset();
+    //USliceUtils::InitializeDMCFromSkeletalMesh(DMC_Debris, Mesh, Outcome);
     UGeometryScriptLibrary_StaticMeshFunctions::CopyMeshFromSkeletalMesh(
         Mesh->GetSkeletalMeshAsset(),
         DMC_Debris->GetDynamicMesh(),
@@ -369,154 +400,70 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
 
     if (Outcome == EGeometryScriptOutcomePins::Failure)
     {
-        NET_LOG(TEXT("!!!!!! CopyMeshFromSkeletalMesh Fail"));
+        NET_LOG(TEXT("Error: InitializeDMCFromSkeletalMesh fail"));
         return;
     }
 
-    ApplySkinningWithDMCData(DMC_Stump, Mesh);
-    // 월드 좌표계 기준 평면 생성
-    //FTransform CutPlaneTransform = FTransform(UKismetMathLibrary::MakeRotFromZ(CutNormal), HitLocation);
+    //USliceUtils::ApplySkinningWithDMCData(DMC_Stump, Mesh);
+    //USliceUtils::ApplySkinningWithDMCData(DMC_Debris, Mesh);
 
-    //FGeometryScriptMeshPlaneCutOptions PlaneCutOptions;
-    //PlaneCutOptions.bFillHoles = true;
-    //PlaneCutOptions.bFlipCutSide = true;
-    //PlaneCutOptions.HoleFillMaterialID = 10;
+    //월드 공간의 절단 평면을 'T-Pose 공간'으로 변환(핵심!)
+    FTransform MeshCompWorldTransform = Mesh->GetComponentTransform();
+    FTransform CutPlaneWorldTransform = FTransform(UKismetMathLibrary::MakeRotFromZ(CutNormal), HitLocation);
 
-    //UGeometryScriptLibrary_MeshBooleanFunctions::ApplyMeshPlaneCut(
-    //    DMC_Stump->GetDynamicMesh(),
-    //    CutPlaneTransform,
-    //    PlaneCutOptions
-    //);
+    // 월드 절단 평면을 캐릭터의 컴포넌트 로컬 공간으로 변환
+    // CopyMeshFromSkeletalMesh로 가져온 DMC는 이 컴포넌트의 T-Pose 상태이므로
+    // 이 로컬 공간이 곧 DMC의 T-Pose 공간과 일치합니다.
+    FTransform CutPlaneInDMCRefPoseSpace = CutPlaneWorldTransform.GetRelativeTransform(MeshCompWorldTransform);
 
-    //PlaneCutOptions.bFlipCutSide = false;
+    FGeometryScriptMeshPlaneCutOptions PlaneCutOptions;
+    PlaneCutOptions.bFillHoles = true;
+    PlaneCutOptions.bFlipCutSide = true;
 
-    //UGeometryScriptLibrary_MeshBooleanFunctions::ApplyMeshPlaneCut(
-    //    DMC_Debris->GetDynamicMesh(),
-    //    CutPlaneTransform,
-    //    PlaneCutOptions
-    //);
+    UGeometryScriptLibrary_MeshBooleanFunctions::ApplyMeshPlaneCut(
+        DMC_Stump->GetDynamicMesh(),
+        CutPlaneInDMCRefPoseSpace,
+        PlaneCutOptions
+    );
+
+    PlaneCutOptions.bFlipCutSide = false;
+
+    UGeometryScriptLibrary_MeshBooleanFunctions::ApplyMeshPlaneCut(
+        DMC_Debris->GetDynamicMesh(),
+        CutPlaneInDMCRefPoseSpace,
+        PlaneCutOptions
+    );
 
     DMC_Stump->SetVisibility(true);
     DMC_Debris->SetVisibility(true);
-}
+    DMC_Debris->AddLocalOffset(FVector(0, 0, 20.f));
 
-void USliceSystemComponent::ApplySkinningWithDMCData(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp)
-{
-    // 1. 유효성 체크
-    if (!DMC || !SkelMeshComp) return;
+    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Stump, PMC_Stump.ProcMeshComp, PMC_Stump.SkinCache);
+    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Debris, PMC_Debris.ProcMeshComp, PMC_Debris.SkinCache);
 
-    USkeletalMesh* SkelAsset = SkelMeshComp->GetSkeletalMeshAsset();
-    if (!SkelAsset) return;
+    PMC_Stump.ProcMeshComp->SetVisibility(true);
+    PMC_Debris.ProcMeshComp->SetVisibility(true);
+    //PMC_Debris.ProcMeshComp->AddLocalOffset(FVector(0, 0, 20.f));
 
-    UDynamicMesh* DynMesh = DMC->GetDynamicMesh();
-    if (!DynMesh) return;
+    // Stump는 TargetBone(잘린 뼈)과 그 자식들의 웨이트를 버림
+    RefineSkinWeights(PMC_Stump, TargetBone, true);
 
-    NET_LOG(TEXT(""));
+    // Debris는 TargetBone과 그 자식들의 웨이트만 가짐 (나머지 버림)
+    RefineSkinWeights(PMC_Debris, TargetBone, false);
 
-    // 2. 데이터 준비
-    // A. 현재 프레임의 뼈 변환 (Component Space)
-    const TArray<FTransform>& CurrentBoneTransforms = SkelMeshComp->GetComponentSpaceTransforms();
+    InitializePMCBuffers(PMC_Stump);
+    InitializePMCBuffers(PMC_Debris);
 
-    // B. T-Pose 역행렬 (Ref-Pose Inverse)
-    // UE5.0+ 에서는 GetRefBasesInvMatrix()가 public 접근 가능합니다.
-    const TArray<FMatrix44f>& RefInvMatrices = SkelAsset->GetRefBasesInvMatrix();
+    PMC_Stump.bUpdateSkinning = true;
+    PMC_Debris.bUpdateSkinning = true;
 
-    // 데이터 개수 불일치 방어
-    int32 NumBones = RefInvMatrices.Num();
-    if (CurrentBoneTransforms.Num() < NumBones) return;
+    Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    Mesh->SetAllBodiesBelowSimulatePhysics(TargetBone, true); // TargetBone 이하는 물리 적용되어 떨어져 나감
+    Mesh->BreakConstraint(-HitNormal * ImpulsePower, HitLocation, TargetBone);
+    //Mesh->AddImpulse(-HitNormal * ImpulsePower, TargetBone, false);
 
-    // 3. [최적화] 스키닝 행렬 미리 계산 (Pre-calculate Skinning Matrices)
-    // 루프 안에서 매번 행렬 곱을 하지 않고, 뼈 개수만큼만 미리 계산합니다.
-    TArray<FMatrix> SkinningMatrices;
-    SkinningMatrices.SetNumUninitialized(NumBones);
-
-    for (int32 i = 0; i < NumBones; i++)
-    {
-        // RefInv(Local->Bone) * Current(Bone->Component)
-        // FMatrix44f를 FMatrix(double 정밀도)로 변환
-        FMatrix RefInvMat = FMatrix(RefInvMatrices[i]);
-        FMatrix CurrentMat = CurrentBoneTransforms[i].ToMatrixWithScale();
-
-        // 언리얼 행렬 곱 순서: V_New = V_Old * (RefInv * Current)
-        SkinningMatrices[i] = RefInvMat * CurrentMat;
-    }
-
-    // DMC가 SkelMesh와 다른 Transform을 가질 경우를 대비해 Local 변환 행렬 준비
-    // 만약 DMC가 SkelMesh 자식으로 0,0,0에 붙어있다면 Identity이므로 영향 없음
-    FTransform DMCToWorld = DMC->GetComponentTransform();
-    FTransform SkelToWorld = SkelMeshComp->GetComponentTransform();
-    // SkelMesh Component Space -> World -> DMC Local Space
-    // (보통 Slice 시에는 DMC를 World에 고정하므로 이 변환이 중요할 수 있습니다)
-    FMatrix ComponentToDMCLocal = (SkelToWorld * DMCToWorld.Inverse()).ToMatrixWithScale();
-
-
-    // 4. 메쉬 편집 (CPU Skinning)
-    DynMesh->EditMesh([&](UE::Geometry::FDynamicMesh3& Mesh)
-        {
-            // SkinWeights Attribute 확인
-            if (!Mesh.HasAttributes() || !Mesh.Attributes()->HasSkinWeightsAttribute(FName("SkinWeights")))
-            {
-                // 웨이트 정보가 없으면 스키닝 불가
-                return;
-            }
-
-            const auto* SkinWeightsAttr = Mesh.Attributes()->GetSkinWeightsAttribute(FName("SkinWeights"));
-
-            TArray<int32> BoneIndices;
-            TArray<float> BoneWeights;
-
-            // 버텍스 루프
-            for (int32 VertID : Mesh.VertexIndicesItr())
-            {
-                // *주의*: 여기서 GetVertex는 반드시 'T-Pose(Bind Pose)' 상태의 위치여야 합니다.
-                // 이미 변형된 메쉬라면 이 함수를 두 번 실행했을 때 모양이 이상해집니다.
-                FVector OriginalPos = Mesh.GetVertex(VertID);
-
-                FVector FinalPosCompSpace = FVector::ZeroVector; // Component Space 위치
-
-                
-                //GetValue에 빈 배열을 넘겨주면, 함수가 알아서 채움
-                SkinWeightsAttr->GetValue(VertID, BoneIndices, BoneWeights);
-
-                float TotalWeight = 0.0f;
-
-                for (int32 i = 0; i < BoneWeights.Num(); ++i)
-                {
-                    int32 BoneIndex = BoneIndices[i];
-                    float Weight = BoneWeights[i];
-
-                    if (Weight < KINDA_SMALL_NUMBER) continue;
-
-                    if (SkinningMatrices.IsValidIndex(BoneIndex))
-                    {
-                        // 미리 계산된 행렬 사용
-                        FinalPosCompSpace += SkinningMatrices[BoneIndex].TransformPosition(OriginalPos) * Weight;
-                        TotalWeight += Weight;
-                    }
-                }
-
-                // 웨이트가 유효하다면 위치 업데이트
-                if (TotalWeight > 0.0f)
-                {
-                    // Component Space -> DMC Local Space 변환 후 적용
-                    // (DMC와 SkelMesh 위치가 같다면 FinalPosCompSpace 그대로 사용 가능)
-                    FVector FinalPosLocal = ComponentToDMCLocal.TransformPosition(FinalPosCompSpace);
-
-                    Mesh.SetVertex(VertID, FinalPosLocal);
-                }
-            }
-        }, EDynamicMeshChangeType::GeneralEdit, EDynamicMeshAttributeChangeFlags::VertexPositions, false);
-
-    // 5. 노멀 및 물리 업데이트
-    // 위치 변경 후 노멀 재계산은 필수 (안 하면 쉐이딩 깨짐)
-    // (UE::Geometry::FDynamicMesh3 내부 함수 혹은 라이브러리 사용)
-    //UE::Geometry::FMeshNormals::QuickComputeVertexNormals(*DynMesh->GetMeshPtr());
-
-    // 변경 사항 알림
-    DMC->NotifyMeshUpdated();
-
-    // 필요 시 콜리전 업데이트 (비용이 크므로 상황에 따라 호출)
-    // DMC->UpdateCollisionFromMesh(); 
+    // 5. 마스킹
+    USliceUtils::MaskTargetBoneOnly(Character->GetMesh(), TargetBone);
 }
 
 void USliceSystemComponent::SetupPMCs()
@@ -525,17 +472,18 @@ void USliceSystemComponent::SetupPMCs()
     if (!Owner) return;
 
     // 런타임에 PMC 생성 및 등록
-    PMC_Stump = NewObject<UProceduralMeshComponent>(Owner, TEXT("PMC_Stump"));
-    PMC_Stump->RegisterComponent();
-    PMC_Stump->AttachToComponent(Owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-    PMC_Stump->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    PMC_Stump->SetVisibility(false);
+    PMC_Stump.ProcMeshComp = NewObject<UProceduralMeshComponent>(Owner, TEXT("PMC_Stump"));
+    PMC_Stump.ProcMeshComp->RegisterComponent();
+    PMC_Stump.ProcMeshComp->AttachToComponent(Owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+    PMC_Stump.ProcMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    PMC_Stump.ProcMeshComp->SetVisibility(false);
+    //PMC_Stump->UpdateMeshSection_LinearColor()
 
-    PMC_Debris = NewObject<UProceduralMeshComponent>(Owner, TEXT("PMC_Debris"));
-    PMC_Debris->RegisterComponent();
-    PMC_Debris->AttachToComponent(Owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-    PMC_Debris->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-    PMC_Debris->SetVisibility(false);
+    PMC_Debris.ProcMeshComp = NewObject<UProceduralMeshComponent>(Owner, TEXT("PMC_Debris"));
+    PMC_Debris.ProcMeshComp->RegisterComponent();
+    PMC_Debris.ProcMeshComp->AttachToComponent(Owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+    PMC_Debris.ProcMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    PMC_Debris.ProcMeshComp->SetVisibility(false);
 }
 
 void USliceSystemComponent::SetupDMCs()
@@ -543,17 +491,17 @@ void USliceSystemComponent::SetupDMCs()
     AActor* Owner = GetOwner();
     if (!Owner) return;
 
-    // Stump 생성 (몸통 부착용)
+    // Stump 생성
     DMC_Stump = NewObject<UDynamicMeshComponent>(Owner, TEXT("DMC_Stump"));
     DMC_Stump->RegisterComponent();
     DMC_Stump->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Stump는 보통 충돌 끔
     DMC_Stump->SetVisibility(false);
 
-    // Debris 생성 (물리용)
+    // Debris 생성
     DMC_Debris = NewObject<UDynamicMeshComponent>(Owner, TEXT("DMC_Debris"));
     DMC_Debris->RegisterComponent();
-    DMC_Debris->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-    DMC_Debris->EnableComplexAsSimpleCollision(); // 복잡한 모양대로 물리 적용
+    DMC_Debris->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    //DMC_Debris->EnableComplexAsSimpleCollision(); // 복잡한 모양대로 물리 적용
     DMC_Debris->SetVisibility(false);
 }
 
@@ -577,4 +525,266 @@ float USliceSystemComponent::GetBoneRadius(USkeletalMeshComponent* Mesh, FName B
     }
 
     return 10.0f; // 실패 시 기본값
+}
+
+void USliceSystemComponent::RefineSkinWeights(FSlicePMC& InSlicePMC, FName CutBoneName, bool bIsStump)
+{
+    ACharacter* Character = Cast<ACharacter>(GetOwner());
+    if (!Character || !Character->GetMesh()) return;
+
+    const FReferenceSkeleton& RefSkeleton = Character->GetMesh()->GetSkeletalMeshAsset()->GetRefSkeleton();
+    int32 CutBoneIndex = RefSkeleton.FindBoneIndex(CutBoneName);
+
+    if (CutBoneIndex == INDEX_NONE) return;
+
+    // 1. "Debris에 속하는 본" 목록 작성 (CutBone과 그 자식들)
+    // 빠른 검색을 위해 BitArray나 Bool Array 사용
+    TArray<bool> IsDebrisBone;
+    IsDebrisBone.Init(false, RefSkeleton.GetNum());
+
+    // CutBone 자신 포함
+    IsDebrisBone[CutBoneIndex] = true;
+
+    // 모든 본을 순회하며 CutBone의 자식인지 확인
+    // (Bone Index는 보통 부모 < 자식 순서지만, 안전하게 전체 순회 혹은 재귀)
+    for (int32 i = CutBoneIndex + 1; i < RefSkeleton.GetNum(); ++i)
+    {
+        int32 ParentIndex = RefSkeleton.GetParentIndex(i);
+        // 내 부모가 Debris 그룹이면 나도 Debris 그룹
+        if (ParentIndex != INDEX_NONE && IsDebrisBone[ParentIndex])
+        {
+            IsDebrisBone[i] = true;
+        }
+    }
+
+    // 2. SkinCache 순회하며 웨이트 수정
+    for (FCachedSkinVertex& V : InSlicePMC.SkinCache)
+    {
+        float TotalWeight = 0.0f;
+
+        for (int32 w = 0; w < 4; ++w)
+        {
+            int32 BoneIdx = V.BoneIndices[w];
+            float& Weight = V.BoneWeights[w];
+
+            if (Weight <= 0.0f) continue;
+
+            bool bBoneIsDebris = IsDebrisBone.IsValidIndex(BoneIdx) ? IsDebrisBone[BoneIdx] : false;
+
+            // [로직] 
+            // Stump(몸통)인데 Debris 본 웨이트를 갖고 있다면? -> 제거
+            // Debris(파편)인데 Stump 본 웨이트를 갖고 있다면? -> 제거
+            if (bIsStump && bBoneIsDebris)
+            {
+                Weight = 0.0f;
+            }
+            else if (!bIsStump && !bBoneIsDebris)
+            {
+                Weight = 0.0f;
+            }
+
+            TotalWeight += Weight;
+        }
+
+        // 3. 정규화 (Normalization) & 고아 버텍스 구제
+        if (TotalWeight > 0.001f)
+        {
+            // 남은 웨이트 비율대로 다시 1.0으로 맞춤
+            for (int32 w = 0; w < 4; ++w)
+            {
+                V.BoneWeights[w] /= TotalWeight;
+            }
+        }
+        else
+        {
+            // [중요] 모든 웨이트가 지워진 경우 (경계선 버텍스)
+            // Stump라면 -> CutBone의 부모에게 붙임
+            // Debris라면 -> CutBone 자신에게 붙임
+
+            FMemory::Memzero(V.BoneWeights, sizeof(V.BoneWeights)); // 초기화
+            V.BoneWeights[0] = 1.0f;
+
+            if (bIsStump)
+            {
+                int32 ParentIdx = RefSkeleton.GetParentIndex(CutBoneIndex);
+                // 부모가 없으면(루트면) 그냥 루트에
+                V.BoneIndices[0] = (ParentIdx != INDEX_NONE) ? ParentIdx : 0;
+            }
+            else
+            {
+                V.BoneIndices[0] = CutBoneIndex;
+            }
+        }
+    }
+}
+
+void USliceSystemComponent::InitializePMCBuffers(FSlicePMC& InSlicePMC)
+{
+    if (!InSlicePMC.ProcMeshComp) return;
+
+    InSlicePMC.UpdateBuffers.Empty();
+
+    int32 NumSections = InSlicePMC.ProcMeshComp->GetNumSections();
+    for (int32 SecIdx = 0; SecIdx < NumSections; SecIdx++)
+    {
+        FProcMeshSection* Section = InSlicePMC.ProcMeshComp->GetProcMeshSection(SecIdx);
+        if (Section && Section->ProcVertexBuffer.Num() > 0)
+        {
+            FProcMeshSectionBuffer& Buffer = InSlicePMC.UpdateBuffers.Add(SecIdx);
+
+            int32 NumVerts = Section->ProcVertexBuffer.Num();
+
+            // 1. 메모리 할당
+            Buffer.Vertices.SetNumUninitialized(NumVerts);
+            Buffer.Normals.SetNumUninitialized(NumVerts);
+            Buffer.UVs.SetNumUninitialized(NumVerts);
+            Buffer.Colors.SetNumUninitialized(NumVerts);
+            Buffer.Tangents.SetNumUninitialized(NumVerts);
+
+            // 2. 기존 데이터 백업 (중요!)
+            // FProcMeshVertex 구조체에서 데이터를 분리하여 Buffer 배열에 옮겨담아야 함
+            for (int32 i = 0; i < NumVerts; ++i)
+            {
+                const FProcMeshVertex& SrcVert = Section->ProcVertexBuffer[i];
+
+                // 위치와 노멀은 어차피 매 프레임 덮어쓰지만 초기값으로 넣어둠
+                Buffer.Vertices[i] = SrcVert.Position;
+                Buffer.Normals[i] = SrcVert.Normal;
+
+                // [핵심] 정적 데이터 백업 (이게 없으면 텍스처 안 나옴)
+                Buffer.UVs[i] = SrcVert.UV0;
+                Buffer.Colors[i] = FLinearColor(SrcVert.Color); // FColor -> FLinearColor 변환
+                Buffer.Tangents[i] = SrcVert.Tangent;
+            }
+        }
+    }
+}
+
+void USliceSystemComponent::PrecomputeSkinningMatrices()
+{
+    ACharacter* Character = Cast<ACharacter>(GetOwner());
+    if (!Character) return;
+    USkeletalMeshComponent* Mesh = Character->GetMesh();
+    if (!Mesh) return;
+
+    // (A) 현재 본 트랜스폼 (Component Space)
+    const TArray<FTransform>& ComponentSpaceTransforms = Mesh->GetComponentSpaceTransforms();
+
+    // (B) 레퍼런스 포즈 역행렬
+    const auto& RefInvMatrices = Mesh->GetSkeletalMeshAsset()->GetRefBasesInvMatrix();
+
+    int32 NumBones = RefInvMatrices.Num();
+    if (SkinningMatrices.Num() != NumBones)
+    {
+        SkinningMatrices.SetNumUninitialized(NumBones);
+    }
+
+    // (C) 행렬 곱 계산 (RefInv * Current)
+    ParallelFor(NumBones, [&](int32 BoneIdx)
+        {
+            if (ComponentSpaceTransforms.IsValidIndex(BoneIdx))
+            {
+                FMatrix RefInv = (FMatrix)RefInvMatrices[BoneIdx];
+                FMatrix Current = ComponentSpaceTransforms[BoneIdx].ToMatrixWithScale();
+                SkinningMatrices[BoneIdx] = RefInv * Current;
+            }
+        });
+}
+
+void USliceSystemComponent::UpdatePMCSkinning(FSlicePMC& InSlicePMC)
+{
+    // 1. 유효성 검사 (Fail Fast)
+    // PMC가 없거나, 캐시 데이터가 없거나, 본 행렬이 준비되지 않았으면 리턴
+    if (!InSlicePMC.bUpdateSkinning || !InSlicePMC.ProcMeshComp || InSlicePMC.SkinCache.Num() == 0 || SkinningMatrices.Num() == 0)
+    {
+        return;
+    }
+
+    // 2. TMap Lookup 최적화 (Pre-calculation)
+    // ParallelFor 내부에서 TMap::Find는 느리므로, SectionIndex로 바로 접근 가능한 포인터 배열을 만듭니다.
+    int32 MaxSectionIndex = 0;
+    for (const auto& Pair : InSlicePMC.UpdateBuffers)
+    {
+        if (Pair.Key > MaxSectionIndex)
+        {
+            MaxSectionIndex = Pair.Key;
+        }
+    }
+
+    // Lookup 테이블 생성 (인덱스 = SectionIndex, 값 = 버퍼 포인터)
+    TArray<FProcMeshSectionBuffer*> FastBufferLookup;
+    FastBufferLookup.SetNumZeroed(MaxSectionIndex + 1);
+
+    for (auto& Pair : InSlicePMC.UpdateBuffers)
+    {
+        FastBufferLookup[Pair.Key] = &Pair.Value;
+    }
+
+    // 로컬 변수로 행렬 개수 캐싱 (루프 내 접근 비용 절약)
+    const int32 MatrixCount = SkinningMatrices.Num();
+    const FCachedSkinVertex* CacheData = InSlicePMC.SkinCache.GetData(); // Raw Pointer for Speed
+
+    // 3. 병렬 연산 (ParallelFor)
+    ParallelFor(InSlicePMC.SkinCache.Num(), [&](int32 i)
+        {
+            const FCachedSkinVertex& V = CacheData[i];
+
+            // Lookup 테이블을 통해 O(1)로 버퍼 접근 (락 불필요: 읽기 전용 Lookup + 서로 다른 VertIndex 쓰기)
+            if (!FastBufferLookup.IsValidIndex(V.SectionIndex)) return;
+            FProcMeshSectionBuffer* Buffer = FastBufferLookup[V.SectionIndex];
+
+            if (!Buffer || !Buffer->Vertices.IsValidIndex(V.VertIndex)) return;
+
+            // 최종 위치/노멀 계산
+            FVector FinalPos = FVector::ZeroVector;
+            FVector FinalNormal = FVector::ZeroVector;
+
+            // Loop Unrolling 고려: 4번 고정이므로 컴파일러가 알아서 최적화하겠지만 명시적으로 깔끔하게 작성
+            for (int32 w = 0; w < 4; ++w)
+            {
+                const float Weight = V.BoneWeights[w];
+
+                // 유의미한 웨이트만 계산 (최적화 핵심)
+                if (Weight > 0.01f)
+                {
+                    const int32 BoneIdx = V.BoneIndices[w];
+
+                    // 행렬 인덱스 유효성 체크 (Bounds Check)
+                    if (BoneIdx >= 0 && BoneIdx < MatrixCount)
+                    {
+                        const FMatrix& Mat = SkinningMatrices[BoneIdx];
+
+                        // TransformPosition/Vector 연산
+                        FinalPos += Mat.TransformPosition(V.InitialPos) * Weight;
+                        FinalNormal += Mat.TransformVector(V.InitialNormal) * Weight;
+                    }
+                }
+            }
+
+            // 결과 쓰기 (Thread-Safe: 각 스레드는 고유한 V.SectionIndex -> V.VertIndex에만 씀)
+            Buffer->Vertices[V.VertIndex] = FinalPos;
+            Buffer->Normals[V.VertIndex] = FinalNormal.GetSafeNormal(); // 정규화 필수
+        });
+
+    // 4. GPU 데이터 전송 (반드시 Main Thread에서 수행)
+    // TMap 순회하며 변경된 버퍼 업데이트
+    for (auto& Elem : InSlicePMC.UpdateBuffers)
+    {
+        const int32 SectionIdx = Elem.Key;
+        const FProcMeshSectionBuffer& Buff = Elem.Value; // const reference로 복사 방지
+
+        // 업데이트 수행
+        InSlicePMC.ProcMeshComp->UpdateMeshSection_LinearColor(
+            SectionIdx,
+            Buff.Vertices,
+            Buff.Normals,
+            Buff.UVs,       // 백업된 UV 유지
+            TArray<FVector2D>(), // UV1 (Empty)
+            TArray<FVector2D>(), // UV2 (Empty)
+            TArray<FVector2D>(), // UV3 (Empty)
+            Buff.Colors,    // 백업된 Color 유지
+            Buff.Tangents,  // 백업된 Tangent 유지
+            false           // Collision Update 끔 (성능상 매우 중요)
+        );
+    }
 }

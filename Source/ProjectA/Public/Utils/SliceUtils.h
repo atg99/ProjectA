@@ -35,6 +35,17 @@ struct FMeshEdge
     }
 };
 
+//weight cache
+struct FCachedSkinVertex
+{
+    FVector InitialPos;      // 초기 위치 (Ref Pose)
+    FVector InitialNormal;   // 초기 노멀
+    int32 SectionIndex;      // PMC의 몇 번째 섹션인지
+    int32 VertIndex;         // 해당 섹션의 몇 번째 버텍스인지
+    int32 BoneIndices[4];    // 본 인덱스
+    float BoneWeights[4];    // 본 웨이트
+};
+
 class UProceduralMeshComponent;
 class UDynamicMeshComponent;
 
@@ -55,6 +66,15 @@ public:
 	
     UFUNCTION(BlueprintCallable, Category = "Slicing")
     static void ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp);
+
+    static void ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp, TArray<FCachedSkinVertex>& OutCache);
+
+    UFUNCTION(BlueprintCallable, Category = "Slicing")
+    static void InitializeDMCFromSkeletalMesh(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp, EGeometryScriptOutcomePins& OutCome);
+
+    UFUNCTION(BlueprintCallable, Category = "Slicing")
+    static void ApplySkinningWithDMCData(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp);
+    
 private:
     // 구멍을 찾아서 메우는 함수
     static void CloseMeshHoles(TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents, TArray<FLinearColor>& Colors);
