@@ -404,21 +404,57 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
         return;
     }
 
-    //USliceUtils::ApplySkinningWithDMCData(DMC_Stump, Mesh);
-    //USliceUtils::ApplySkinningWithDMCData(DMC_Debris, Mesh);
+    // 머터리얼 에셋 동기화
+    int32 NumMaterials = Mesh->GetNumMaterials();
+    for (int32 i = 0; i < NumMaterials; i++)
+    {
+        UMaterialInterface* Mat = Mesh->GetMaterial(i);
 
-    //월드 공간의 절단 평면을 'T-Pose 공간'으로 변환(핵심!)
-    FTransform MeshCompWorldTransform = Mesh->GetComponentTransform();
+        // DMC에 머터리얼 할당
+        DMC_Stump->SetMaterial(i, Mat);
+        DMC_Debris->SetMaterial(i, Mat);
+    }
+
+    // 1. 월드 공간의 절단 평면 Transform 생성
     FTransform CutPlaneWorldTransform = FTransform(UKismetMathLibrary::MakeRotFromZ(CutNormal), HitLocation);
 
-    // 월드 절단 평면을 캐릭터의 컴포넌트 로컬 공간으로 변환
-    // CopyMeshFromSkeletalMesh로 가져온 DMC는 이 컴포넌트의 T-Pose 상태이므로
-    // 이 로컬 공간이 곧 DMC의 T-Pose 공간과 일치합니다.
-    FTransform CutPlaneInDMCRefPoseSpace = CutPlaneWorldTransform.GetRelativeTransform(MeshCompWorldTransform);
+    // 2. 기준이 될 뼈(TargetBone)의 현재 월드 Transform 가져오기 (애니메이션 적용됨)
+    FTransform BoneWorldTransform = Mesh->GetSocketTransform(TargetBone, RTS_World);
+
+    // 3. 절단면이 뼈 기준으로 어디에 있는지(상대 좌표) 계산
+    // "뼈가 이만큼 움직일 때 절단면도 같이 움직였다"고 가정
+    FTransform PlaneRelativeToBone = CutPlaneWorldTransform.GetRelativeTransform(BoneWorldTransform);
+
+    // 4. T-Pose 상태(Ref Pose)에서의 뼈 Transform 계산
+    // (DMC는 T-Pose 상태이므로, T-Pose 기준의 뼈 위치를 알아야 함)
+    const FReferenceSkeleton& RefSkeleton = Mesh->GetSkeletalMeshAsset()->GetRefSkeleton();
+    int32 BoneIndex = Mesh->GetBoneIndex(TargetBone);
+
+    FTransform BoneRefPoseCompSpace = FTransform::Identity;
+    if (BoneIndex != INDEX_NONE)
+    {
+        // RefPose의 Component Space Transform을 구하는 함수
+        // (단일 본만 구하면 비효율적일 수 있으나 로직 설명상 명확함. 
+        //  최적화하려면 FillUpComponentSpaceTransforms를 사용해 전체를 캐싱하는 것이 좋음)
+        TArray<FTransform> ComponentSpaceTransforms;
+        FAnimationRuntime::FillUpComponentSpaceTransforms(RefSkeleton, RefSkeleton.GetRefBonePose(), ComponentSpaceTransforms);
+
+        if (ComponentSpaceTransforms.IsValidIndex(BoneIndex))
+        {
+            BoneRefPoseCompSpace = ComponentSpaceTransforms[BoneIndex];
+        }
+    }
+
+    // 5. 최종: T-Pose 뼈 위치에 아까 구한 상대 좌표를 적용 -> DMC 기준 절단면 완성
+    FTransform CutPlaneInDMCRefPoseSpace = PlaneRelativeToBone * BoneRefPoseCompSpace;
+
+	TSet<int32> TargetBoneIndices;
+	USliceUtils::FindPlaneCutBones(Mesh->GetSkeletalMeshAsset(), CutPlaneInDMCRefPoseSpace, TargetBoneIndices);
 
     FGeometryScriptMeshPlaneCutOptions PlaneCutOptions;
     PlaneCutOptions.bFillHoles = true;
     PlaneCutOptions.bFlipCutSide = true;
+	PlaneCutOptions.HoleFillMaterialID = 10;
 
     UGeometryScriptLibrary_MeshBooleanFunctions::ApplyMeshPlaneCut(
         DMC_Stump->GetDynamicMesh(),
@@ -434,22 +470,31 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
         PlaneCutOptions
     );
 
+    if (SliceCapMaterial)
+    {
+        DMC_Stump->SetMaterial(10, SliceCapMaterial);
+        DMC_Debris->SetMaterial(10, SliceCapMaterial);
+    }
+
     DMC_Stump->SetVisibility(true);
     DMC_Debris->SetVisibility(true);
     DMC_Debris->AddLocalOffset(FVector(0, 0, 20.f));
 
-    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Stump, PMC_Stump.ProcMeshComp, PMC_Stump.SkinCache);
-    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Debris, PMC_Debris.ProcMeshComp, PMC_Debris.SkinCache);
+    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Stump, PMC_Stump.ProcMeshComp, PMC_Stump.SkinCache, TargetBoneIndices);
+    USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Debris, PMC_Debris.ProcMeshComp, PMC_Debris.SkinCache, TargetBoneIndices);
 
     PMC_Stump.ProcMeshComp->SetVisibility(true);
     PMC_Debris.ProcMeshComp->SetVisibility(true);
+	PMC_Stump.ProcMeshComp->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+    PMC_Debris.ProcMeshComp->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
     //PMC_Debris.ProcMeshComp->AddLocalOffset(FVector(0, 0, 20.f));
 
+
     // Stump는 TargetBone(잘린 뼈)과 그 자식들의 웨이트를 버림
-    RefineSkinWeights(PMC_Stump, TargetBone, true);
+    RefineSkinWeights(PMC_Stump, TargetBoneIndices, true);
 
     // Debris는 TargetBone과 그 자식들의 웨이트만 가짐 (나머지 버림)
-    RefineSkinWeights(PMC_Debris, TargetBone, false);
+    RefineSkinWeights(PMC_Debris, TargetBoneIndices, false);
 
     InitializePMCBuffers(PMC_Stump);
     InitializePMCBuffers(PMC_Debris);
@@ -457,13 +502,19 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
     PMC_Stump.bUpdateSkinning = true;
     PMC_Debris.bUpdateSkinning = true;
 
+	//Mesh->SetVisibility(false); // 원본 숨김
     Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-    Mesh->SetAllBodiesBelowSimulatePhysics(TargetBone, true); // TargetBone 이하는 물리 적용되어 떨어져 나감
-    Mesh->BreakConstraint(-HitNormal * ImpulsePower, HitLocation, TargetBone);
+
     //Mesh->AddImpulse(-HitNormal * ImpulsePower, TargetBone, false);
 
     // 5. 마스킹
-    USliceUtils::MaskTargetBoneOnly(Character->GetMesh(), TargetBone);
+    for (auto BoneIdx : TargetBoneIndices)
+    {
+		FName BoneName = Mesh->GetBoneName(BoneIdx);
+        Mesh->SetAllBodiesBelowSimulatePhysics(BoneName, true); // TargetBone 이하는 물리 적용되어 떨어져 나감
+        Mesh->BreakConstraint(-HitNormal * ImpulsePower, HitLocation, BoneName);
+        USliceUtils::MaskTargetBoneOnly(Character->GetMesh(), BoneName);
+    }
 }
 
 void USliceSystemComponent::SetupPMCs()
@@ -482,7 +533,7 @@ void USliceSystemComponent::SetupPMCs()
     PMC_Debris.ProcMeshComp = NewObject<UProceduralMeshComponent>(Owner, TEXT("PMC_Debris"));
     PMC_Debris.ProcMeshComp->RegisterComponent();
     PMC_Debris.ProcMeshComp->AttachToComponent(Owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-    PMC_Debris.ProcMeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    PMC_Debris.ProcMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     PMC_Debris.ProcMeshComp->SetVisibility(false);
 }
 
@@ -494,13 +545,13 @@ void USliceSystemComponent::SetupDMCs()
     // Stump 생성
     DMC_Stump = NewObject<UDynamicMeshComponent>(Owner, TEXT("DMC_Stump"));
     DMC_Stump->RegisterComponent();
-    DMC_Stump->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Stump는 보통 충돌 끔
+    DMC_Stump->SetCollisionProfileName(FName("PMC"), true); // Stump는 보통 충돌 끔
     DMC_Stump->SetVisibility(false);
 
     // Debris 생성
     DMC_Debris = NewObject<UDynamicMeshComponent>(Owner, TEXT("DMC_Debris"));
     DMC_Debris->RegisterComponent();
-    DMC_Debris->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    DMC_Debris->SetCollisionProfileName(FName("PMC"), true); // Stump는 보통 충돌 끔
     //DMC_Debris->EnableComplexAsSimpleCollision(); // 복잡한 모양대로 물리 적용
     DMC_Debris->SetVisibility(false);
 }
@@ -527,93 +578,123 @@ float USliceSystemComponent::GetBoneRadius(USkeletalMeshComponent* Mesh, FName B
     return 10.0f; // 실패 시 기본값
 }
 
-void USliceSystemComponent::RefineSkinWeights(FSlicePMC& InSlicePMC, FName CutBoneName, bool bIsStump)
+void USliceSystemComponent::RefineSkinWeights(FSlicePMC& InSlicePMC, const TSet<int32>& CutBoneIndices, bool bIsStump)
 {
     ACharacter* Character = Cast<ACharacter>(GetOwner());
     if (!Character || !Character->GetMesh()) return;
 
     const FReferenceSkeleton& RefSkeleton = Character->GetMesh()->GetSkeletalMeshAsset()->GetRefSkeleton();
-    int32 CutBoneIndex = RefSkeleton.FindBoneIndex(CutBoneName);
+    int32 NumBones = RefSkeleton.GetNum();
 
-    if (CutBoneIndex == INDEX_NONE) return;
+    if (CutBoneIndices.Num() == 0) return;
 
-    // 1. "Debris에 속하는 본" 목록 작성 (CutBone과 그 자식들)
-    // 빠른 검색을 위해 BitArray나 Bool Array 사용
+    // ---------------------------------------------------------
+    // 1. "Debris에 속하는 본" 전체 목록 작성 (Pre-calculation)
+    // ---------------------------------------------------------
     TArray<bool> IsDebrisBone;
-    IsDebrisBone.Init(false, RefSkeleton.GetNum());
+    IsDebrisBone.Init(false, NumBones);
 
-    // CutBone 자신 포함
-    IsDebrisBone[CutBoneIndex] = true;
+    // (1) 절단면 본들(Root of Debris)을 먼저 마킹
+    for (int32 CutBoneIdx : CutBoneIndices)
+    {
+        if (IsDebrisBone.IsValidIndex(CutBoneIdx))
+        {
+            IsDebrisBone[CutBoneIdx] = true;
+        }
+    }
 
-    // 모든 본을 순회하며 CutBone의 자식인지 확인
-    // (Bone Index는 보통 부모 < 자식 순서지만, 안전하게 전체 순회 혹은 재귀)
-    for (int32 i = CutBoneIndex + 1; i < RefSkeleton.GetNum(); ++i)
+    // (2) 계층 구조를 순회하며 Debris의 자식들도 모두 Debris로 마킹
+    // * 중요: 본 인덱스는 부모 < 자식 순서가 보장되므로 1회 순회로 충분함
+    for (int32 i = 1; i < NumBones; ++i)
     {
         int32 ParentIndex = RefSkeleton.GetParentIndex(i);
-        // 내 부모가 Debris 그룹이면 나도 Debris 그룹
         if (ParentIndex != INDEX_NONE && IsDebrisBone[ParentIndex])
         {
             IsDebrisBone[i] = true;
         }
     }
 
-    // 2. SkinCache 순회하며 웨이트 수정
+    // ---------------------------------------------------------
+    // 2. 고아 버텍스 처리를 위한 Fallback 본 인덱스 결정
+    // ---------------------------------------------------------
+    // 여러 개의 뼈가 잘렸을 때, 대표로 사용할 뼈 하나를 정합니다. (보통 첫 번째 것)
+    int32 PrimaryCutBone = -1;
+    for (int32 idx : CutBoneIndices) { PrimaryCutBone = idx; break; }
+
+    int32 FallbackBoneIndex = 0; // Default Root
+
+    if (bIsStump)
+    {
+        // Stump인데 웨이트가 다 사라졌다 -> 잘린 뼈의 부모(몸통 쪽)에 붙임
+        int32 ParentIdx = RefSkeleton.GetParentIndex(PrimaryCutBone);
+        FallbackBoneIndex = (ParentIdx != INDEX_NONE) ? ParentIdx : 0;
+    }
+    else
+    {
+        // Debris인데 웨이트가 다 사라졌다 -> 잘린 뼈(파편 쪽)에 붙임
+        FallbackBoneIndex = PrimaryCutBone;
+    }
+
+
+    // ---------------------------------------------------------
+    // 3. 버텍스 웨이트 정제 (Single Pass)
+    // ---------------------------------------------------------
     for (FCachedSkinVertex& V : InSlicePMC.SkinCache)
     {
+        float NewWeights[4] = { 0.f, 0.f, 0.f, 0.f };
         float TotalWeight = 0.0f;
 
         for (int32 w = 0; w < 4; ++w)
         {
             int32 BoneIdx = V.BoneIndices[w];
-            float& Weight = V.BoneWeights[w];
+            float OrigWeight = V.BoneWeights[w];
 
-            if (Weight <= 0.0f) continue;
+            if (OrigWeight <= 0.001f) continue;
 
             bool bBoneIsDebris = IsDebrisBone.IsValidIndex(BoneIdx) ? IsDebrisBone[BoneIdx] : false;
 
-            // [로직] 
-            // Stump(몸통)인데 Debris 본 웨이트를 갖고 있다면? -> 제거
-            // Debris(파편)인데 Stump 본 웨이트를 갖고 있다면? -> 제거
+            // [로직] 필터링
             if (bIsStump && bBoneIsDebris)
             {
-                Weight = 0.0f;
+                // Stump(몸통)인데 Debris(잘린 뼈) 웨이트를 가짐 -> 제거 대상
+                NewWeights[w] = 0.0f;
             }
             else if (!bIsStump && !bBoneIsDebris)
             {
-                Weight = 0.0f;
+                // Debris(파편)인데 Stump(몸통) 웨이트를 가짐 -> 제거 대상
+                NewWeights[w] = 0.0f;
+            }
+            else
+            {
+                // 유지
+                NewWeights[w] = OrigWeight;
             }
 
-            TotalWeight += Weight;
+            TotalWeight += NewWeights[w];
         }
 
-        // 3. 정규화 (Normalization) & 고아 버텍스 구제
         if (TotalWeight > 0.001f)
         {
-            // 남은 웨이트 비율대로 다시 1.0으로 맞춤
+            // [정상 케이스] 남은 웨이트가 있으면 정규화해서 적용
+            float Scale = 1.0f / TotalWeight;
             for (int32 w = 0; w < 4; ++w)
             {
-                V.BoneWeights[w] /= TotalWeight;
+                V.BoneWeights[w] = NewWeights[w] * Scale;
             }
         }
         else
         {
-            // [중요] 모든 웨이트가 지워진 경우 (경계선 버텍스)
-            // Stump라면 -> CutBone의 부모에게 붙임
-            // Debris라면 -> CutBone 자신에게 붙임
+            // [문제 해결] 웨이트가 다 사라진 고아 버텍스 발생! (표면 경계면)
 
-            FMemory::Memzero(V.BoneWeights, sizeof(V.BoneWeights)); // 초기화
+            // Stump(몸통)라면 -> 잘린 뼈의 부모(어깨/몸통)에 강제로 붙임
+            // Debris(파편)라면 -> 잘린 뼈(상박)에 강제로 붙임
+
+            // PrimaryCutBone: 아까 밖에서 구해둔 잘린 뼈 인덱스
+            // FallbackBoneIndex: Stump면 부모본, Debris면 자기자신 (함수 도입부에서 계산 필요)
+
+            FMemory::Memzero(V.BoneWeights, sizeof(V.BoneWeights)); // 0으로 초기화
+            V.BoneIndices[0] = FallbackBoneIndex; // 강제 할당
             V.BoneWeights[0] = 1.0f;
-
-            if (bIsStump)
-            {
-                int32 ParentIdx = RefSkeleton.GetParentIndex(CutBoneIndex);
-                // 부모가 없으면(루트면) 그냥 루트에
-                V.BoneIndices[0] = (ParentIdx != INDEX_NONE) ? ParentIdx : 0;
-            }
-            else
-            {
-                V.BoneIndices[0] = CutBoneIndex;
-            }
         }
     }
 }

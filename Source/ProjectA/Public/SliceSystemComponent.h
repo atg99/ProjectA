@@ -81,7 +81,7 @@ protected:
 
 	float GetBoneRadius(USkeletalMeshComponent* Mesh, FName BoneName);
 
-	void RefineSkinWeights(FSlicePMC& InSlicePMC, FName CutBoneName, bool bIsStump);
+	void RefineSkinWeights(FSlicePMC& InSlicePMC, const TSet<int32>& CutBoneIndices, bool bIsStump);
 
 	// 초기화 함수
 	void InitializePMCBuffers(FSlicePMC& InSlicePMC);

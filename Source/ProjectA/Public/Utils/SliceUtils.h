@@ -69,13 +69,17 @@ public:
 
     static void ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp, TArray<FCachedSkinVertex>& OutCache);
 
+    static void ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp, TArray<FCachedSkinVertex>& OutCache, const TSet<int32>& AllowedBoneIndices);
+
     UFUNCTION(BlueprintCallable, Category = "Slicing")
     static void InitializeDMCFromSkeletalMesh(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp, EGeometryScriptOutcomePins& OutCome);
 
     UFUNCTION(BlueprintCallable, Category = "Slicing")
     static void ApplySkinningWithDMCData(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp);
     
+    static void FindPlaneCutBones(USkeletalMesh* SkeletalMesh, FTransform& PlaneTransform, TSet<int32>& OutBoneIndices);
 private:
     // 구멍을 찾아서 메우는 함수
     static void CloseMeshHoles(TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents, TArray<FLinearColor>& Colors);
+
 };

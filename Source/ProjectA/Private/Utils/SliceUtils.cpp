@@ -472,8 +472,8 @@ void USliceUtils::MaskTargetBoneOnly(USkeletalMeshComponent* SkeletalMeshComp, F
                 // 웨이트 가져오기 (엔진 버전에 따라 반환 타입이 다를 수 있으나, 기존 코드의 float 형식을 따름)
                 float Weight = SkinWeightBuffer.GetBoneWeight(VertexIndex, InfIdx);
 
-                // 웨이트가 0.01보다 작으면 무시 (영향력이 거의 없는 경우)
-                if (Weight < 0.01f)
+                // 웨이트가 0.5보다 작으면 무시 (영향력이 거의 없는 경우)
+                if (Weight < 0.5f)
                 {
                     continue;
                 }
@@ -835,6 +835,223 @@ void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMes
         });
 }
 
+void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp, TArray<FCachedSkinVertex>& OutCache, const TSet<int32>& AllowedBoneIndices)
+{
+    if (!DynamicMeshComp || !ProcMeshComp) return;
+
+    ProcMeshComp->ClearAllMeshSections();
+    OutCache.Reset();
+
+    UDynamicMesh* DynMesh = DynamicMeshComp->GetDynamicMesh();
+    if (!DynMesh) return;
+
+    DynMesh->ProcessMesh([&](const UE::Geometry::FDynamicMesh3& Mesh)
+        {
+            // 1. 스킨 웨이트 속성 가져오기
+            const auto* SkinWeightsAttr = Mesh.Attributes()->GetSkinWeightsAttribute(FSkeletalMeshAttributes::DefaultSkinWeightProfileName);
+
+            // 데이터 저장 구조체
+            struct FMeshSectionData
+            {
+                TArray<FVector> Vertices;
+                TArray<int32> Triangles;
+                TArray<FVector> Normals;
+                TArray<FVector2D> UVs;
+                TArray<FProcMeshTangent> Tangents;
+                TArray<FLinearColor> Colors;
+                TMap<int32, int32> VertexMap;
+            };
+            TMap<int32, FMeshSectionData> Sections;
+
+            // 속성 접근자
+            bool bHasMaterials = Mesh.HasAttributes() && Mesh.Attributes()->HasMaterialID();
+            const auto* MaterialIDAttrib = bHasMaterials ? Mesh.Attributes()->GetMaterialID() : nullptr;
+
+            // 오버레이 노멀 사용 (GeometryScript 결과물은 보통 오버레이 노멀임)
+            const auto* NormalAttrib = Mesh.HasAttributes() ? Mesh.Attributes()->PrimaryNormals() : nullptr;
+            bool bHasNormals = Mesh.HasVertexNormals(); // Fallback
+
+            bool bHasUVs = Mesh.HasAttributes() && Mesh.Attributes()->NumUVLayers() > 0;
+            const auto* UVAttrib = bHasUVs ? Mesh.Attributes()->GetUVLayer(0) : nullptr;
+
+            // ---------------------------------------------------------------------
+            // [핵심 로직] 삼각형 순회 및 필터링
+            // ---------------------------------------------------------------------
+            for (int32 TriID : Mesh.TriangleIndicesItr())
+            {
+                UE::Geometry::FIndex3i TriVerts = Mesh.GetTriangle(TriID);
+
+                // 이 삼각형을 렌더링할지 결정하는 플래그
+                bool bKeepTriangle = false;
+
+                // 1. 머터리얼 ID 확인 (단면인지 1차 확인)
+                int32 MatID = 0;
+                if (MaterialIDAttrib) MatID = MaterialIDAttrib->GetValue(TriID);
+
+                // 2. 삼각형 구성 버텍스들의 웨이트 검사
+                //    (삼각형 중 하나라도 조건에 맞으면 그 삼각형은 그려야 함)
+                if (SkinWeightsAttr)
+                {
+                    for (int32 j = 0; j < 3; j++)
+                    {
+                        int32 VertID = TriVerts[j];
+                        UE::AnimationCore::FBoneWeights Weights;
+                        SkinWeightsAttr->GetValue(VertID, Weights);
+
+                        float TotalWeight = 0.f;
+                        bool bHasAllowedBone = false;
+
+                        for (const auto& BW : Weights)
+                        {
+                            float W = BW.GetWeight();
+                            if (W > 0.001f) // 유의미한 웨이트만
+                            {
+                                TotalWeight += W;
+                                // 허용된 본 목록에 있는 경우
+                                if (AllowedBoneIndices.Contains(BW.GetBoneIndex()))
+                                {
+                                    bHasAllowedBone = true;
+                                }
+                            }
+                        }
+
+                        // [조건 A] 웨이트 합이 0이다 -> 단면(Cap) 버텍스 -> 무조건 생성
+                        if (TotalWeight < 0.001f)
+                        {
+                            bKeepTriangle = true;
+                            break;
+                        }
+
+                        // [조건 B] 허용된 본의 웨이트를 가지고 있다 -> 생성
+                        if (bHasAllowedBone)
+                        {
+                            bKeepTriangle = true;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    // 웨이트 속성이 아예 없으면 (Static Mesh 등) 그냥 다 그린다.
+                    bKeepTriangle = true;
+                }
+
+                // 조건에 맞지 않는 삼각형(다른 부위의 본만 가진 삼각형)은 건너뜀
+                if (!bKeepTriangle) continue;
+
+
+                // -----------------------------------------------------------------
+                // 데이터 추출 및 섹션 추가 (기존 로직과 동일)
+                // -----------------------------------------------------------------
+                FMeshSectionData& Section = Sections.FindOrAdd(MatID);
+
+                for (int32 j = 0; j < 3; j++)
+                {
+                    int32 VertID = TriVerts[j];
+
+                    if (Section.VertexMap.Contains(VertID))
+                    {
+                        Section.Triangles.Add(Section.VertexMap[VertID]);
+                    }
+                    else
+                    {
+                        // 위치
+                        FVector Pos = (FVector)Mesh.GetVertex(VertID);
+
+                        // 노멀
+                        FVector Normal = FVector::UpVector;
+                        if (NormalAttrib)
+                        {
+                            int32 ElemID = NormalAttrib->GetElementIDAtVertex(TriID, j);
+                            if (ElemID != -1) Normal = (FVector)NormalAttrib->GetElement(ElemID);
+                        }
+                        else if (bHasNormals)
+                        {
+                            Normal = (FVector)Mesh.GetVertexNormal(VertID);
+                        }
+
+                        // UV
+                        FVector2D UV = FVector2D::ZeroVector;
+                        if (UVAttrib)
+                        {
+                            int32 ElemID = UVAttrib->GetElementIDAtVertex(TriID, j);
+                            if (ElemID != -1) UV = (FVector2D)UVAttrib->GetElement(ElemID);
+                        }
+
+                        FProcMeshTangent Tangent(FVector::ForwardVector, false);
+
+                        // PMC 데이터 추가
+                        int32 NewIndex = Section.Vertices.Add(Pos);
+                        Section.Normals.Add(Normal);
+                        Section.UVs.Add(UV);
+                        Section.Tangents.Add(Tangent);
+                        Section.Colors.Add(FLinearColor::White);
+                        Section.VertexMap.Add(VertID, NewIndex);
+                        Section.Triangles.Add(NewIndex);
+
+                        // 스킨 웨이트 캐싱
+                        FCachedSkinVertex CachedVert;
+                        CachedVert.InitialPos = Pos;
+                        CachedVert.InitialNormal = Normal;
+                        CachedVert.SectionIndex = MatID;
+                        CachedVert.VertIndex = NewIndex;
+
+                        // 초기화
+                        for (int k = 0; k < 4; k++) { CachedVert.BoneIndices[k] = 0; CachedVert.BoneWeights[k] = 0.f; }
+
+                        if (SkinWeightsAttr)
+                        {
+                            UE::AnimationCore::FBoneWeights Weights;
+                            SkinWeightsAttr->GetValue(VertID, Weights);
+
+                            int32 NumWeights = FMath::Min(Weights.Num(), 4);
+                            int32 WriteIdx = 0;
+                            for (int32 k = 0; k < Weights.Num() && WriteIdx < 4; ++k)
+                            {
+                                const auto& BW = Weights[k];
+                                // 여기서 필터링을 할 수도 있지만, 
+                                // 이미 삼각형 단위 필터링을 했으므로 원본 웨이트를 그대로 유지하는 것이
+                                // 경계면(Joint)에서 찢어짐을 방지하는 데 유리합니다.
+                                // (나중에 RefineSkinWeights에서 정리됨)
+                                CachedVert.BoneIndices[WriteIdx] = BW.GetBoneIndex();
+                                CachedVert.BoneWeights[WriteIdx] = BW.GetWeight();
+                                WriteIdx++;
+                            }
+                        }
+                        OutCache.Add(CachedVert);
+                    }
+                }
+            }
+
+            // 3. PMC 생성
+            for (auto& Elem : Sections)
+            {
+                int32 MatIndex = Elem.Key;
+                FMeshSectionData& Data = Elem.Value;
+
+                if (Data.Vertices.Num() > 0)
+                {
+                    ProcMeshComp->CreateMeshSection_LinearColor(
+                        MatIndex,
+                        Data.Vertices,
+                        Data.Triangles,
+                        Data.Normals,
+                        Data.UVs,
+                        {}, {}, {}, // UV 1~3
+                        Data.Colors,
+                        Data.Tangents,
+                        true // Collision
+                    );
+
+                    if (DynamicMeshComp->GetMaterial(MatIndex))
+                    {
+                        ProcMeshComp->SetMaterial(MatIndex, DynamicMeshComp->GetMaterial(MatIndex));
+                    }
+                }
+            }
+        });
+}
+
 void USliceUtils::InitializeDMCFromSkeletalMesh(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp, EGeometryScriptOutcomePins& OutCome)
 {
 
@@ -1151,5 +1368,40 @@ void USliceUtils::CloseMeshHoles(TArray<FVector>& Vertices, TArray<int32>& Trian
         Triangles.Add(Edge.VertB);
         Triangles.Add(Edge.VertA);
         Triangles.Add(CenterIndex);
+    }
+}
+
+void USliceUtils::FindPlaneCutBones(USkeletalMesh* SkeletalMesh, FTransform& PlaneTransform, TSet<int32>& OutBoneIndices)
+{
+
+    // T-Pose 상태의 모든 뼈를 순회하며 절단면과 교차하는지 검사
+
+    // 1. 평면 식 생성 (위치, 노멀)
+    FVector PlanePos = PlaneTransform.GetLocation();
+    FVector PlaneNormal = PlaneTransform.GetUnitAxis(EAxis::Z);
+    FPlane CutPlane(PlanePos, PlaneNormal);
+
+    // 2. 전체 뼈 순회 (루트 제외)
+    const FReferenceSkeleton& RefSkeleton = SkeletalMesh->GetRefSkeleton();
+    TArray<FTransform> RefComponentSpaceTransforms;
+    FAnimationRuntime::FillUpComponentSpaceTransforms(RefSkeleton, RefSkeleton.GetRefBonePose(), RefComponentSpaceTransforms);
+
+    for (int32 i = 1; i < RefSkeleton.GetNum(); ++i)
+    {
+        int32 ParentIndex = RefSkeleton.GetParentIndex(i);
+        if (ParentIndex == INDEX_NONE) continue;
+
+        // 부모 뼈 위치(Start)와 내 뼈 위치(End)가 평면을 통과하는지 확인
+        FVector BoneStart = RefComponentSpaceTransforms[ParentIndex].GetLocation();
+        FVector BoneEnd = RefComponentSpaceTransforms[i].GetLocation();
+
+        // 교차 검사
+        FVector IntersectionPoint;
+        if (FMath::SegmentPlaneIntersection(BoneStart, BoneEnd, CutPlane, IntersectionPoint))
+        {
+            OutBoneIndices.Add(i);
+            // 디버그: 교차된 뼈 이름 출력
+            UE_LOG(LogTemp, Warning, TEXT("Intersected Bone: %s"), *RefSkeleton.GetBoneName(i).ToString());
+        }
     }
 }
