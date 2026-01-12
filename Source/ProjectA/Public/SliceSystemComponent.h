@@ -16,6 +16,9 @@ struct FProcMeshSectionBuffer
 	TArray<FVector2D> UVs;
 	TArray<FLinearColor> Colors;
 	TArray<FProcMeshTangent> Tangents;
+
+	// 추가: 스키닝 계산을 위한 초기 탄젠트 저장소
+	TArray<FProcMeshTangent> InitialTangents;
 };
 
 //메쉬 하나(Stump 또는 Debris)를 관리하는 통합 구조체
@@ -95,6 +98,9 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	UStaticMesh* MeatCrossSectionMesh;
+
+	UPROPERTY(EditAnywhere)
+	TSet<FName> CutableBones;
 
 protected:
 

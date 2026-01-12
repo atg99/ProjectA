@@ -837,6 +837,7 @@ void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMes
 
 void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp, TArray<FCachedSkinVertex>& OutCache, const TSet<int32>& AllowedBoneIndices)
 {
+    // 1. 기본 유효성 검사
     if (!DynamicMeshComp || !ProcMeshComp) return;
 
     ProcMeshComp->ClearAllMeshSections();
@@ -845,12 +846,23 @@ void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMes
     UDynamicMesh* DynMesh = DynamicMeshComp->GetDynamicMesh();
     if (!DynMesh) return;
 
+    // 2. Dynamic Mesh 처리
     DynMesh->ProcessMesh([&](const UE::Geometry::FDynamicMesh3& Mesh)
         {
-            // 1. 스킨 웨이트 속성 가져오기
-            const auto* SkinWeightsAttr = Mesh.Attributes()->GetSkinWeightsAttribute(FSkeletalMeshAttributes::DefaultSkinWeightProfileName);
+            // 속성 세트 확인
+            const UE::Geometry::FDynamicMeshAttributeSet* Attributes = Mesh.Attributes();
+            bool bHasAttributes = Mesh.HasAttributes();
 
-            // 데이터 저장 구조체
+            // [수정 1] Overlay 포인터를 미리 가져옵니다. (FDynamicMesh3는 Overlay 방식으로 UV/Normal을 관리함)
+            const UE::Geometry::FDynamicMeshUVOverlay* UVOverlay = bHasAttributes ? Attributes->PrimaryUV() : nullptr;
+            const UE::Geometry::FDynamicMeshNormalOverlay* NormalOverlay = bHasAttributes ? Attributes->PrimaryNormals() : nullptr;
+            const UE::Geometry::FDynamicMeshColorOverlay* ColorOverlay = bHasAttributes ? Attributes->PrimaryColors() : nullptr;
+            const UE::Geometry::FDynamicMeshMaterialAttribute* MaterialIDAttrib = (bHasAttributes && Attributes->HasMaterialID()) ? Attributes->GetMaterialID() : nullptr;
+
+            // 스킨 웨이트
+            const auto* SkinWeightsAttr = bHasAttributes ? Attributes->GetSkinWeightsAttribute(FSkeletalMeshAttributes::DefaultSkinWeightProfileName) : nullptr;
+
+            // PMC 데이터 구조체
             struct FMeshSectionData
             {
                 TArray<FVector> Vertices;
@@ -859,37 +871,25 @@ void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMes
                 TArray<FVector2D> UVs;
                 TArray<FProcMeshTangent> Tangents;
                 TArray<FLinearColor> Colors;
-                TMap<int32, int32> VertexMap;
+                TMap<int32, TArray<int32>> VertexMap; // VertID -> SectionVertIndices
             };
             TMap<int32, FMeshSectionData> Sections;
 
-            // 속성 접근자
-            bool bHasMaterials = Mesh.HasAttributes() && Mesh.Attributes()->HasMaterialID();
-            const auto* MaterialIDAttrib = bHasMaterials ? Mesh.Attributes()->GetMaterialID() : nullptr;
-
-            // 오버레이 노멀 사용 (GeometryScript 결과물은 보통 오버레이 노멀임)
-            const auto* NormalAttrib = Mesh.HasAttributes() ? Mesh.Attributes()->PrimaryNormals() : nullptr;
-            bool bHasNormals = Mesh.HasVertexNormals(); // Fallback
-
-            bool bHasUVs = Mesh.HasAttributes() && Mesh.Attributes()->NumUVLayers() > 0;
-            const auto* UVAttrib = bHasUVs ? Mesh.Attributes()->GetUVLayer(0) : nullptr;
-
-            // ---------------------------------------------------------------------
-            // [핵심 로직] 삼각형 순회 및 필터링
-            // ---------------------------------------------------------------------
+            // 3. 삼각형 순회
             for (int32 TriID : Mesh.TriangleIndicesItr())
             {
                 UE::Geometry::FIndex3i TriVerts = Mesh.GetTriangle(TriID);
 
-                // 이 삼각형을 렌더링할지 결정하는 플래그
+                // [수정 2] Overlay에서 현재 삼각형의 Element ID들을 가져옵니다.
+                // Overlay는 토폴로지가 다를 수 있으므로(UV Island 등) 삼각형 ID로 접근해야 합니다.
+                UE::Geometry::FIndex3i UVTri = (UVOverlay && UVOverlay->IsSetTriangle(TriID)) ? UVOverlay->GetTriangle(TriID) : UE::Geometry::FIndex3i::Invalid();
+                UE::Geometry::FIndex3i NormalTri = (NormalOverlay && NormalOverlay->IsSetTriangle(TriID)) ? NormalOverlay->GetTriangle(TriID) : UE::Geometry::FIndex3i::Invalid();
+                UE::Geometry::FIndex3i ColorTri = (ColorOverlay && ColorOverlay->IsSetTriangle(TriID)) ? ColorOverlay->GetTriangle(TriID) : UE::Geometry::FIndex3i::Invalid();
+
+                // --- 필터링 로직 (Bone Index 기준) ---
                 bool bKeepTriangle = false;
+                int32 MatID = (MaterialIDAttrib) ? MaterialIDAttrib->GetValue(TriID) : 0;
 
-                // 1. 머터리얼 ID 확인 (단면인지 1차 확인)
-                int32 MatID = 0;
-                if (MaterialIDAttrib) MatID = MaterialIDAttrib->GetValue(TriID);
-
-                // 2. 삼각형 구성 버텍스들의 웨이트 검사
-                //    (삼각형 중 하나라도 조건에 맞으면 그 삼각형은 그려야 함)
                 if (SkinWeightsAttr)
                 {
                     for (int32 j = 0; j < 3; j++)
@@ -903,11 +903,9 @@ void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMes
 
                         for (const auto& BW : Weights)
                         {
-                            float W = BW.GetWeight();
-                            if (W > 0.001f) // 유의미한 웨이트만
+                            if (BW.GetWeight() > 0.001f)
                             {
-                                TotalWeight += W;
-                                // 허용된 본 목록에 있는 경우
+                                TotalWeight += BW.GetWeight();
                                 if (AllowedBoneIndices.Contains(BW.GetBoneIndex()))
                                 {
                                     bHasAllowedBone = true;
@@ -915,14 +913,13 @@ void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMes
                             }
                         }
 
-                        // [조건 A] 웨이트 합이 0이다 -> 단면(Cap) 버텍스 -> 무조건 생성
+                        // [조건 A] 절단면(Cap) - 웨이트가 거의 없으면 유지 (Sliced Geometry)
                         if (TotalWeight < 0.001f)
                         {
                             bKeepTriangle = true;
                             break;
                         }
-
-                        // [조건 B] 허용된 본의 웨이트를 가지고 있다 -> 생성
+                        // [조건 B] 허용된 본 포함
                         if (bHasAllowedBone)
                         {
                             bKeepTriangle = true;
@@ -932,98 +929,119 @@ void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMes
                 }
                 else
                 {
-                    // 웨이트 속성이 아예 없으면 (Static Mesh 등) 그냥 다 그린다.
-                    bKeepTriangle = true;
+                    bKeepTriangle = true; // StaticMesh라면 무조건 유지
                 }
 
-                // 조건에 맞지 않는 삼각형(다른 부위의 본만 가진 삼각형)은 건너뜀
                 if (!bKeepTriangle) continue;
 
-
-                // -----------------------------------------------------------------
-                // 데이터 추출 및 섹션 추가 (기존 로직과 동일)
-                // -----------------------------------------------------------------
+                // --- 섹션 데이터 채우기 ---
                 FMeshSectionData& Section = Sections.FindOrAdd(MatID);
 
                 for (int32 j = 0; j < 3; j++)
                 {
                     int32 VertID = TriVerts[j];
 
-                    if (Section.VertexMap.Contains(VertID))
+                    // (A) 위치
+                    FVector Pos = (FVector)Mesh.GetVertex(VertID);
+
+                    // (B) [수정 3] Overlay를 통한 UV/Normal/Color 추출 로직 개선
+
+                    // UV
+                    FVector2D UV = FVector2D::ZeroVector;
+                    if (UVTri[j] != UE::Geometry::FDynamicMesh3::InvalidID)
                     {
-                        Section.Triangles.Add(Section.VertexMap[VertID]);
+                        UV = (FVector2D)UVOverlay->GetElement(UVTri[j]);
+                    }
+
+                    // Normal
+                    FVector Normal = FVector::UpVector;
+                    if (NormalTri[j] != UE::Geometry::FDynamicMesh3::InvalidID)
+                    {
+                        Normal = (FVector)NormalOverlay->GetElement(NormalTri[j]);
                     }
                     else
                     {
-                        // 위치
-                        FVector Pos = (FVector)Mesh.GetVertex(VertID);
-
-                        // 노멀
-                        FVector Normal = FVector::UpVector;
-                        if (NormalAttrib)
-                        {
-                            int32 ElemID = NormalAttrib->GetElementIDAtVertex(TriID, j);
-                            if (ElemID != -1) Normal = (FVector)NormalAttrib->GetElement(ElemID);
-                        }
-                        else if (bHasNormals)
+                        // Overlay 노멀이 없으면 버텍스 노멀 사용
+                        if (Mesh.HasVertexNormals())
                         {
                             Normal = (FVector)Mesh.GetVertexNormal(VertID);
                         }
+                    }
+                    // 노멀 안전장치 (0 벡터 방지)
+                    if (Normal.IsNearlyZero()) Normal = FVector::UpVector;
+                    else Normal.Normalize();
 
-                        // UV
-                        FVector2D UV = FVector2D::ZeroVector;
-                        if (UVAttrib)
+                    // Color
+                    FLinearColor VertColor = FLinearColor::White; // 기본값 White로 설정하여 곱해질 때 검은색 방지
+                    if (ColorTri[j] != UE::Geometry::FDynamicMesh3::InvalidID)
+                    {
+                        // DynamicMesh는 보통 Vector4f로 저장됨
+                        UE::Math::TVector4<float> ColVec = ColorOverlay->GetElement(ColorTri[j]);
+                        VertColor = FLinearColor(ColVec.X, ColVec.Y, ColVec.Z, ColVec.W);
+                    }
+
+
+                    // (C) 버텍스 중복 검사 (Vertex Split 처리)
+                    int32 FinalVertIndex = -1;
+                    if (Section.VertexMap.Contains(VertID))
+                    {
+                        const TArray<int32>& Candidates = Section.VertexMap[VertID];
+                        for (int32 ExistingIdx : Candidates)
                         {
-                            int32 ElemID = UVAttrib->GetElementIDAtVertex(TriID, j);
-                            if (ElemID != -1) UV = (FVector2D)UVAttrib->GetElement(ElemID);
+                            // 위치는 같지만 UV/Normal이 다른 경우(Hard Edge, UV Seam) 분리해야 함
+                            if (Section.UVs[ExistingIdx].Equals(UV, 1e-4f) &&
+                                Section.Normals[ExistingIdx].Equals(Normal, 1e-4f) &&
+                                Section.Colors[ExistingIdx].Equals(VertColor, 1e-4f))
+                            {
+                                FinalVertIndex = ExistingIdx;
+                                break;
+                            }
                         }
+                    }
 
-                        FProcMeshTangent Tangent(FVector::ForwardVector, false);
-
-                        // PMC 데이터 추가
-                        int32 NewIndex = Section.Vertices.Add(Pos);
+                    // (D) 새 버텍스 추가
+                    if (FinalVertIndex == -1)
+                    {
+                        FinalVertIndex = Section.Vertices.Add(Pos);
                         Section.Normals.Add(Normal);
                         Section.UVs.Add(UV);
-                        Section.Tangents.Add(Tangent);
-                        Section.Colors.Add(FLinearColor::White);
-                        Section.VertexMap.Add(VertID, NewIndex);
-                        Section.Triangles.Add(NewIndex);
+                        Section.Colors.Add(VertColor);
+                        Section.Tangents.Add(FProcMeshTangent(0, 0, 1)); // 계산 전 더미값
+
+                        Section.VertexMap.FindOrAdd(VertID).Add(FinalVertIndex);
 
                         // 스킨 웨이트 캐싱
                         FCachedSkinVertex CachedVert;
                         CachedVert.InitialPos = Pos;
                         CachedVert.InitialNormal = Normal;
                         CachedVert.SectionIndex = MatID;
-                        CachedVert.VertIndex = NewIndex;
-
-                        // 초기화
+                        CachedVert.VertIndex = FinalVertIndex;
                         for (int k = 0; k < 4; k++) { CachedVert.BoneIndices[k] = 0; CachedVert.BoneWeights[k] = 0.f; }
 
                         if (SkinWeightsAttr)
                         {
                             UE::AnimationCore::FBoneWeights Weights;
                             SkinWeightsAttr->GetValue(VertID, Weights);
-
-                            int32 NumWeights = FMath::Min(Weights.Num(), 4);
                             int32 WriteIdx = 0;
                             for (int32 k = 0; k < Weights.Num() && WriteIdx < 4; ++k)
                             {
                                 const auto& BW = Weights[k];
-                                // 여기서 필터링을 할 수도 있지만, 
-                                // 이미 삼각형 단위 필터링을 했으므로 원본 웨이트를 그대로 유지하는 것이
-                                // 경계면(Joint)에서 찢어짐을 방지하는 데 유리합니다.
-                                // (나중에 RefineSkinWeights에서 정리됨)
-                                CachedVert.BoneIndices[WriteIdx] = BW.GetBoneIndex();
-                                CachedVert.BoneWeights[WriteIdx] = BW.GetWeight();
-                                WriteIdx++;
+                                if (BW.GetWeight() > 0.001f)
+                                {
+                                    CachedVert.BoneIndices[WriteIdx] = BW.GetBoneIndex();
+                                    CachedVert.BoneWeights[WriteIdx] = BW.GetWeight();
+                                    WriteIdx++;
+                                }
                             }
                         }
                         OutCache.Add(CachedVert);
                     }
+
+                    Section.Triangles.Add(FinalVertIndex);
                 }
             }
 
-            // 3. PMC 생성
+            // 4. Procedural Mesh Section 생성
             for (auto& Elem : Sections)
             {
                 int32 MatIndex = Elem.Key;
@@ -1031,26 +1049,647 @@ void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMes
 
                 if (Data.Vertices.Num() > 0)
                 {
+                    // (A) 탄젠트 계산 (이제 UV가 정상적이므로 제대로 계산됨)
+                    UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
+                        Data.Vertices,
+                        Data.Triangles,
+                        Data.UVs,
+                        Data.Normals,
+                        Data.Tangents
+                    );
+
+                    // (B) 생성
                     ProcMeshComp->CreateMeshSection_LinearColor(
                         MatIndex,
                         Data.Vertices,
                         Data.Triangles,
                         Data.Normals,
                         Data.UVs,
-                        {}, {}, {}, // UV 1~3
+                        {}, {}, {},
                         Data.Colors,
                         Data.Tangents,
-                        true // Collision
+                        true
                     );
 
-                    if (DynamicMeshComp->GetMaterial(MatIndex))
+                    // (C) 머터리얼 할당
+                    UMaterialInterface* TargetMat = nullptr;
+                    if (MatIndex >= 0 && MatIndex < DynamicMeshComp->GetNumMaterials())
                     {
-                        ProcMeshComp->SetMaterial(MatIndex, DynamicMeshComp->GetMaterial(MatIndex));
+                        TargetMat = DynamicMeshComp->GetMaterial(MatIndex);
+                    }
+                    if (!TargetMat && DynamicMeshComp->GetNumMaterials() > 0)
+                    {
+                        TargetMat = DynamicMeshComp->GetMaterial(0);
+                    }
+                    if (TargetMat)
+                    {
+                        ProcMeshComp->SetMaterial(MatIndex, TargetMat);
                     }
                 }
             }
         });
 }
+
+//void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp, TArray<FCachedSkinVertex>& OutCache, const TSet<int32>& AllowedBoneIndices)
+//{
+//    // 1. 기본 유효성 검사
+//    if (!DynamicMeshComp || !ProcMeshComp) return;
+//
+//    ProcMeshComp->ClearAllMeshSections();
+//    OutCache.Reset();
+//
+//    UDynamicMesh* DynMesh = DynamicMeshComp->GetDynamicMesh();
+//    if (!DynMesh) return;
+//
+//    // 2. Dynamic Mesh 처리 (Lambda)
+//    DynMesh->ProcessMesh([&](const UE::Geometry::FDynamicMesh3& Mesh)
+//        {
+//            // 스킨 웨이트 속성
+//            const auto* SkinWeightsAttr = Mesh.Attributes()->GetSkinWeightsAttribute(FSkeletalMeshAttributes::DefaultSkinWeightProfileName);
+//            if (!Mesh.HasAttributes())
+//            {
+//                //Mesh.EnableAttributes(); // 속성이 없다면 켭니다 (보통 이미 있음)
+//            }
+//            const UE::Geometry::FDynamicMeshAttributeSet* Attributes = Mesh.Attributes();
+//            const UE::Geometry::FDynamicMeshUVOverlay* UVOverlay = Attributes->PrimaryUV();
+//
+//            // PMC 생성을 위한 임시 데이터 구조체
+//            struct FMeshSectionData
+//            {
+//                TArray<FVector> Vertices;
+//                TArray<int32> Triangles;
+//                TArray<FVector> Normals;
+//                TArray<FVector2D> UVs;
+//                TArray<FProcMeshTangent> Tangents;
+//                TArray<FLinearColor> Colors;
+//
+//                // [중요] VertID(위치인덱스) -> PMC 버텍스 인덱스들 (속성이 다르면 여러개일 수 있음)
+//                TMap<int32, TArray<int32>> VertexMap;
+//            };
+//            TMap<int32, FMeshSectionData> Sections;
+//
+//            // 속성 접근자 준비
+//            bool bHasMaterials = Mesh.HasAttributes() && Mesh.Attributes()->HasMaterialID();
+//            const auto* MaterialIDAttrib = bHasMaterials ? Mesh.Attributes()->GetMaterialID() : nullptr;
+//
+//            const auto* NormalAttrib = Mesh.HasAttributes() ? Mesh.Attributes()->PrimaryNormals() : nullptr;
+//            bool bHasNormals = Mesh.HasVertexNormals();
+//
+//            bool bHasUVs = Mesh.HasAttributes() && Mesh.Attributes()->NumUVLayers() > 0;
+//            const auto* UVAttrib = bHasUVs ? Mesh.Attributes()->GetUVLayer(0) : nullptr;
+//
+//            bool bHasColors = Mesh.HasAttributes() && Mesh.Attributes()->HasPrimaryColors();
+//            const auto* ColorAttrib = bHasColors ? Mesh.Attributes()->PrimaryColors() : nullptr;
+//
+//            // ---------------------------------------------------------------------
+//            // 3. 삼각형 순회 및 데이터 추출
+//            // ---------------------------------------------------------------------
+//            for (int32 TriID : Mesh.TriangleIndicesItr())
+//            {
+//                UE::Geometry::FIndex3i TriVerts = Mesh.GetTriangle(TriID);
+//
+//                // --- 필터링 로직 (Bone Index 기준) ---
+//                bool bKeepTriangle = false;
+//
+//                // 머터리얼 ID (없으면 0번)
+//                int32 MatID = 0;
+//                if (MaterialIDAttrib) MatID = MaterialIDAttrib->GetValue(TriID);
+//
+//                if (SkinWeightsAttr)
+//                {
+//                    for (int32 j = 0; j < 3; j++)
+//                    {
+//                        int32 VertID = TriVerts[j];
+//                        UE::AnimationCore::FBoneWeights Weights;
+//                        SkinWeightsAttr->GetValue(VertID, Weights);
+//
+//                        float TotalWeight = 0.f;
+//                        bool bHasAllowedBone = false;
+//
+//                        for (const auto& BW : Weights)
+//                        {
+//                            float W = BW.GetWeight();
+//                            if (W > 0.001f)
+//                            {
+//                                TotalWeight += W;
+//                                if (AllowedBoneIndices.Contains(BW.GetBoneIndex()))
+//                                {
+//                                    bHasAllowedBone = true;
+//                                }
+//                            }
+//                        }
+//
+//                        // [조건 A] 절단면(Cap) - 웨이트가 거의 없음
+//                        if (TotalWeight < 0.001f)
+//                        {
+//                            bKeepTriangle = true;
+//                            break;
+//                        }
+//                        // [조건 B] 허용된 본 포함
+//                        if (bHasAllowedBone)
+//                        {
+//                            bKeepTriangle = true;
+//                            break;
+//                        }
+//                    }
+//                }
+//                else
+//                {
+//                    // 웨이트가 없으면(Static Mesh 등) 모두 렌더링
+//                    bKeepTriangle = true;
+//                }
+//
+//                if (!bKeepTriangle) continue;
+//
+//
+//                // --- 섹션 데이터 채우기 ---
+//                FMeshSectionData& Section = Sections.FindOrAdd(MatID);
+//
+//                for (int32 j = 0; j < 3; j++)
+//                {
+//                    int32 VertID = TriVerts[j];
+//
+//                    // (A) 속성 가져오기
+//                    FVector Pos = (FVector)Mesh.GetVertex(VertID);
+//
+//                    FVector Normal = FVector::UpVector;
+//                    if (NormalAttrib)
+//                    {
+//                        int32 ElemID = NormalAttrib->GetElementIDAtVertex(TriID, j);
+//                        if (ElemID != -1) Normal = (FVector)NormalAttrib->GetElement(ElemID);
+//                    }
+//                    else if (bHasNormals)
+//                    {
+//                        Normal = (FVector)Mesh.GetVertexNormal(VertID);
+//                    }
+//
+//
+//                    FVector2D UV = FVector2D::ZeroVector;
+//                    if (UVAttrib)
+//                    {
+//                        int32 ElemID = UVAttrib->GetElementIDAtVertex(TriID, j);
+//                        if (ElemID != -1) UV = (FVector2D)UVAttrib->GetElement(ElemID);
+//                    }
+//
+//                    FLinearColor VertColor = FLinearColor::White;
+//                    //if (ColorAttrib)
+//                    //{
+//                    //    int32 ElemID = ColorAttrib->GetElementIDAtVertex(TriID, j);
+//                    //    if (ElemID != -1) VertColor = FLinearColor(ColorAttrib->GetElement(ElemID));
+//                    //}
+//
+//                    // (B) 버텍스 중복 검사 (위치 + UV + Normal + Color 비교)
+//                    int32 FinalVertIndex = -1;
+//
+//                    if (Section.VertexMap.Contains(VertID))
+//                    {
+//                        const TArray<int32>& Candidates = Section.VertexMap[VertID];
+//                        for (int32 ExistingIdx : Candidates)
+//                        {
+//                            // 속성이 유사하면(오차범위 내) 재사용
+//                            if (Section.UVs[ExistingIdx].Equals(UV, 1e-4f) &&
+//                                Section.Normals[ExistingIdx].Equals(Normal, 1e-4f) &&
+//                                Section.Colors[ExistingIdx].Equals(VertColor, 1e-4f))
+//                            {
+//                                FinalVertIndex = ExistingIdx;
+//                                break;
+//                            }
+//                        }
+//                    }
+//
+//                    // (C) 새 버텍스 추가 (재사용 불가 시)
+//                    if (FinalVertIndex == -1)
+//                    {
+//                        FinalVertIndex = Section.Vertices.Add(Pos);
+//                        Section.Normals.Add(Normal);
+//                        Section.UVs.Add(UV);
+//                        Section.Colors.Add(VertColor);
+//                        Section.Tangents.Add(FProcMeshTangent()); // 임시값
+//
+//                        Section.VertexMap.FindOrAdd(VertID).Add(FinalVertIndex);
+//
+//                        // 스킨 웨이트 캐싱
+//                        FCachedSkinVertex CachedVert;
+//                        CachedVert.InitialPos = Pos;
+//                        CachedVert.InitialNormal = Normal;
+//                        CachedVert.SectionIndex = MatID;
+//                        CachedVert.VertIndex = FinalVertIndex;
+//
+//                        for (int k = 0; k < 4; k++) { CachedVert.BoneIndices[k] = 0; CachedVert.BoneWeights[k] = 0.f; }
+//
+//                        if (SkinWeightsAttr)
+//                        {
+//                            UE::AnimationCore::FBoneWeights Weights;
+//                            SkinWeightsAttr->GetValue(VertID, Weights);
+//                            int32 WriteIdx = 0;
+//                            for (int32 k = 0; k < Weights.Num() && WriteIdx < 4; ++k)
+//                            {
+//                                const auto& BW = Weights[k];
+//                                if (BW.GetWeight() > 0.001f)
+//                                {
+//                                    CachedVert.BoneIndices[WriteIdx] = BW.GetBoneIndex();
+//                                    CachedVert.BoneWeights[WriteIdx] = BW.GetWeight();
+//                                    WriteIdx++;
+//                                }
+//                            }
+//                        }
+//                        OutCache.Add(CachedVert);
+//                    }
+//
+//                    // 삼각형 구성
+//                    Section.Triangles.Add(FinalVertIndex);
+//                }
+//            }
+//
+//            // ---------------------------------------------------------------------
+//            // 4. Procedural Mesh Section 생성
+//            // ---------------------------------------------------------------------
+//            for (auto& Elem : Sections)
+//            {
+//                int32 MatIndex = Elem.Key;
+//                FMeshSectionData& Data = Elem.Value;
+//
+//                if (Data.Vertices.Num() > 0)
+//                {
+//                    // (A) 탄젠트 계산
+//                    UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
+//                        Data.Vertices,
+//                        Data.Triangles,
+//                        Data.UVs,
+//                        Data.Normals,
+//                        Data.Tangents
+//                    );
+//
+//                    // (B) [검은색 방지] 탄젠트가 0인 경우 강제 보정
+//                    // UV가 뭉개져 있거나 없으면 Tangent가 (0,0,0)이 되어 빛 계산 시 검게 나옴
+//                    for (int32 i = 0; i < Data.Tangents.Num(); ++i)
+//                    {
+//                        if (Data.Tangents[i].TangentX.IsNearlyZero())
+//                        {
+//                            // 노멀에 수직인 임의의 벡터 생성
+//                            FVector ValidTangent = FVector::CrossProduct(Data.Normals[i], FVector::UpVector);
+//                            if (ValidTangent.IsNearlyZero())
+//                            {
+//                                ValidTangent = FVector::CrossProduct(Data.Normals[i], FVector::RightVector);
+//                            }
+//                            Data.Tangents[i] = FProcMeshTangent(ValidTangent.GetSafeNormal(), false);
+//                        }
+//                    }
+//
+//                    // ========================= [DEBUG LOG START] =========================
+//                    UE_LOG(LogTemp, Warning, TEXT("========== [SliceSystem] Mesh Data Inspection (Mat: %d) =========="), MatIndex);
+//                    UE_LOG(LogTemp, Warning, TEXT("Counts -> Verts: %d | Normals: %d | Tangents: %d | UVs: %d | Colors: %d"),
+//                        Data.Vertices.Num(), Data.Normals.Num(), Data.Tangents.Num(), Data.UVs.Num(), Data.Colors.Num());
+//
+//                    if (Data.Vertices.Num() > 0)
+//                    {
+//                        int32 ZeroNormals = 0;
+//                        int32 ZeroTangents = 0;
+//                        int32 ZeroUVs = 0;
+//                        int32 BlackColors = 0; // Alpha가 0이거나 RGB가 모두 0인 경우
+//
+//                        for (int32 i = 0; i < Data.Vertices.Num(); ++i)
+//                        {
+//                            // 1. 노멀 검사
+//                            bool bHasNormal = Data.Normals.IsValidIndex(i);
+//                            if (bHasNormal && Data.Normals[i].IsNearlyZero()) ZeroNormals++;
+//
+//                            // 2. 탄젠트 검사
+//                            bool bHasTangent = Data.Tangents.IsValidIndex(i);
+//                            if (bHasTangent && Data.Tangents[i].TangentX.IsNearlyZero()) ZeroTangents++;
+//
+//                            // 3. UV 검사
+//                            bool bHasUV = Data.UVs.IsValidIndex(i);
+//                            if (bHasUV && Data.UVs[i].IsZero()) ZeroUVs++;
+//
+//                            // 4. 컬러 검사
+//                            bool bHasColor = Data.Colors.IsValidIndex(i);
+//                            if (bHasColor)
+//                            {
+//                                // 검은색이거나 투명하면 카운트
+//                                if (Data.Colors[i].A <= 0.0f || (Data.Colors[i].R == 0.f && Data.Colors[i].G == 0.f && Data.Colors[i].B == 0.f))
+//                                {
+//                                    BlackColors++;
+//                                }
+//                            }
+//
+//                            // [상세 로그] 처음 5개만 찍어서 값 확인
+//                            if (i < 5)
+//                            {
+//                                FString NStr = bHasNormal ? Data.Normals[i].ToString() : TEXT("None");
+//                                FString TStr = bHasTangent ? Data.Tangents[i].TangentX.ToString() : TEXT("None");
+//                                FString UVStr = bHasUV ? Data.UVs[i].ToString() : TEXT("None");
+//                                FString CStr = bHasColor ? Data.Colors[i].ToString() : TEXT("None");
+//
+//                                UE_LOG(LogTemp, Display, TEXT("[%d] N:%s | T:%s | UV:%s | Color:%s"), i, *NStr, *TStr, *UVStr, *CStr);
+//                            }
+//                        }
+//
+//                        UE_LOG(LogTemp, Error, TEXT(">>> SUMMARY: ZeroNormals: %d, ZeroTangents: %d, ZeroUVs: %d, BlackColors: %d <<<"),
+//                            ZeroNormals, ZeroTangents, ZeroUVs, BlackColors);
+//
+//                        if (ZeroTangents > 0) UE_LOG(LogTemp, Error, TEXT("!!! WARNING: Tangents are ZERO. Light calculation will fail (Black Mesh). !!!"));
+//                        if (BlackColors == Data.Vertices.Num()) UE_LOG(LogTemp, Error, TEXT("!!! WARNING: All Colors are BLACK/TRANSPARENT. Vertex Color Multiply will make it Black. !!!"));
+//                    }
+//                    // ========================= [DEBUG LOG END] =========================
+//
+//                    // (C) 섹션 생성
+//                    ProcMeshComp->CreateMeshSection_LinearColor(
+//                        MatIndex,
+//                        Data.Vertices,
+//                        Data.Triangles,
+//                        Data.Normals,
+//                        Data.UVs,
+//                        {}, {}, {}, // Extra UVs
+//                        Data.Colors,
+//                        Data.Tangents,
+//                        true // Collision Enable
+//                    );
+//
+//                    // (D) 머터리얼 연결
+//                    UMaterialInterface* TargetMat = nullptr;
+//                    if (MatIndex >= 0 && MatIndex < DynamicMeshComp->GetNumMaterials())
+//                    {
+//                        TargetMat = DynamicMeshComp->GetMaterial(MatIndex);
+//                    }
+//
+//                    // 머터리얼이 없으면 0번이라도 가져오기 (Fallback)
+//                    if (!TargetMat && DynamicMeshComp->GetNumMaterials() > 0)
+//                    {
+//                        TargetMat = DynamicMeshComp->GetMaterial(0);
+//                    }
+//
+//                    if (TargetMat)
+//                    {
+//                        ProcMeshComp->SetMaterial(MatIndex, TargetMat);
+//                    }
+//                }
+//            }
+//        });
+//}
+//void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp, TArray<FCachedSkinVertex>& OutCache, const TSet<int32>& AllowedBoneIndices)
+//{
+//    if (!DynamicMeshComp || !ProcMeshComp) return;
+//
+//    ProcMeshComp->ClearAllMeshSections();
+//    OutCache.Reset();
+//
+//    UDynamicMesh* DynMesh = DynamicMeshComp->GetDynamicMesh();
+//    if (!DynMesh) return;
+//
+//    DynMesh->ProcessMesh([&](const UE::Geometry::FDynamicMesh3& Mesh)
+//        {
+//            // 1. 스킨 웨이트 속성 가져오기
+//            const auto* SkinWeightsAttr = Mesh.Attributes()->GetSkinWeightsAttribute(FSkeletalMeshAttributes::DefaultSkinWeightProfileName);
+//
+//            // 데이터 저장 구조체
+//            struct FMeshSectionData
+//            {
+//                TArray<FVector> Vertices;
+//                TArray<int32> Triangles;
+//                TArray<FVector> Normals;
+//                TArray<FVector2D> UVs;
+//                TArray<FProcMeshTangent> Tangents;
+//                TArray<FLinearColor> Colors;
+//
+//                // VertID 하나에 여러 개의 PMC Index가 매핑될 수 있도록 변경
+//                TMap<int32, TArray<int32>> VertexMap;
+//            };
+//            TMap<int32, FMeshSectionData> Sections;
+//
+//            // 속성 접근자
+//            bool bHasMaterials = Mesh.HasAttributes() && Mesh.Attributes()->HasMaterialID();
+//            const auto* MaterialIDAttrib = bHasMaterials ? Mesh.Attributes()->GetMaterialID() : nullptr;
+//
+//            // 오버레이 노멀 사용 (GeometryScript 결과물은 보통 오버레이 노멀임)
+//            const auto* NormalAttrib = Mesh.HasAttributes() ? Mesh.Attributes()->PrimaryNormals() : nullptr;
+//            bool bHasNormals = Mesh.HasVertexNormals(); // Fallback
+//
+//            bool bHasUVs = Mesh.HasAttributes() && Mesh.Attributes()->NumUVLayers() > 0;
+//            const auto* UVAttrib = bHasUVs ? Mesh.Attributes()->GetUVLayer(0) : nullptr;
+//
+//            bool bHasTangents = Mesh.HasAttributes() && Mesh.Attributes()->HasTangentSpace();
+//            const auto* TangentAttrib = bHasTangents ? Mesh.Attributes()->PrimaryTangents() : nullptr;
+//
+//            //버텍스 컬러 속성 접근자
+//            bool bHasColors = Mesh.HasAttributes() && Mesh.Attributes()->HasPrimaryColors();
+//            const auto* ColorAttrib = bHasColors ? Mesh.Attributes()->PrimaryColors() : nullptr;
+//
+//            // ---------------------------------------------------------------------
+//            // 삼각형 순회 및 필터링
+//            // ---------------------------------------------------------------------
+//            for (int32 TriID : Mesh.TriangleIndicesItr())
+//            {
+//                UE::Geometry::FIndex3i TriVerts = Mesh.GetTriangle(TriID);
+//
+//                // 이 삼각형을 렌더링할지 결정하는 플래그
+//                bool bKeepTriangle = false;
+//
+//                // 1. 머터리얼 ID 확인 (단면인지 1차 확인)
+//                int32 MatID = 0;
+//                if (MaterialIDAttrib) MatID = MaterialIDAttrib->GetValue(TriID);
+//
+//                // 2. 삼각형 구성 버텍스들의 웨이트 검사
+//                //    (삼각형 중 하나라도 조건에 맞으면 그 삼각형은 그려야 함)
+//                if (SkinWeightsAttr)
+//                {
+//                    for (int32 j = 0; j < 3; j++)
+//                    {
+//                        int32 VertID = TriVerts[j];
+//                        UE::AnimationCore::FBoneWeights Weights;
+//                        SkinWeightsAttr->GetValue(VertID, Weights);
+//
+//                        float TotalWeight = 0.f;
+//                        bool bHasAllowedBone = false;
+//
+//                        for (const auto& BW : Weights)
+//                        {
+//                            float W = BW.GetWeight();
+//                            if (W > 0.001f) // 유의미한 웨이트만
+//                            {
+//                                TotalWeight += W;
+//                                // 허용된 본 목록에 있는 경우
+//                                if (AllowedBoneIndices.Contains(BW.GetBoneIndex()))
+//                                {
+//                                    bHasAllowedBone = true;
+//                                }
+//                            }
+//                        }
+//
+//                        // [조건 A] 웨이트 합이 0이다 -> 단면(Cap) 버텍스 -> 무조건 생성
+//                        if (TotalWeight < 0.001f)
+//                        {
+//                            bKeepTriangle = true;
+//                            break;
+//                        }
+//
+//                        // [조건 B] 허용된 본의 웨이트를 가지고 있다 -> 생성
+//                        if (bHasAllowedBone)
+//                        {
+//                            bKeepTriangle = true;
+//                            break;
+//                        }
+//                    }
+//                }
+//                else
+//                {
+//                    // 웨이트 속성이 아예 없으면 (Static Mesh 등) 그냥 다 그린다.
+//                    bKeepTriangle = true;
+//                }
+//
+//                // 조건에 맞지 않는 삼각형(다른 부위의 본만 가진 삼각형)은 건너뜀
+//                if (!bKeepTriangle) continue;
+//
+//
+//                // -----------------------------------------------------------------
+//                // 데이터 추출 및 섹션 추가 (기존 로직과 동일)
+//                // -----------------------------------------------------------------
+//                FMeshSectionData& Section = Sections.FindOrAdd(MatID);
+//
+//                for (int32 j = 0; j < 3; j++)
+//                {
+//                    int32 VertID = TriVerts[j];
+//
+//                    // --- 속성 추출 ---
+//                    FVector Pos = (FVector)Mesh.GetVertex(VertID);
+//
+//                    FVector Normal = FVector::UpVector;
+//                    if (NormalAttrib)
+//                    {
+//                        int32 ElemID = NormalAttrib->GetElementIDAtVertex(TriID, j);
+//                        if (ElemID != -1) Normal = (FVector)NormalAttrib->GetElement(ElemID);
+//                    }
+//                    else if (bHasNormals)
+//                    {
+//                        Normal = (FVector)Mesh.GetVertexNormal(VertID);
+//                    }
+//
+//                    FVector2D UV = FVector2D::ZeroVector;
+//                    if (UVAttrib)
+//                    {
+//                        int32 ElemID = UVAttrib->GetElementIDAtVertex(TriID, j);
+//                        if (ElemID != -1) UV = (FVector2D)UVAttrib->GetElement(ElemID);
+//                    }
+//
+//                    FLinearColor VertColor = FLinearColor::White;
+//                    if (ColorAttrib)
+//                    {
+//                        int32 ElemID = ColorAttrib->GetElementIDAtVertex(TriID, j);
+//                        if (ElemID != -1) VertColor = FLinearColor(ColorAttrib->GetElement(ElemID));
+//                    }
+//
+//                    // --- [수정된 버텍스 병합 로직] ---
+//                    // 위치 ID(VertID)가 같더라도 UV나 Normal이 다르면 분리해야 함
+//                    int32 FinalVertIndex = -1;
+//
+//                    if (Section.VertexMap.Contains(VertID))
+//                    {
+//                        const TArray<int32>& Candidates = Section.VertexMap[VertID];
+//                        for (int32 ExistingIdx : Candidates)
+//                        {
+//                            // 이미 등록된 버텍스와 속성이 유사한지 검사 (오차 허용)
+//                            if (Section.UVs[ExistingIdx].Equals(UV, 1e-4f) &&
+//                                Section.Normals[ExistingIdx].Equals(Normal, 1e-4f) &&
+//                                Section.Colors[ExistingIdx].Equals(VertColor, 1e-4f))
+//                            {
+//                                FinalVertIndex = ExistingIdx;
+//                                break;
+//                            }
+//                        }
+//                    }
+//
+//                    // 재사용할 버텍스를 찾지 못했으면 새로 추가
+//                    if (FinalVertIndex == -1)
+//                    {
+//                        FinalVertIndex = Section.Vertices.Add(Pos);
+//                        Section.Normals.Add(Normal);
+//                        Section.UVs.Add(UV);
+//                        Section.Colors.Add(VertColor);
+//                        Section.Tangents.Add(FProcMeshTangent()); // 임시 값, 나중에 계산됨
+//
+//                        // 맵에 등록 (리스트에 추가)
+//                        Section.VertexMap.FindOrAdd(VertID).Add(FinalVertIndex);
+//
+//                        // --- 스킨 웨이트 캐싱 (새 버텍스일 때만 수행) ---
+//                        FCachedSkinVertex CachedVert;
+//                        CachedVert.InitialPos = Pos;
+//                        CachedVert.InitialNormal = Normal;
+//                        CachedVert.SectionIndex = MatID;
+//                        CachedVert.VertIndex = FinalVertIndex;
+//
+//                        // 초기화
+//                        for (int k = 0; k < 4; k++) { CachedVert.BoneIndices[k] = 0; CachedVert.BoneWeights[k] = 0.f; }
+//
+//                        if (SkinWeightsAttr)
+//                        {
+//                            UE::AnimationCore::FBoneWeights Weights;
+//                            SkinWeightsAttr->GetValue(VertID, Weights);
+//
+//                            int32 WriteIdx = 0;
+//                            for (int32 k = 0; k < Weights.Num() && WriteIdx < 4; ++k)
+//                            {
+//                                const auto& BW = Weights[k];
+//                                // 0에 가까운 웨이트는 제외하여 불필요한 연산 방지
+//                                if (BW.GetWeight() > 0.001f)
+//                                {
+//                                    CachedVert.BoneIndices[WriteIdx] = BW.GetBoneIndex();
+//                                    CachedVert.BoneWeights[WriteIdx] = BW.GetWeight();
+//                                    WriteIdx++;
+//                                }
+//                            }
+//                        }
+//                        OutCache.Add(CachedVert);
+//                    }
+//                    // 삼각형 인덱스 추가
+//                    Section.Triangles.Add(FinalVertIndex);
+//                }
+//            }
+//
+//            // 3. PMC 생성
+//            for (auto& Elem : Sections)
+//            {
+//                int32 MatIndex = Elem.Key;
+//                FMeshSectionData& Data = Elem.Value;
+//
+//                if (Data.Vertices.Num() > 0)
+//                {
+//                    UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
+//                        Data.Vertices,
+//                        Data.Triangles,
+//                        Data.UVs,
+//                        Data.Normals,
+//                        Data.Tangents // 여기에 올바른 값이 채워짐
+//                    );
+//
+//                    ProcMeshComp->CreateMeshSection_LinearColor(
+//                        MatIndex,
+//                        Data.Vertices,
+//                        Data.Triangles,
+//                        Data.Normals,
+//                        Data.UVs,
+//                        {}, {}, {}, // UV 1~3
+//                        Data.Colors,
+//                        Data.Tangents,
+//                        true // Collision
+//                    );
+//
+//                    UMaterialInterface* TargetMat = nullptr;
+//                    if (MatIndex < DynamicMeshComp->GetNumMaterials())
+//                    {
+//                        TargetMat = DynamicMeshComp->GetMaterial(MatIndex);
+//                    }
+//
+//                    // DMC에 없으면 0번이라도 가져오기 (비상용)
+//                    if (!TargetMat) TargetMat = DynamicMeshComp->GetMaterial(0);
+//
+//                    if (TargetMat)
+//                    {
+//                        ProcMeshComp->SetMaterial(MatIndex, TargetMat);
+//                    }
+//                }
+//            }
+//        });
+//}
 
 void USliceUtils::InitializeDMCFromSkeletalMesh(UDynamicMeshComponent* DMC, USkeletalMeshComponent* SkelMeshComp, EGeometryScriptOutcomePins& OutCome)
 {
@@ -1400,7 +2039,6 @@ void USliceUtils::FindPlaneCutBones(USkeletalMesh* SkeletalMesh, FTransform& Pla
         if (FMath::SegmentPlaneIntersection(BoneStart, BoneEnd, CutPlane, IntersectionPoint))
         {
             OutBoneIndices.Add(i);
-            // 디버그: 교차된 뼈 이름 출력
             UE_LOG(LogTemp, Warning, TEXT("Intersected Bone: %s"), *RefSkeleton.GetBoneName(i).ToString());
         }
     }

@@ -343,9 +343,11 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
     EGeometryScriptOutcomePins Outcome;
 
     FGeometryScriptCopyMeshFromAssetOptions CopyMeshFromAssetOptions;
- 
+    CopyMeshFromAssetOptions.bRequestTangents = true;
+
     FGeometryScriptMeshReadLOD GeometryScriptMeshReadLOD;
     GeometryScriptMeshReadLOD.LODIndex = 0;
+    GeometryScriptMeshReadLOD.LODType = EGeometryScriptLODType::MaxAvailable;
     // 이 함수가 스킨웨이트도 복사함
     /*
     * FSkeletalMeshLODRenderDataToDynamicMesh::Convert(
@@ -430,13 +432,13 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
     const FReferenceSkeleton& RefSkeleton = Mesh->GetSkeletalMeshAsset()->GetRefSkeleton();
     int32 BoneIndex = Mesh->GetBoneIndex(TargetBone);
 
+    TArray<FTransform> ComponentSpaceTransforms;
     FTransform BoneRefPoseCompSpace = FTransform::Identity;
     if (BoneIndex != INDEX_NONE)
     {
         // RefPose의 Component Space Transform을 구하는 함수
         // (단일 본만 구하면 비효율적일 수 있으나 로직 설명상 명확함. 
         //  최적화하려면 FillUpComponentSpaceTransforms를 사용해 전체를 캐싱하는 것이 좋음)
-        TArray<FTransform> ComponentSpaceTransforms;
         FAnimationRuntime::FillUpComponentSpaceTransforms(RefSkeleton, RefSkeleton.GetRefBonePose(), ComponentSpaceTransforms);
 
         if (ComponentSpaceTransforms.IsValidIndex(BoneIndex))
@@ -450,6 +452,33 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
 
 	TSet<int32> TargetBoneIndices;
 	USliceUtils::FindPlaneCutBones(Mesh->GetSkeletalMeshAsset(), CutPlaneInDMCRefPoseSpace, TargetBoneIndices);
+    if (!CutableBones.IsEmpty())
+    {
+        //교집합
+        for (auto It = TargetBoneIndices.CreateIterator(); It; ++It)
+        {
+            int32 CurIdx = *It;
+
+            if (!CutableBones.Contains(Mesh->GetBoneName(CurIdx)))
+            {
+
+                It.RemoveCurrent();
+            }
+        }
+    }
+
+    //고정으로 테스트
+    FName FixedBoneName = FName("Spine1");
+    int32 FixedBoneIndex = Mesh->GetBoneIndex(FixedBoneName);
+
+    if (FixedBoneIndex != INDEX_NONE && ComponentSpaceTransforms.IsValidIndex(FixedBoneIndex))
+    {
+        FVector FixedBoneLocation = ComponentSpaceTransforms[FixedBoneIndex].GetLocation();
+        CutPlaneInDMCRefPoseSpace.SetLocation(FixedBoneLocation);
+        TargetBoneIndices.Empty();
+        TargetBoneIndices.Add(FixedBoneIndex);
+    }
+    
 
     FGeometryScriptMeshPlaneCutOptions PlaneCutOptions;
     PlaneCutOptions.bFillHoles = true;
@@ -526,14 +555,14 @@ void USliceSystemComponent::SetupPMCs()
     PMC_Stump.ProcMeshComp = NewObject<UProceduralMeshComponent>(Owner, TEXT("PMC_Stump"));
     PMC_Stump.ProcMeshComp->RegisterComponent();
     PMC_Stump.ProcMeshComp->AttachToComponent(Owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-    PMC_Stump.ProcMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    PMC_Stump.ProcMeshComp->SetCollisionProfileName(FName("PMC"), true);
     PMC_Stump.ProcMeshComp->SetVisibility(false);
     //PMC_Stump->UpdateMeshSection_LinearColor()
 
     PMC_Debris.ProcMeshComp = NewObject<UProceduralMeshComponent>(Owner, TEXT("PMC_Debris"));
     PMC_Debris.ProcMeshComp->RegisterComponent();
     PMC_Debris.ProcMeshComp->AttachToComponent(Owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-    PMC_Debris.ProcMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    PMC_Debris.ProcMeshComp->SetCollisionProfileName(FName("PMC"), true);
     PMC_Debris.ProcMeshComp->SetVisibility(false);
 }
 
@@ -715,14 +744,15 @@ void USliceSystemComponent::InitializePMCBuffers(FSlicePMC& InSlicePMC)
 
             int32 NumVerts = Section->ProcVertexBuffer.Num();
 
-            // 1. 메모리 할당
+            //메모리 할당
             Buffer.Vertices.SetNumUninitialized(NumVerts);
             Buffer.Normals.SetNumUninitialized(NumVerts);
             Buffer.UVs.SetNumUninitialized(NumVerts);
             Buffer.Colors.SetNumUninitialized(NumVerts);
             Buffer.Tangents.SetNumUninitialized(NumVerts);
+            Buffer.InitialTangents.SetNumUninitialized(NumVerts);
 
-            // 2. 기존 데이터 백업 (중요!)
+            //기존 데이터 백업
             // FProcMeshVertex 구조체에서 데이터를 분리하여 Buffer 배열에 옮겨담아야 함
             for (int32 i = 0; i < NumVerts; ++i)
             {
@@ -735,7 +765,11 @@ void USliceSystemComponent::InitializePMCBuffers(FSlicePMC& InSlicePMC)
                 // [핵심] 정적 데이터 백업 (이게 없으면 텍스처 안 나옴)
                 Buffer.UVs[i] = SrcVert.UV0;
                 Buffer.Colors[i] = FLinearColor(SrcVert.Color); // FColor -> FLinearColor 변환
+                //Buffer.Colors[i] = FLinearColor::White;
                 Buffer.Tangents[i] = SrcVert.Tangent;
+
+                // [추가] 초기 탄젠트 값 저장 (T-Pose 기준)
+                Buffer.InitialTangents[i] = SrcVert.Tangent;
             }
         }
     }
@@ -819,6 +853,7 @@ void USliceSystemComponent::UpdatePMCSkinning(FSlicePMC& InSlicePMC)
             // 최종 위치/노멀 계산
             FVector FinalPos = FVector::ZeroVector;
             FVector FinalNormal = FVector::ZeroVector;
+            FVector FinalTangentX = FVector::ZeroVector; // 탄젠트 누적 변수
 
             // Loop Unrolling 고려: 4번 고정이므로 컴파일러가 알아서 최적화하겠지만 명시적으로 깔끔하게 작성
             for (int32 w = 0; w < 4; ++w)
@@ -838,6 +873,10 @@ void USliceSystemComponent::UpdatePMCSkinning(FSlicePMC& InSlicePMC)
                         // TransformPosition/Vector 연산
                         FinalPos += Mat.TransformPosition(V.InitialPos) * Weight;
                         FinalNormal += Mat.TransformVector(V.InitialNormal) * Weight;
+
+                        // 탄젠트 벡터도 동일하게 회전
+                        // Buffer->InitialTangents[V.VertIndex].TangentX 가 원본 벡터
+                        FinalTangentX += Mat.TransformVector(Buffer->InitialTangents[V.VertIndex].TangentX) * Weight;
                     }
                 }
             }
@@ -845,6 +884,11 @@ void USliceSystemComponent::UpdatePMCSkinning(FSlicePMC& InSlicePMC)
             // 결과 쓰기 (Thread-Safe: 각 스레드는 고유한 V.SectionIndex -> V.VertIndex에만 씀)
             Buffer->Vertices[V.VertIndex] = FinalPos;
             Buffer->Normals[V.VertIndex] = FinalNormal.GetSafeNormal(); // 정규화 필수
+
+            // 탄젠트 정규화 및 업데이트
+            // bFlipTangentY 값은 원본 그대로 유지
+            bool bFlipY = Buffer->InitialTangents[V.VertIndex].bFlipTangentY;
+            Buffer->Tangents[V.VertIndex] = FProcMeshTangent(FinalTangentX.GetSafeNormal(), bFlipY);
         });
 
     // 4. GPU 데이터 전송 (반드시 Main Thread에서 수행)
