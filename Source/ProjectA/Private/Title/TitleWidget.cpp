@@ -13,12 +13,14 @@ void UTitleWidget::NativeConstruct()
 
 	//ServerIP = Cast<UEditableTextBox>(GetWidgetFromName(TEXT("ServerIP")));
 
-	StartServerButton->OnClicked.AddDynamic(this, &UTitleWidget::StartServer);
+	//StartServerButton->OnClicked.AddDynamic(this, &UTitleWidget::StartServer);
 	ConnectButton->OnClicked.AddDynamic(this, &UTitleWidget::Connect);
 }
 
+//사용안함
 void UTitleWidget::StartServer()
 {
+	//웹api에서 로그인함 로비서버 listen서버 아님
 	SaveData();
 	UGameplayStatics::OpenLevel(GetWorld(), TEXT("LobbyMap"), true, TEXT("listen"));
 }
@@ -26,7 +28,7 @@ void UTitleWidget::StartServer()
 void UTitleWidget::Connect()
 {
 	SaveData();
-	UGameplayStatics::OpenLevel(GetWorld(), FName(ServerIP->GetText().ToString()), true, TEXT("Option"));
+	//UGameplayStatics::OpenLevel(GetWorld(), FName(ServerIP->GetText().ToString()), true, TEXT("Option"));
 }
 
 void UTitleWidget::SaveData()

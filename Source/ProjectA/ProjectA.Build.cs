@@ -1,5 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+using System.IO;
 using UnrealBuildTool;
 
 public class ProjectA : ModuleRules
@@ -36,10 +37,16 @@ public class ProjectA : ModuleRules
             "RHI",
 
             "MeshDescription",
-			"SkeletalMeshDescription"
+			"SkeletalMeshDescription",
+			//http
+			"HTTP", "Json", "JsonUtilities",
+            "Sockets", "Networking"
         });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });
+        // ThirdParty 폴더를 인클루드 경로에 추가
+        PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty"));
+
+        PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"ProjectA",
