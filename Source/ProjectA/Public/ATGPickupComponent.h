@@ -49,6 +49,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
+	UPROPERTY(Replicated)
+	int32 TestInt = 0;
 
 	void SetItemMesh();
 };

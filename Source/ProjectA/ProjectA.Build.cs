@@ -7,7 +7,10 @@ public class ProjectA : ModuleRules
 {
 	public ProjectA(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        //Iris
+        SetupIrisSupport(Target);
+
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
@@ -24,21 +27,23 @@ public class ProjectA : ModuleRules
             "ProceduralMeshComponent",
             "RenderCore",
             "RHI",
-            "GameplayAbilities", "GameplayTags", "GameplayTasks", //gameplay Ability System
+            "GameplayAbilities", "GameplayTags", "GameplayTasks", // gameplay Ability System
 			"GeometryFramework",
             "GeometryScriptingCore",
             "DynamicMesh",
             "GeometryCore",
             "MeshConversion",
             "MeshConversionEngineTypes", 
-            
+			// Iris
+            "NetCore",
+            "IrisCore",
             // RenderData Á¢±Ù¿ë
             "RenderCore",
             "RHI",
 
             "MeshDescription",
 			"SkeletalMeshDescription",
-			//http
+			// http
 			"HTTP", "Json", "JsonUtilities",
             "Sockets", "Networking"
         });
@@ -47,6 +52,8 @@ public class ProjectA : ModuleRules
         PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty"));
 
         PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });
+		
+		
 
 		PublicIncludePaths.AddRange(new string[] {
 			"ProjectA",

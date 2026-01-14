@@ -36,6 +36,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 public:
 	
 	//ItemData의 W,H 관계없이 무기는 2,1크기로 고정 (텍스쳐비율도 2,1 비율)

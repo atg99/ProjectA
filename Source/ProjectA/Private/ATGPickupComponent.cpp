@@ -3,6 +3,7 @@
 
 #include "ATGPickupComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Net/Core/PushModel/PushModel.h"
 #include "Data/ATGItemData.h"
 
 // Sets default values for this component's properties
@@ -69,12 +70,19 @@ void UATGPickupComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	//Iris 직접 markdirty해서 성능 최적화
+	FDoRepLifetimeParams RepParams;
+	RepParams.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UATGPickupComponent, TestInt, RepParams);
+	
 	DOREPLIFETIME_CONDITION(UATGPickupComponent, ItemDef, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(UATGPickupComponent, ItemQty, COND_None);
 }
 
 void UATGPickupComponent::SetItemMesh()
 {
+	TestInt++;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UATGPickupComponent, TestInt, this);
 	if (!GetOwner())
 	{
 		if (GEngine)

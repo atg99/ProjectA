@@ -10,6 +10,10 @@
 #include "ATGPickupComponent.h"
 #include <Kismet/GameplayStatics.h>
 #include "ATGContainerComponent.h"
+#include "Utils/NetworkUtil.h"
+#include "Net/Core/PushModel/PushModel.h"
+#include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
+
 
 // Sets default values for this component's properties
 UATGInventoryComponent::UATGInventoryComponent()
@@ -52,16 +56,26 @@ void UATGInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 void UATGInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	FDoRepLifetimeParams RepParams;
+	RepParams.bIsPushBased = true;
+	//DOREPLIFETIME_WITH_PARAMS_FAST(UATGInventoryComponent, Inventory, RepParams);
 	DOREPLIFETIME_CONDITION(UATGInventoryComponent, Inventory, COND_OwnerOnly);
 }
 
+//void UATGInventoryComponent::RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags)
+//{
+//	UE::Net::FReplicationFragmentUtil::CreateAndRegisterFragmentsForObject(this, Context, RegistrationFlags);
+//}
+
 void UATGInventoryComponent::ItemAdded(int32 EntryId)
 {
+	NET_LOG(TEXT(""));
 	OnItemAdded.Broadcast(EntryId);
 }
 
 void UATGInventoryComponent::ItemChanged(int32 EntryId)
 {
+	NET_LOG(TEXT(""));
 	OnItemChanged.Broadcast(EntryId);
 }
 
@@ -72,6 +86,7 @@ void UATGInventoryComponent::InventoryForceNetUpdate()
 
 void UATGInventoryComponent::ItemRemoved(int32 EntryId)
 {
+	NET_LOG(TEXT(""));
 	OnItemRemoved.Broadcast(EntryId);
 }
 

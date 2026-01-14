@@ -5,6 +5,7 @@
 #include "ATGInventoryComponent.h"
 #include "Data/ATGItemData.h"
 #include "Algo/Sort.h"
+#include "Utils/NetworkUtil.h"
 
 int32 FInventoryGrid::GlobalEntryIdCounter = 0;
 
@@ -16,7 +17,12 @@ void FInventoryEntry::PreReplicatedRemove(const FInventoryGrid& InArraySerialize
 
 void FInventoryEntry::PostReplicatedAdd(const FInventoryGrid& InArraySerializer)
 {
-    UE_LOG(LogTemp, Display, TEXT("!!! FInventoryEntry::PostReplicatedAdd 1110"));
+    if (GEngine->GameViewport->GetWorld())
+    {
+        NetworkUtil::Log(GEngine->GameViewport->GetWorld(), ANSI_TO_TCHAR(__FUNCTION__), TEXT(""));
+    }
+   
+    //UE_LOG(LogTemp, Display, TEXT("!!! FInventoryEntry::PostReplicatedAdd 1110"));
     if (InArraySerializer.Owner)
     {
         UE_LOG(LogTemp, Display, TEXT("!!! PostReplicatedAdd Owner"));
@@ -214,7 +220,7 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
                 if (OwnerHasAuthority())    //서버에만 배열 마크
                 {
                     MarkItemDirty(E);
-                    Owner->InventoryForceNetUpdate();
+                    //Owner->InventoryForceNetUpdate();
                 }
                 else
                 {

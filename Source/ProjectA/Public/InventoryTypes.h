@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "ATGInventoryOwnerInterface.h"
+
+#include "Iris/ReplicationSystem/FastArrayReplicationFragment.h"
+
 #include "InventoryTypes.generated.h"
 
 
@@ -166,6 +169,20 @@ struct FInventoryEntry : public FFastArraySerializerItem
     UPROPERTY() 
     int32 PredictionKey = 0;
 
+    // Iris Change Detection
+    bool operator==(const FInventoryEntry& Other) const
+    {
+        return Item == Other.Item &&
+            Quantity == Other.Quantity &&
+            X == Other.X &&
+            Y == Other.Y &&
+            Width == Other.Width &&
+            Height == Other.Height &&
+            bRotated == Other.bRotated &&
+            Id == Other.Id &&
+            PredictionKey == Other.PredictionKey;
+    }
+
     void PreReplicatedRemove(const struct FInventoryGrid& InArraySerializer);
     void PostReplicatedAdd(const struct FInventoryGrid& InArraySerializer);
     void PostReplicatedChange(const struct FInventoryGrid& InArraySerializer);
@@ -182,6 +199,8 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     TArray<FInventoryEntry> Entries;
 
+    //UE_NET_DECLARE_FASTARRAY(FInventoryGrid, Entries, FInventoryEntry);
+
     //재정렬시 ID기반 정렬 임시배열
     TArray<FInventoryEntry*> TempSortEntries;
 
@@ -189,19 +208,19 @@ public:
     TArray<FInventoryEntry*> TempEntries;
 
     //preview 전용 복제안하는 배열
-    UPROPERTY(NotReplicated)
+    //UPROPERTY(NotReplicated)
     TArray<FInventoryEntry> PreviewEntries;
 
     //UPROPERTY(NotReplicated)
     //UATGInventoryComponent* OwnerComp = nullptr;
 
-    UPROPERTY(NotReplicated)
+    //UPROPERTY(NotReplicated)
     TScriptInterface<IATGInventoryOwnerInterface> Owner = nullptr;
 
-    UPROPERTY(BlueprintReadOnly)
+    //UPROPERTY(BlueprintReadOnly)
     int32 GridWidth = 10;
 
-    UPROPERTY(BlueprintReadOnly)
+    //UPROPERTY(BlueprintReadOnly)
     int32 GridHeight = 10;
 
     //Custom Network Serialize
@@ -272,6 +291,6 @@ WithNetDeltaSerializer �÷��װ� true�� �����Ǿ� �־�
 template<>
 struct TStructOpsTypeTraits<FInventoryGrid> : public TStructOpsTypeTraitsBase2<FInventoryGrid>
 {
-    enum { WithNetDeltaSerializer = true };
+    enum { WithNetDeltaSerializer = true};
 };
 
