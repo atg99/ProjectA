@@ -53,6 +53,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void UpdatePlayerNum(int32 InPlayerNum);
 
+	UFUNCTION(BlueprintCallable)
 	void AddMessage(const FText& Message);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")

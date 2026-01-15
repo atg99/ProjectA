@@ -33,11 +33,13 @@ void ALobbyPC::BeginPlay()
 	}
 }
 
+//deprecated
 bool ALobbyPC::ServerSendMessage_Validate(const FText& Message)
 {
 	return true;
 }
 
+//deprecated
 void ALobbyPC::ServerSendMessage_Implementation(const FText& Message)
 {
 	for (auto Iter = GetWorld()->GetPlayerControllerIterator(); Iter; ++Iter)
@@ -50,6 +52,7 @@ void ALobbyPC::ServerSendMessage_Implementation(const FText& Message)
 	}
 }
 
+//deprecated
 void ALobbyPC::ClientSendMessage_Implementation(const FText& Message)
 {
 	//NET_LOG(Message.ToString());

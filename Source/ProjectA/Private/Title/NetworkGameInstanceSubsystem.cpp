@@ -37,6 +37,7 @@ uint32 FTcpSocketWorker::Run()
 	{
 		if (Socket->Wait(ESocketWaitConditions::WaitForRead, FTimespan::FromSeconds(0.1)))
 		{
+			//os에 대기중인 버퍼가 있는지
 			uint32 PendingDataSize = 0;
 			if (Socket->HasPendingData(PendingDataSize) && PendingDataSize > 0)
 			{
@@ -76,15 +77,15 @@ void UNetworkGameInstanceSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UNetworkGameInstanceSubsystem::Login()
+void UNetworkGameInstanceSubsystem::BackendLogin()
 {
 	auto Request = HTTPModule->CreateRequest();
 	Request->OnProcessRequestComplete().BindUObject(
 		this,
-		&UNetworkGameInstanceSubsystem::OnLoginProcessRequestComplete
+		&UNetworkGameInstanceSubsystem::OnBackendLoginProcessRequestComplete
 	);
 
-	FString URL = FString::Printf(TEXT("http://192.168.0.100:3000/auth/login"));
+	FString URL = FString::Printf(TEXT("http://%s:3000/auth/login"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -103,12 +104,12 @@ void UNetworkGameInstanceSubsystem::Login()
 	Request->ProcessRequest();
 }
 
-void UNetworkGameInstanceSubsystem::Register(FString NewUserID, FString NewPassword)
+void UNetworkGameInstanceSubsystem::BackendRegister(FString NewUserID, FString NewPassword)
 {
 	auto Request = HTTPModule->CreateRequest();
-	Request->OnProcessRequestComplete().BindUObject(this, &UNetworkGameInstanceSubsystem::OnRegisterProcessRequestComplete);
+	Request->OnProcessRequestComplete().BindUObject(this, &UNetworkGameInstanceSubsystem::OnBackendRegisterProcessRequestComplete);
 
-	FString URL = FString::Printf(TEXT("http://192.168.0.100:3000/auth/register"));
+	FString URL = FString::Printf(TEXT("http://%s:3000/auth/register"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -127,7 +128,7 @@ void UNetworkGameInstanceSubsystem::Register(FString NewUserID, FString NewPassw
 	Request->ProcessRequest();
 }
 
-void UNetworkGameInstanceSubsystem::OnLoginProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully)
+void UNetworkGameInstanceSubsystem::OnBackendLoginProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully)
 {
 	if (!bProcessedSuccessfully || !Response.IsValid())
 	{
@@ -138,11 +139,11 @@ void UNetworkGameInstanceSubsystem::OnLoginProcessRequestComplete(FHttpRequestPt
 	UE_LOG(LogTemp, Warning, TEXT("LoginResponseCode %d"), StatusCode);
 
 	FString ResponseContent = Response->GetContentAsString();
-	FLoginData LoginData;
+	FBackendLoginData LoginData;
 
-	if (FJsonObjectConverter::JsonObjectStringToUStruct<FLoginData>(ResponseContent, &LoginData, 0, 0))
+	if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendLoginData>(ResponseContent, &LoginData, 0, 0))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Login message : %s"), *LoginData.message);
+		UE_LOG(LogTemp, Warning, TEXT("Token : %s, Login message : %s"), *LoginData.token ,*LoginData.message);
 	}
 	else
 	{
@@ -152,16 +153,32 @@ void UNetworkGameInstanceSubsystem::OnLoginProcessRequestComplete(FHttpRequestPt
 	if (StatusCode == 200)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Login Success OpenLobbyLevel"));
+		
+		CachedToken = LoginData.token;
+
+		FBackendRequstResult RES;
+		RES.ResultType = EBackendResultType::Login_RES;
+		RES.bIsSuccessful = true;
+		RES.Message = LoginData.message;
+		OnRequstResult.Broadcast(RES);
+
+		ConnectToTCPServer(BackendIP, TCPPort);
+
 		UGameplayStatics::OpenLevel(GetWorld(), TEXT("LobbyMap"), true);
 	}
 	else
 	{
+		FBackendRequstResult RES;
+		RES.ResultType = EBackendResultType::Login_RES;
+		RES.bIsSuccessful = false;
+		RES.Message = LoginData.message;
+		OnRequstResult.Broadcast(RES);
 		UE_LOG(LogTemp, Warning, TEXT("Login Failed : code: %d, message : %s "), StatusCode, *LoginData.message);
 	}
 
 }
 
-void UNetworkGameInstanceSubsystem::OnRegisterProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully)
+void UNetworkGameInstanceSubsystem::OnBackendRegisterProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully)
 {
 	if (!bProcessedSuccessfully || !Response.IsValid())
 	{
@@ -172,11 +189,11 @@ void UNetworkGameInstanceSubsystem::OnRegisterProcessRequestComplete(FHttpReques
 	UE_LOG(LogTemp, Warning, TEXT("RegisterResponseCode %d"), StatusCode);
 
 	FString ResponseContent = Response->GetContentAsString();
-	FLoginData LoginData;
+	FBackendLoginData RegisterData;
 
-	if (FJsonObjectConverter::JsonObjectStringToUStruct<FLoginData>(ResponseContent, &LoginData, 0, 0))
+	if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendLoginData>(ResponseContent, &RegisterData, 0, 0))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Register message : %s"), *LoginData.message);
+		UE_LOG(LogTemp, Warning, TEXT("Register message : %s"), *RegisterData.message);
 	}
 	else
 	{
@@ -186,17 +203,29 @@ void UNetworkGameInstanceSubsystem::OnRegisterProcessRequestComplete(FHttpReques
 	if (StatusCode == 201)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Register Success"));
+
+		FBackendRequstResult RES;
+		RES.ResultType = EBackendResultType::Register_RES;
+		RES.bIsSuccessful = true;
+		RES.Message = RegisterData.message;
+		OnRequstResult.Broadcast(RES);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Register Failed : code: %d, message : %s "), StatusCode, *LoginData.message);
+		FBackendRequstResult RES;
+		RES.ResultType = EBackendResultType::Register_RES;
+		RES.bIsSuccessful = false;
+		RES.Message = RegisterData.message;
+		OnRequstResult.Broadcast(RES);
+		UE_LOG(LogTemp, Warning, TEXT("Register Failed : code: %d, message : %s "), StatusCode, *RegisterData.message);
 	}
 }
 
-void UNetworkGameInstanceSubsystem::ConnectToGameServer(FString IpAddress, int32 Port, FString Token)
+void UNetworkGameInstanceSubsystem::ConnectToTCPServer(FString IpAddress, int32 Port)
 {
 	TCPDisconnect(); // 기존 연결 정리
 
+	//IP 파싱 union{uint32 A.B.C.D, uint32}
 	FIPv4Address IP;
 	if (!FIPv4Address::Parse(IpAddress, IP))
 	{
@@ -204,14 +233,12 @@ void UNetworkGameInstanceSubsystem::ConnectToGameServer(FString IpAddress, int32
 		return;
 	}
 
+	//FInternetAddr 에 IP, Port Setting
 	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 	Addr->SetIp(IP.Value);
 	Addr->SetPort(Port);
 
-	Socket = FTcpSocketBuilder(TEXT("GameClientSocket"))
-		.AsReusable()
-		.BoundToPort(0)
-		.Build();
+	Socket = FTcpSocketBuilder(TEXT("GameClientSocket")).AsReusable().BoundToPort(0).Build();
 
 	if (Socket && Socket->Connect(*Addr))
 	{
@@ -226,7 +253,7 @@ void UNetworkGameInstanceSubsystem::ConnectToGameServer(FString IpAddress, int32
 			}));
 
 		// 연결 즉시 로그인 패킷 전송
-		SendLoginPacket(Token);
+		SendLoginPacket(CachedToken);
 	}
 	else
 	{
@@ -391,7 +418,12 @@ void UNetworkGameInstanceSubsystem::HandlePacket(const uint8* Data, int32 DataSi
 		FString Message = pkt->message() ? UTF8_TO_TCHAR(pkt->message()->c_str()) : TEXT("");
 
 		UE_LOG(LogTemp, Log, TEXT("[Login] Success: %d, Msg: %s"), bSuccess, *Message);
-		OnLoginResult.Broadcast(bSuccess);
+		FBackendRequstResult Result;
+		Result.ResultType = EBackendResultType::TCPLogin_RES;
+		Result.bIsSuccessful = bSuccess;
+		Result.Message = Message;
+
+		OnRequstResult.Broadcast(Result);
 		break;
 	}
 
@@ -402,7 +434,7 @@ void UNetworkGameInstanceSubsystem::HandlePacket(const uint8* Data, int32 DataSi
 		FString Sender = pkt->sender_id() ? UTF8_TO_TCHAR(pkt->sender_id()->c_str()) : TEXT("Unknown");
 		FString Message = pkt->message() ? UTF8_TO_TCHAR(pkt->message()->c_str()) : TEXT("");
 		int64 Timestamp = pkt->timestamp();
-
+		
 		UE_LOG(LogTemp, Log, TEXT("[Chat] %s: %s"), *Sender, *Message);
 		OnChatReceived.Broadcast(Sender, Message, Timestamp);
 		break;

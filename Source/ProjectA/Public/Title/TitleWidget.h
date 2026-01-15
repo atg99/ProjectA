@@ -21,7 +21,7 @@ public:
 	virtual void NativeConstruct() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widget, meta = (BindWidget))
-	TObjectPtr<UButton> StartServerButton;
+	TObjectPtr<UButton> RegisterButton;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widget, meta = (BindWidget))
 	TObjectPtr<UButton> ConnectButton;
@@ -32,14 +32,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widget, meta = (BindWidget))
 	TObjectPtr<UEditableTextBox> Password;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widget, meta = (BindWidget))
-	TObjectPtr<UEditableTextBox> ServerIP;
-
 	UFUNCTION()
 	void StartServer();
 
-	UFUNCTION()
-	void Connect();
+	UFUNCTION(BlueprintCallable)
+	void LoginAndConnect();
 
+	UFUNCTION(BlueprintCallable)
+	void RegistServer();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Backend")
+	FString BackendIP = TEXT("127.0.0.1");
+protected:
 	void SaveData();
 };

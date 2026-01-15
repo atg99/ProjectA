@@ -15,24 +15,41 @@
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatReceived, FString, Sender, FString, Message, int64, Timestamp);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLoginResult, bool, bSuccess);
-
-enum class EPacketType : uint8
+UENUM(BlueprintType)
+enum class EBackendResultType : uint8
 {
-	LOGIN_REQ = 1,
-	LOGIN_RES = 2,
-	CHAT_MSG = 3
+	None			= 0		UMETA(DisplayName = "None"),
+	Login_RES		= 1		UMETA(DisplayName = "Login_RES"),
+	Register_RES	= 2		UMETA(DisplayName = "Register_RES"),
+	TCPLogin_RES	= 2		UMETA(DisplayName = "TCPLogin_RES"),
 };
 
 USTRUCT(BlueprintType)
-struct FLoginData
+struct FBackendRequstResult
 {
 	GENERATED_BODY()
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EBackendResultType ResultType;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsSuccessful;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString Message;
+};
+
+USTRUCT(BlueprintType)
+struct FBackendLoginData
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY()
 	FString token;
+	UPROPERTY()
 	FString message;
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatReceived, FString, Sender, FString, Message, int64, Timestamp);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBackendRequstResult, FBackendRequstResult, RequstResult);
 
 class FTcpSocketWorker : public FRunnable
 {
@@ -78,13 +95,13 @@ public:
 	FString Password;
 	
 	UFUNCTION(BlueprintCallable)
-	void Login();
+	void BackendLogin();
 
 	UFUNCTION(BlueprintCallable)
-	void Register(FString NewUserID, FString NewPassword);
+	void BackendRegister(FString NewUserID, FString NewPassword);
 
 	UFUNCTION(BlueprintCallable)
-	void ConnectToGameServer(FString IpAddress, int32 Port, FString Token);
+	void ConnectToTCPServer(FString IpAddress, int32 Port);
 
 	UFUNCTION(BlueprintCallable)
 	void SendChatMessage(FString Message);
@@ -96,15 +113,16 @@ public:
 	FOnChatReceived OnChatReceived;
 
 	UPROPERTY(BlueprintAssignable, Category = "Network")
-	FOnLoginResult OnLoginResult;
+	FOnBackendRequstResult OnRequstResult;
 
+	FString BackendIP = TEXT("127.0.0.1");
 protected:
 
 	FHttpModule* HTTPModule;
 
-	void OnLoginProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully);
+	void OnBackendLoginProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully);
 
-	void OnRegisterProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully);
+	void OnBackendRegisterProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully);
 
 	void SendLoginPacket(FString Token);
 
@@ -123,4 +141,8 @@ protected:
 	TArray<uint8> ReceiveBuffer; 
 
 	bool bIsConnected;
+
+	FString CachedToken;
+
+	const int32 TCPPort = 57776;
 };

@@ -31,13 +31,14 @@ void ULobbyWidget::NativeOnInitialized()
 		EditableText_Chat->OnTextChanged.AddDynamic(this, &ULobbyWidget::ProcessOnChange);
 	}
 
-	ALobbyGameState* LobbyGS = GetWorld()->GetGameState() ? Cast<ALobbyGameState>(GetWorld()->GetGameState()) :nullptr;
-	if (LobbyGS)
-	{
-		UpdatePlayerNum(LobbyGS->PlayerArray.Num());
-		LobbyGS->OnLeftTime.AddDynamic(this, &ULobbyWidget::UpdateLeftTime);
-		LobbyGS->OnPlayerNum.AddDynamic(this, &ULobbyWidget::UpdatePlayerNum);
-	}
+	//deprecated
+	//ALobbyGameState* LobbyGS = GetWorld()->GetGameState() ? Cast<ALobbyGameState>(GetWorld()->GetGameState()) :nullptr;
+	//if (LobbyGS)
+	//{
+	//	UpdatePlayerNum(LobbyGS->PlayerArray.Num());
+	//	LobbyGS->OnLeftTime.AddDynamic(this, &ULobbyWidget::UpdateLeftTime);
+	//	LobbyGS->OnPlayerNum.AddDynamic(this, &ULobbyWidget::UpdatePlayerNum);
+	//}
 }
 
 void ULobbyWidget::HandlePressStartBtn()
@@ -51,29 +52,26 @@ void ULobbyWidget::HandleTextCommit(const FText& Text, ETextCommit::Type CommitM
 	{
 	case ETextCommit::OnEnter:
 	{
-		if (ALobbyPC* PC = Cast<ALobbyPC>(GetOwningPlayer()))
+		UGameInstance* GI = UGameplayStatics::GetGameInstance(GetWorld());
+		if (GI)
 		{
-			UGameInstance* GI = UGameplayStatics::GetGameInstance(GetWorld());
-			if (GI)
+			bool bHost = true;
+
+			FString UserLogo = bHost ? FString::Printf(TEXT("<img id=\"Logo.Host\"/>")) : FString::Printf(TEXT("<img id=\"Logo.Client\"/>"));
+
+			FString UserID = "Unknown";
+			UNetworkGameInstanceSubsystem* MySubsystem = GI->GetSubsystem<UNetworkGameInstanceSubsystem>();
+			if (MySubsystem && !MySubsystem->UserID.IsEmpty())
 			{
-				bool bHost = PC->HasAuthority() && PC->IsLocalController() ? true : false;
-
-				FString UserLogo = bHost ? FString::Printf(TEXT("<img id=\"Logo.Host\"/>")) : FString::Printf(TEXT("<img id=\"Logo.Client\"/>"));
-
-				FString UserID = "Unknown";
-				UNetworkGameInstanceSubsystem* MySubsystem = GI->GetSubsystem<UNetworkGameInstanceSubsystem>();
-				if (MySubsystem && !MySubsystem->UserID.IsEmpty())
-				{
-					UserID = FString::Printf(TEXT("%s"), *MySubsystem->UserID);
-				}
-				FString Role = bHost ? FString::Printf(TEXT("<Rich.Host>%s</>"), *UserID) : FString::Printf(TEXT("<Rich.Client>%s </>"), *UserID);
-
-				FString Message = FString::Printf(TEXT("%s%s : %s"),*UserLogo, *Role, *Text.ToString());
-				PC->ServerSendMessage(FText::FromString(Message));
-
-				EditableText_Chat->SetText(FText::FromString(TEXT("")));
+				UserID = FString::Printf(TEXT("%s"), *MySubsystem->UserID);
 			}
-			
+			FString Role = bHost ? FString::Printf(TEXT("<Rich.Host>%s</>"), *UserID) : FString::Printf(TEXT("<Rich.Client>%s </>"), *UserID);
+
+			FString Message = FString::Printf(TEXT("%s%s : %s"),*UserLogo, *Role, *Text.ToString());
+
+			MySubsystem->SendChatMessage(Message);
+
+			EditableText_Chat->SetText(FText::FromString(TEXT("")));
 		}
 	}
 	break;
