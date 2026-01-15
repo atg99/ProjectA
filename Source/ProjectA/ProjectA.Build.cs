@@ -45,7 +45,11 @@ public class ProjectA : ModuleRules
 			"SkeletalMeshDescription",
 			// http
 			"HTTP", "Json", "JsonUtilities",
-            "Sockets", "Networking"
+            "Sockets", "Networking",
+
+            "OnlineSubsystem",
+            "OnlineSubsystemSteam",
+            "OnlineSubsystemUtils"
         });
 
         // ThirdParty 폴더를 인클루드 경로에 추가

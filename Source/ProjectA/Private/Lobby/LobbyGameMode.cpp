@@ -33,7 +33,7 @@ void ALobbyGameMode::BeginPlay()
 	Super::BeginPlay();
 
 	GetWorld()->GetTimerManager().SetTimer(LeftTimeHandle,
-		FTimerDelegate::CreateLambda([this]() {
+		FTimerDelegate::CreateWeakLambda(this, [this]() {
 			ALobbyGameState* GS = GetGameState<ALobbyGameState>();
 			if (GS)
 			{
