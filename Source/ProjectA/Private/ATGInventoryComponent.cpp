@@ -92,11 +92,17 @@ void UATGInventoryComponent::ItemRemoved(int32 EntryId)
 
 TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRequest, AActor* InteractedActor)
 {
-
+	NET_LOG(TEXT(""));
 	TArray<int32> EntryIds;
 	EntryIds.Empty();
-	if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0) return EntryIds;
-
+	if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0)
+	{
+		if (ClientAddRequest.Quantity <= 0)
+		{
+			NET_LOG(TEXT("ClientAddRequest.Quantity <= 0"));
+		}
+		return EntryIds;
+	}
 	if (!ClientAddRequest.ItemDef.Get()) // 로드
 	{
 		ClientAddRequest.ItemDef.LoadSynchronous();
@@ -167,6 +173,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 
 void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
 {
+	NET_LOG(TEXT(""));
 	//아이템 이전 데이터 복제 후 원본에서 삭제
 	int32 OriginQty = ClientAddRequest.Quantity;
 	int32 Qty = ClientAddRequest.Quantity;
@@ -190,6 +197,7 @@ void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest Cl
 
 void UATGInventoryComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotate)
 {
+	NET_LOG(TEXT(""));
 	//ServerAddItemAt(ItemDef, InQty, X, Y, bRotate);
 	FClientAddRequest ClientAddRequest;
 	ClientAddRequest.ItemDef = ItemDef;
@@ -202,8 +210,10 @@ void UATGInventoryComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInt
 
 void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor)
 {
+	NET_LOG(TEXT(""));
 	if (!IsLocallyOwned())
 	{
+		NET_LOG(TEXT(" !IsLocallyOwned() Return"));
 		return;
 	}
 	
@@ -217,13 +227,18 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 	ClientAddRequest.Y = -1;
 	ClientAddRequest.PredictionKey = PredKey;
 
-	TArray<int32> EntryIds = AddItemAuto(ClientAddRequest);
+	TArray<int32> EntryIds = AddItemAuto(ClientAddRequest, InteractActor);
 
-	ServerAddItemAuto(ClientAddRequest, InteractActor);
+	//호스트에서 중복실행 방지
+	if (!IsHasAuthority())
+	{
+		ServerAddItemAuto(ClientAddRequest, InteractActor);
+	}
 }
 
 void UATGInventoryComponent::ServerAddItemAuto_Implementation(FClientAddRequest ClientAddRequest, AActor* InteractedActor)
 {
+	NET_LOG(TEXT(""));
 	FInventoryChangeResult InventoryChangeResult;
 	TArray<int32> EntryIds = AddItemAuto(ClientAddRequest, InteractedActor);
 	if (!EntryIds.IsEmpty())
@@ -457,6 +472,7 @@ bool UATGInventoryComponent::IsHasAuthority()
 
 bool UATGInventoryComponent::IsLocallyOwned()
 {
+	GetOwner();
 	if (const APlayerState* PS = Cast<APlayerState>(GetOwner()))
 	{
 		if (const APlayerController* PC = Cast<APlayerController>(PS->GetOwner()))
