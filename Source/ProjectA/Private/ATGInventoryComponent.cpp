@@ -95,18 +95,29 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 	NET_LOG(TEXT(""));
 	TArray<int32> EntryIds;
 	EntryIds.Empty();
+	if (!ClientAddRequest.ItemDef.Get()) // 로드
+	{
+		NET_LOG(TEXT("!ItemDef.Get()"));
+		if (!ClientAddRequest.ItemDef.LoadSynchronous())
+		{
+			NET_LOG(FString::Printf(TEXT("!ClientAddRequest.ItemDef.LoadSynchronous() %s"), *ClientAddRequest.ItemDef.GetAssetName()));
+			return EntryIds;
+		}
+	}
+
 	if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0)
 	{
 		if (ClientAddRequest.Quantity <= 0)
 		{
 			NET_LOG(TEXT("ClientAddRequest.Quantity <= 0"));
 		}
+		else
+		{
+			NET_LOG(TEXT("!ClientAddRequest.ItemDef "));
+		}
 		return EntryIds;
 	}
-	if (!ClientAddRequest.ItemDef.Get()) // 로드
-	{
-		ClientAddRequest.ItemDef.LoadSynchronous();
-	}
+
 
 	int32 W = ClientAddRequest.ItemDef->Width;
 	int32 H = ClientAddRequest.ItemDef->Height;
@@ -120,10 +131,12 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 		{
 			if (auto Comp = GetPickupComp(InteractedActor))
 			{
+				NET_LOG(TEXT("DecreaseQty"));
 				Comp->DecreaseQty(OriginQty - Qty);
 			}
 			ClientAddRequest.Quantity = Qty;
 		}
+		NET_LOG(TEXT("!FindFirstFit"));
 		return EntryIds; // 새로운 자리 없음 
 	}
 
@@ -137,6 +150,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 			}
 			ClientAddRequest.Quantity = Qty;
 		}
+		NET_LOG(TEXT("Qty <= 0"));
 		return EntryIds;
 	}
 
@@ -177,6 +191,22 @@ void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest Cl
 	//아이템 이전 데이터 복제 후 원본에서 삭제
 	int32 OriginQty = ClientAddRequest.Quantity;
 	int32 Qty = ClientAddRequest.Quantity;
+
+	if (ClientAddRequest.ItemDef.IsNull())
+	{
+		NET_LOG(TEXT("ItemDef.IsNull()"));
+		return;
+	}
+
+	if (!ClientAddRequest.ItemDef.IsValid())
+	{
+		NET_LOG(TEXT("!ClientAddRequest.ItemDef.IsValid()"));
+		if (!ClientAddRequest.ItemDef.LoadSynchronous())
+		{
+			NET_LOG(TEXT("!ClientAddRequest.ItemDef.LoadSynchronous()"));
+			return;
+		}
+	}
 
 	Inventory.AddItemAt(ClientAddRequest.ItemDef, Qty, ClientAddRequest.X, ClientAddRequest.Y, ClientAddRequest.ItemDef->Width, ClientAddRequest.ItemDef->Height, ClientAddRequest.bRotated);
 
@@ -308,6 +338,11 @@ void UATGInventoryComponent::ServerSplitStack_Implementation(int32 EntryId, int3
 {
 	int32 Qty = SplitNum;
 	FInventoryEntry* E = Inventory.GetById(EntryId);
+	if (!E)
+	{
+		NET_LOG(TEXT(" E is Invaild"));
+		return;
+	}
 
 	//해당 셀에 새 아이템 추가 시도
 	if (Inventory.AddItemAt(E->Item, Qty, NewX, NewY, E->Width, E->Height, bIsRotate, -1))
@@ -407,9 +442,20 @@ void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId, int32
 		UE_LOG(LogTemp, Warning, TEXT("UATGInventoryComponent::ServerSpawnItem FInventoryEntry* Entry is Invaild"));
 		return;
 	}
-	if (Entry->Item.Get()) // load
+
+	if (Entry->Item.IsNull())
 	{
-		Entry->Item.LoadSynchronous();
+		NET_LOG(TEXT("Entry->Item.IsNull()"));
+		return;
+	}
+
+	if (!Entry->Item.IsValid())
+	{
+		if (!Entry->Item.LoadSynchronous())
+		{
+			NET_LOG(TEXT("!Entry->Item.LoadSynchronous()"));
+			return;
+		}
 	}
 
 	if (APlayerState* PS = Cast<APlayerState>(GetOwner()))

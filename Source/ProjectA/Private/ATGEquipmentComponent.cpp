@@ -160,6 +160,21 @@ void UATGEquipmentComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInt
 
 void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObjectPtr<class UATGItemData>& ItemDef, uint8 EquipmentSlotType, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
 {
+	if (ItemDef.IsNull())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] ServerAddEquipment: ItemDef is Null (No Path)"), *GetName());
+		return;
+	}
+
+	if (!ItemDef.IsValid())
+	{
+		if (!ItemDef.LoadSynchronous())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[%s] ServerAddEquipment: Failed to Load ItemDef Synchronously"), *GetName());
+			return;
+		}
+	}
+
 	EEquipmentSlotType SlotType = (EEquipmentSlotType)EquipmentSlotType;
 
 	//서버에서도 슬롯에 맞는 장비인지 검증

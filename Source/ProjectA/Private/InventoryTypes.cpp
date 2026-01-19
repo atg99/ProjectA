@@ -17,10 +17,10 @@ void FInventoryEntry::PreReplicatedRemove(const FInventoryGrid& InArraySerialize
 
 void FInventoryEntry::PostReplicatedAdd(const FInventoryGrid& InArraySerializer)
 {
-    if (GEngine->GameViewport->GetWorld())
-    {
-        NetworkUtil::Log(GEngine->GameViewport->GetWorld(), ANSI_TO_TCHAR(__FUNCTION__), TEXT(""));
-    }
+    //if (GEngine->GameViewport->GetWorld())
+    //{
+    //    NetworkUtil::Log(GEngine->GameViewport->GetWorld(), ANSI_TO_TCHAR(__FUNCTION__), TEXT(""));
+    //}
    
     //UE_LOG(LogTemp, Display, TEXT("!!! FInventoryEntry::PostReplicatedAdd 1110"));
     if (InArraySerializer.Owner)
@@ -196,8 +196,14 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
 {
     if (!ItemDef.Get())
     {
-        ItemDef.LoadSynchronous();
+        UE_LOG(LogTemp, Warning, TEXT("%s !ItemDef.Get()"), ANSI_TO_TCHAR(__FUNCTION__));
+        if (!ItemDef.LoadSynchronous())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("%s !ItemDef.LoadSynchronous()"), ANSI_TO_TCHAR(__FUNCTION__));
+            return Qty;
+        }
     }
+
     int32 RemainQty = Qty;
     for (auto& E : Entries)
     {
@@ -206,6 +212,22 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
         if (RemainQty == 0) //스텍 찾으면서 순회하다 남은 수량 0되면 종료
         {
             return RemainQty;
+        }
+
+        if (E.Item.IsNull())
+        {            
+            UE_LOG(LogTemp, Error, TEXT("%s Item.IsNull()"), ANSI_TO_TCHAR(__FUNCTION__));
+            continue;
+        }
+
+        if (!E.Item.IsValid())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("%s !E.Item.IsValid() %s"), ANSI_TO_TCHAR(__FUNCTION__), *E.Item.GetAssetName());
+            if (!E.Item.LoadSynchronous())
+            {
+                UE_LOG(LogTemp, Warning, TEXT("%s !E.Item.LoadSynchronous() %s"), ANSI_TO_TCHAR(__FUNCTION__), *E.Item.GetAssetName());
+                continue;
+            }
         }
 
         int32 RemainCapacity = E.Item->MaxStack - E.Quantity;
@@ -258,7 +280,12 @@ int32 FInventoryGrid::SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, 
 {
     if (!ItemDef.Get())
     {
-        ItemDef.LoadSynchronous();
+        UE_LOG(LogTemp, Warning, TEXT("%s !ItemDef.Get()"), ANSI_TO_TCHAR(__FUNCTION__));
+        if (!ItemDef.LoadSynchronous())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("%s !ItemDef.LoadSynchronous()"), ANSI_TO_TCHAR(__FUNCTION__));
+            return Qty;
+        }
     }
     int32 RemainQty = Qty;
     for (auto E : TempEntries)
@@ -273,6 +300,22 @@ int32 FInventoryGrid::SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, 
         if (RemainQty == 0) //스텍 찾으면서 순회하다 남은 수량 0되면 종료
         {
             return RemainQty;
+        }
+
+        if (E->Item.IsNull())
+        {
+            UE_LOG(LogTemp, Error, TEXT("%s E->Item.IsNull()"), ANSI_TO_TCHAR(__FUNCTION__));
+            continue;
+        }
+
+        if (!E->Item.IsValid())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("%s !E->Item.IsValid() %s"), ANSI_TO_TCHAR(__FUNCTION__), *E->Item.GetAssetName());
+            if (!E->Item.LoadSynchronous())
+            {
+                UE_LOG(LogTemp, Warning, TEXT("%s !E->Item.LoadSynchronous() %s"), ANSI_TO_TCHAR(__FUNCTION__), *E->Item.GetAssetName());
+                continue;
+            }
         }
 
         int32 RemainCapacity = E->Item->MaxStack - E->Quantity;
@@ -315,11 +358,26 @@ FInventoryEntry* FInventoryGrid::GetById(int32 EntryId)
 
 int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey)
 {
-    UE_LOG(LogTemp, Display, TEXT("!!! FInventoryGrid::AddItemAt"));
-
-    if (!ItemDef || Qty <= 0) return 0;
-    if (!CanPlaceRect(X, Y, bRotated ? H : W, bRotated ? W : H)) return 0;
-
+    UE_LOG(LogTemp, Warning, TEXT("%s"), ANSI_TO_TCHAR(__FUNCTION__));
+    if (!ItemDef.Get())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("%s !ItemDef.Get()"), ANSI_TO_TCHAR(__FUNCTION__));
+        if (!ItemDef.LoadSynchronous())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("%s !ItemDef.LoadSynchronous()"), ANSI_TO_TCHAR(__FUNCTION__));
+            return 0;
+        }
+    }
+    if (!ItemDef || Qty <= 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("%s !ItemDef || Qty <= 0"), ANSI_TO_TCHAR(__FUNCTION__));
+        return 0;
+    }
+    if (!CanPlaceRect(X, Y, bRotated ? H : W, bRotated ? W : H))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("%s !CanPlaceRect"), ANSI_TO_TCHAR(__FUNCTION__));
+        return 0;
+    }
     int32 RemainQty = Qty;
     
     FInventoryEntry NewE;
@@ -340,7 +398,7 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
 
     if (Owner && OwnerHasAuthority())
     {
-        UE_LOG(LogTemp, Display, TEXT("!!! OwnerHasAuthority"));
+        UE_LOG(LogTemp, Display, TEXT("%s HasAuthority MarkDirty"), ANSI_TO_TCHAR(__FUNCTION__));
         NewE.Id = ++GlobalEntryIdCounter;
         NewE.PredictionKey = PreKey;
         Entries.Add(NewE);
@@ -428,6 +486,23 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         }
     }
     if (!Other) return false;
+
+    if (!Me->Item.IsValid())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("%s Me !Item.IsValid()"), ANSI_TO_TCHAR(__FUNCTION__));
+        Me->Item.LoadSynchronous();
+    }
+    if (!Other->Item.IsValid())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("%s Other !Item.IsValid()"), ANSI_TO_TCHAR(__FUNCTION__));
+        Other->Item.LoadSynchronous();
+    }
+
+    if (!Me->Item.IsValid() || !Other->Item.IsValid())
+    {
+        UE_LOG(LogTemp, Error, TEXT("%s Failed to load items for swap"), ANSI_TO_TCHAR(__FUNCTION__));
+        return false;
+    }
      
     // 아이템 종류가 같을 때
     if (Other->Item->ItemId == Me->Item->ItemId)
@@ -604,6 +679,31 @@ bool FInventoryGrid::MergeStackAtAndDecrease(FInventoryEntry& Entry, int32 Qty, 
     }
     if (!Other) return false;
 
+    if (Entry.Item.IsNull() || Other->Item.IsNull())
+    {
+        UE_LOG(LogTemp, Error, TEXT("%s Item.IsNull()"), ANSI_TO_TCHAR(__FUNCTION__));
+        return false;
+    }
+    if (!Entry.Item.IsValid())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("%s Entry !Item.IsValid()"), ANSI_TO_TCHAR(__FUNCTION__));
+        if (!Entry.Item.LoadSynchronous())
+        {
+           UE_LOG(LogTemp, Warning, TEXT("%s !Entry.Item.LoadSynchronous()"), ANSI_TO_TCHAR(__FUNCTION__));
+           return false;
+        }
+    }
+    if (!Other->Item.IsValid())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("%s Other !Item.IsValid()"), ANSI_TO_TCHAR(__FUNCTION__));
+        if (!Other->Item.LoadSynchronous())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("%s !Other->Item.LoadSynchronous()"), ANSI_TO_TCHAR(__FUNCTION__));
+            return false;
+        }
+    }
+
+
     // 아이템 종류가 같을 때
     if (Other->Item->ItemId == Entry.Item->ItemId)
     {
@@ -674,6 +774,12 @@ bool FInventoryGrid::RemoveById(int32 EntryId)
 bool FInventoryGrid::DecreaseQtyAndRemoveById(int32 EntryId, int32 Num)
 {
     FInventoryEntry* E = GetById(EntryId);
+    if (!E)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("%s GetById Null"), ANSI_TO_TCHAR(__FUNCTION__));
+        return false;
+    }
+
     if (E->Quantity - Num > 0)
     {
         E->Quantity -= Num;
@@ -749,6 +855,16 @@ bool FInventoryGrid::IncreaseQtyByRef(FInventoryEntry& E, int32 Num)
     if (Num <= 0)
     {
         return false;
+    }
+
+    if (!E.Item.IsValid())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("%s !E.Item.IsValid()"), ANSI_TO_TCHAR(__FUNCTION__));
+        if (!E.Item.LoadSynchronous())
+        {
+            UE_LOG(LogTemp, Error, TEXT("%s Failed Load"), ANSI_TO_TCHAR(__FUNCTION__));
+            return false;
+        }
     }
 
     if (E.Quantity + Num <= E.Item->MaxStack)
@@ -889,10 +1005,31 @@ void FInventoryGrid::SortEntryByItemId()
     //Shallow Copy
     for (auto& Entry : Entries)
     {
+        if (Entry.Item.IsNull())
+        {
+            UE_LOG(LogTemp, Error, TEXT("%s Entry.Item.IsNull()"), ANSI_TO_TCHAR(__FUNCTION__));
+            continue;
+        }
+        if (!Entry.Item.IsValid())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("%s !Entry.Item.IsValid()"), ANSI_TO_TCHAR(__FUNCTION__));
+            if (!Entry.Item.LoadSynchronous())
+            {
+                UE_LOG(LogTemp, Error, TEXT("%s !Entry.Item.LoadSynchronous() %s"), ANSI_TO_TCHAR(__FUNCTION__), *Entry.Item.GetAssetName());
+                continue;
+            }
+        }
         TempSortEntries.Add(&Entry);
     }
     
-    Algo::StableSort(TempSortEntries, [](const FInventoryEntry* A, const FInventoryEntry* B) { return A->Item->ItemId < B->Item->ItemId; });
+    Algo::StableSort(TempSortEntries, [](const FInventoryEntry* A, const FInventoryEntry* B) {
+        if (!A || !B)
+        {
+            UE_LOG(LogTemp, Error, TEXT("SortEntryByItemId Algo::StableSort Null"));
+            return false;
+        }
+        return A->Item->ItemId < B->Item->ItemId; 
+        });
 
     TArray<int32> DeleteIds;
     for (FInventoryEntry* Entry : TempSortEntries)

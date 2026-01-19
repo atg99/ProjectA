@@ -8,6 +8,7 @@
 #include <Kismet/GameplayStatics.h>
 #include <ATGItem.h>
 #include "ATGPickupComponent.h"
+#include "Utils/NetworkUtil.h"
 
 // Sets default values for this component's properties
 UATGContainerComponent::UATGContainerComponent()
@@ -58,8 +59,21 @@ void UATGContainerComponent::InitContainerItem()
 	if (!GetOwner()->HasAuthority()) return;
 	UE_LOG(LogTemp, Display, TEXT("UATGContainerComponent::InitContainerItem"));
 	//수정예정
-	for (auto Item : ContainerItems)
+	for (auto& Item : ContainerItems)
 	{
+		if (Item.ItemDef.IsNull()) continue;
+
+		if (!Item.ItemDef.IsValid())
+		{
+			Item.ItemDef.LoadSynchronous();
+		}
+
+		if (!Item.ItemDef.IsValid())
+		{
+			UE_LOG(LogTemp, Error, TEXT("%s Failed to load Item: %s"), ANSI_TO_TCHAR(__FUNCTION__), *Item.ItemDef.ToString());
+			continue;
+		}
+
 		UE_LOG(LogTemp, Display, TEXT("UATGContainerComponent::InitContainerItem Item: %s"), *Item.ItemDef->GetName());
 		int32 W = Item.ItemDef->Width;
 		int32 H = Item.ItemDef->Height;
@@ -195,6 +209,23 @@ void UATGContainerComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInt
 
 void UATGContainerComponent::ServerAddItemAt_Implementation(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
 {
+	if (ClientAddRequest.ItemDef.IsNull())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s ItemDef IsNull"), ANSI_TO_TCHAR(__FUNCTION__));
+		return;
+	}
+
+	if (!ClientAddRequest.ItemDef.IsValid())
+	{
+		ClientAddRequest.ItemDef.LoadSynchronous();
+	}
+
+	if (!ClientAddRequest.ItemDef.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s Failed to load ItemDef"), ANSI_TO_TCHAR(__FUNCTION__));
+		return;
+	}
+
 	int32 OriginQty = ClientAddRequest.Quantity;
 	int32 Qty = ClientAddRequest.Quantity;
 
@@ -219,11 +250,26 @@ TArray<int32> UATGContainerComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 {
 	TArray<int32> EntryIds;
 	EntryIds.Empty();
-	if (!ClientAddRequest.ItemDef || ClientAddRequest.Quantity <= 0) return EntryIds;
+	if (ClientAddRequest.Quantity <= 0)
+	{
+		return EntryIds;
+	}
+
+	if (ClientAddRequest.ItemDef.IsNull())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s ClientAddRequest.ItemDef.IsNull()"), ANSI_TO_TCHAR(__FUNCTION__));
+		return EntryIds;
+	}
 
 	if (!ClientAddRequest.ItemDef.Get()) // 로드
 	{
 		ClientAddRequest.ItemDef.LoadSynchronous();
+	}
+
+	if (!ClientAddRequest.ItemDef.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s Failed load ItemDef"), ANSI_TO_TCHAR(__FUNCTION__));
+		return EntryIds;
 	}
 
 	int32 W = ClientAddRequest.ItemDef->Width;
@@ -296,12 +342,25 @@ void UATGContainerComponent::ServerSpawnItem_Implementation(int32 EntryId, int32
 	FInventoryEntry* Entry = ContainerInventory.GetById(EntryId);
 	if (!Entry)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UATGContainerComponent::ServerSpawnItem FInventoryEntry* Entry is Invaild"));
+		NET_LOG(TEXT("Entry is Invaild"));
 		return;
 	}
-	if (Entry->Item.Get()) // load
+
+	if (Entry->Item.IsNull())
+	{
+		NET_LOG(TEXT("Entry->Item.IsNull()"));
+		return;
+	}
+	if (!Entry->Item.IsValid())
 	{
 		Entry->Item.LoadSynchronous();
+	}
+
+	// 로드 실패 시 스폰 불가
+	if (!Entry->Item.IsValid())
+	{
+		NET_LOG(TEXT("Entry Item Load Failed"));
+		return;
 	}
 
 	if (ACharacter* PlayerCharacter = Cast<ACharacter>(GetOwner()->GetOwner()))
@@ -361,7 +420,21 @@ void UATGContainerComponent::ServerSplitStack_Implementation(int32 EntryId, int3
 	int32 Qty = SplitNum;
 	FInventoryEntry* E = ContainerInventory.GetById(EntryId);
 
-	//해당 셀에 새 아이템 추가 시도
+	if (!E)
+	{
+		NET_LOG(TEXT("Entry is Invaild"));
+		return;
+	}
+
+	if (!E->Item.IsValid())
+	{
+		if (E->Item.LoadSynchronous())
+		{
+			NET_LOG(TEXT("E->Item.LoadSynchronous() Invaild"));
+			return;
+		}
+	}
+
 	if (ContainerInventory.AddItemAt(E->Item, Qty, NewX, NewY, E->Width, E->Height, bIsRotate, -1))
 	{
 		//성공시 성공한 수량만큼 원본 스텍 감소

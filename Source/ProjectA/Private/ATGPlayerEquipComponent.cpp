@@ -141,6 +141,7 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
     if (!Main1Slot)
     {
 		checkNoEntry();
+        return;
     }
     if (Main1Slot->EquippedActor)
     {
@@ -148,7 +149,25 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
         Main1Slot->EquippedActor = nullptr;
     }
     
+    if (InFirstMainWeapon.Item.IsNull())
+    {
+        ClearSlot(*Main1Slot);
+        return;
+    }
+
+    if (!InFirstMainWeapon.Item.IsValid())
+    {
+        // 로그를 남겨서 로딩 발생 확인
+        NET_LOG(TEXT("Loading Item Asset Synchronously"));
+        if (!InFirstMainWeapon.Item.LoadSynchronous())
+        {
+            NET_LOG(TEXT("Item.LoadSynchronous() Fail"));
+            return;
+        }
+    }
+
     UATGItemData* ItemData = InFirstMainWeapon.Item.Get();
+
 
     UATGWeaponData* WeaponData = ItemData ? Cast<UATGWeaponData>(ItemData) : nullptr;
     if (!WeaponData || !WeaponData->GetWeaponClass())
@@ -179,11 +198,29 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
     if (!Main2Slot)
     {
         checkNoEntry();
+        return;
     }
     if (Main2Slot->EquippedActor)
     {
         Main2Slot->EquippedActor->Destroy();
         Main2Slot->EquippedActor = nullptr;
+    }
+
+    if (InSecondMainWeapon.Item.IsNull())
+    {
+        ClearSlot(*Main2Slot);
+        return;
+    }
+
+    if (!InSecondMainWeapon.Item.IsValid())
+    {
+        // 로그를 남겨서 로딩 발생 확인
+        NET_LOG(TEXT("Loading Item Asset Synchronously"));
+        if (!InSecondMainWeapon.Item.LoadSynchronous())
+        {
+            NET_LOG(TEXT("Item.LoadSynchronous() Fail"));
+            return;
+        }
     }
 
     UATGItemData* ItemData = InSecondMainWeapon.Item.Get();
