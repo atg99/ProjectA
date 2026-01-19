@@ -49,6 +49,8 @@ protected:
 
 	virtual void OnRep_PlayerState() override;
 
+	FTimerHandle InitWidgetTimerHandle;
+
 	void StartInitInventoryWidget();
 
 protected:
@@ -66,6 +68,7 @@ protected:
 	
 
 public:
+	// deprecated
 	FInitOnInventoryComponent InitInventoryComponent;
 
 	class UATGInventoryComponent* InvenComp = nullptr;
@@ -74,5 +77,7 @@ public:
 
 	void WeaponInputMapping(EWeaponCategory WeaponInputType);
 	//void ToggleInventoryUI();
-	
+protected:
+
+
 };

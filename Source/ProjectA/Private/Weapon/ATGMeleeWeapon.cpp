@@ -20,7 +20,16 @@ AATGMeleeWeapon::AATGMeleeWeapon()
 
 void AATGMeleeWeapon::StartHitCheck()
 {
-    if (GetOwner()->GetLocalRole() == ROLE_Authority)
+    //Cast<APawn>(GetOwner())->IsLocallyControlled();
+    //CastChecked<APawn>(GetOwner())->IsLocallyControlled();
+    ACharacter* Character = Cast<ACharacter>(GetOwner());
+    if (!Character)
+    {
+        return;
+    }
+
+    //로컬 실행일때만
+    if (!Character->IsLocallyControlled())
     {
         return;
     }
@@ -34,8 +43,8 @@ void AATGMeleeWeapon::StartHitCheck()
         PreviousEndLocation = Mesh->GetSocketLocation(EndSocketName);
     }
 
-    ACharacter* Character = Cast<ACharacter>(GetOwner());
-    if (Character && Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
+    
+    if (Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
     {
         UAnimInstance* AnimInst = Character->GetMesh()->GetAnimInstance();
         UAnimMontage* CurrentMontage = AnimInst->GetCurrentActiveMontage();
@@ -51,10 +60,18 @@ void AATGMeleeWeapon::StartHitCheck()
 
 void AATGMeleeWeapon::TickHitCheck()
 {
-    if (GetOwner()->GetLocalRole() == ROLE_Authority)
+    ACharacter* Character = Cast<ACharacter>(GetOwner());
+    if (!Character)
     {
         return;
     }
+
+    //로컬 실행일때만
+    if (!Character->IsLocallyControlled())
+    {
+        return;
+    }
+
     if (!Mesh) return;
 
     TrajectoryInterpolationbySubFrame();
@@ -114,7 +131,14 @@ void AATGMeleeWeapon::TickHitCheck()
 
 void AATGMeleeWeapon::EndHitCheck()
 {
-    if (GetOwner()->GetLocalRole() == ROLE_Authority)
+    ACharacter* Character = Cast<ACharacter>(GetOwner());
+    if (!Character)
+    {
+        return;
+    }
+
+    //로컬 실행일때만
+    if (!Character->IsLocallyControlled())
     {
         return;
     }

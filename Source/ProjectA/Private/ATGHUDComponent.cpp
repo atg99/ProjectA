@@ -60,6 +60,11 @@ void UATGHUDComponent::EnsureWidgetCreated(APlayerController* PC)
 
 void UATGHUDComponent::ToggleInventoryUI()
 {
+	if (!HUDWidget)
+	{
+		return;
+	}
+
 	bInvenVisible = !bInvenVisible;
 
 	OnInventToggle.Broadcast(bInvenVisible);

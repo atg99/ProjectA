@@ -437,7 +437,7 @@ void UATGPlayerEquipComponent::ChangeWeaponEquip()
 void UATGPlayerEquipComponent::TryFire()
 {
     //Bullet Manager 에서 Parallel Simulation
-    ServerDoFire();
+    //ServerDoFire();
     DoFire();
 }
 
@@ -447,6 +447,7 @@ void UATGPlayerEquipComponent::DoFire()
     TryWeaponFire();
 }
 
+// deprecated
 void UATGPlayerEquipComponent::ServerDoFire_Implementation()
 {
     TryWeaponFire();
@@ -454,7 +455,7 @@ void UATGPlayerEquipComponent::ServerDoFire_Implementation()
 
 void UATGPlayerEquipComponent::TryWeaponFire()
 {
-    //NET_LOG(TEXT("fire"));
+    NET_LOG(TEXT(""));
     //현재 사용하고 있는 슬롯의 무기 유효성 검사
     EEquipmentSlotType D_CurSlotType = CurrentUsingSlot;
 	FEquipmentSlot* TargetSlot = GetSlotByType(D_CurSlotType);
@@ -490,25 +491,24 @@ void UATGPlayerEquipComponent::WeaponFire(AATGWeaponBase* WeaponBase)
     //조준하는동안은 타이머 안돌게 변경 bp의 characterinputstate값
     if (RangeWeapon)
     {
-        if (GetOwner()->HasAuthority())
+        APawn* OwnerPawn = Cast<APawn>(GetOwner());
+        if (OwnerPawn && OwnerPawn->IsLocallyControlled())
         {
-            RangeWeapon->ServerStartFire();
-        }
-        else
-        {
+            NET_LOG(TEXT(""));
             RangeWeapon->Fire();
-        }
-        bReadyToFire = true;
-        if (!ATGCharacterInputState.WantsToAim)
-        {
-            GetWorld()->GetTimerManager().SetTimer(FireToMoveTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
-                {
-                    bReadyToFire = false;
-                    if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(GetOwningPlayerCharacter()))
+
+            bReadyToFire = true;
+            if (!ATGCharacterInputState.WantsToAim)
+            {
+                GetWorld()->GetTimerManager().SetTimer(FireToMoveTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
                     {
-                        ATGC->RecoverMoveAnim();
-                    }
-                }), MoveRecoveryTime, false);
+                        bReadyToFire = false;
+                        if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(GetOwningPlayerCharacter()))
+                        {
+                            ATGC->RecoverMoveAnim();
+                        }
+                    }), MoveRecoveryTime, false);
+            }
         }
     }   
 }

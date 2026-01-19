@@ -69,6 +69,8 @@ void AATGPlayerController::StartInitInventoryWidget()
 	if (!IsLocalController()) return;
 	if (!GetHUD())
 	{
+		// HUD가 아직 없으면 0.1초 뒤에 다시 시도
+		GetWorldTimerManager().SetTimer(InitWidgetTimerHandle, this, &AATGPlayerController::StartInitInventoryWidget, 0.1f, false);
 		UE_LOG(LogTemp, Error, TEXT("Can't Find HUD"));
 		return;
 	}
@@ -76,24 +78,31 @@ void AATGPlayerController::StartInitInventoryWidget()
 	InvenComp = GetPlayerState<APlayerState>()->FindComponentByClass<UATGInventoryComponent>();
 	if (InvenComp)
 	{
+		// deprecated
 		InitInventoryComponent.Broadcast(InvenComp);
 		//HUDComp->HUDWidget->InventoryWidget->PlayerGrid->InventoryComp = Comp;
 		//HUDComp->HUDWidget->InventoryWidget->PlayerGrid->BindInventoryComp();
 	}
 	else
 	{
+		GetWorldTimerManager().SetTimer(InitWidgetTimerHandle, this, &AATGPlayerController::StartInitInventoryWidget, 0.1f, false);
 		UE_LOG(LogTemp, Error, TEXT("Can't Find UATGInventoryComponent at PlayerState"));
+		return;
 	}
 
 	UATGHUDComponent* HUDComp = GetHUD()->FindComponentByClass<UATGHUDComponent>();
 	if (HUDComp)
 	{
+		GetWorldTimerManager().ClearTimer(InitWidgetTimerHandle);
 		HUDComp->EnsureWidgetCreated(this);
+		UE_LOG(LogTemp, Log, TEXT("StartInitInventoryWidget Success!"));
 		//HUDComp->OnInventToggle.AddDynamic()
 	}
 	else
 	{
+		GetWorldTimerManager().SetTimer(InitWidgetTimerHandle, this, &AATGPlayerController::StartInitInventoryWidget, 0.1f, false);
 		UE_LOG(LogTemp, Error, TEXT("Can't Find HUDComponent at HUD"));
+		return;
 	}
 }
 

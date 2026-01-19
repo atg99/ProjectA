@@ -126,8 +126,35 @@ void AATGRangeWeapon::TryHitFire(const FBulletHitResult& BulletHitResult)
 {
 	//NET_LOG(TEXT(""));
 
-	DrawDebugLine(GetWorld(), BulletHitResult.Bullet.StartLocation, BulletHitResult.HitLocation, FColor::Blue, false, 3.f);
-	ServerHitFire(BulletHitResult);
+	// 복사본 생성 (원본 수정 방지)
+	FBulletHitResult SafeHitResult = BulletHitResult;
+
+	AActor* HitActor = SafeHitResult.Result.GetActor();
+	UPrimitiveComponent* HitComp = SafeHitResult.Result.GetComponent();
+	if (HitActor)
+	{
+		// 네트워크 리플리케이션이 되는 액터인지 확인
+		if (!HitActor->IsSupportedForNetworking())
+		{
+			SafeHitResult.Result.HitObjectHandle = FActorInstanceHandle(); // Actor Null 처리
+		}
+	}
+
+	if (HitComp)
+	{
+		if (!HitComp->IsSupportedForNetworking())
+		{
+			SafeHitResult.Result.Component = nullptr;
+		}
+	}
+
+	//하나라도 유효하면
+	if (SafeHitResult.Result.GetActor() || SafeHitResult.Result.Component.IsValid())
+	{
+		DrawDebugLine(GetWorld(), BulletHitResult.Bullet.StartLocation, BulletHitResult.HitLocation, FColor::Blue, false, 3.f);
+		ServerHitFire(SafeHitResult);
+	}
+	
 }
 
 bool AATGRangeWeapon::ServerHitFire_Validate(const FBulletHitResult& BulletHitResult)
@@ -137,6 +164,7 @@ bool AATGRangeWeapon::ServerHitFire_Validate(const FBulletHitResult& BulletHitRe
 	// 데이터가 깨져서 오지 않았는지
 	if (BulletHitResult.Bullet.StartLocation.ContainsNaN() || BulletHitResult.HitLocation.ContainsNaN())
 	{
+		NET_LOG(TEXT("false"));
 		return false;
 	}
 
@@ -166,7 +194,7 @@ void AATGRangeWeapon::ServerHitFire_Implementation(const FBulletHitResult& Bulle
 	if (DistFromStart > MaxAllowedDist)
 	{
 		// 로그만 찍고 데미지 처리는 안 함
-		//NET_LOG(TEXT("Hit Rejected: Shooter moved too far from StartLocation"));
+		NET_LOG(TEXT("Hit Rejected: Shooter moved too far from StartLocation"));
 		return;
 	}
 
@@ -181,7 +209,7 @@ void AATGRangeWeapon::ServerHitFire_Implementation(const FBulletHitResult& Bulle
 	// 적의 중심에서 (반지름 + 오차) 범위를 벗어난 곳을 맞췄다고 주장하면 기각
 	if (HitDistToTarget > (TargetCapsuleRadius + PingTolerance))
 	{
-		//NET_LOG(TEXT("Hit Rejected: Target is not at HitLocation"));
+		NET_LOG(TEXT("Hit Rejected: Target is not at HitLocation"));
 		return;
 	}
 
@@ -199,14 +227,14 @@ void AATGRangeWeapon::ServerHitFire_Implementation(const FBulletHitResult& Bulle
 		// HitLocation보다 더 가까운 곳에 벽이 있는지
 		if (ServerWallHit.Distance < FVector::Dist(BulletHitResult.Bullet.StartLocation, BulletHitResult.HitLocation) - 10.0f)
 		{
-			//NET_LOG(TEXT("Hit Rejected: Wall detected between shooter and target"));
+			NET_LOG(TEXT("Hit Rejected: Wall detected between shooter and target"));
 			return;
 		}
 	}
 
 
 	//데미지 적용
-	//NET_LOG(TEXT("Hit Verified Dealing Damage"));
+	NET_LOG(TEXT("Hit Verified Dealing Damage"));
 
 	ApplayGunDamage(
 		HitActor,

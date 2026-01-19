@@ -79,38 +79,48 @@ void UBulletManagerWorldSubsystem::SimulateBullets()
 		//}
 
 		DrawDebugLine(GetWorld(), StartLocation, EndLocation, DrawColor, false, 3.f);
+		bool bShouldDestroyBullet = false;
 
 		bool bHit = GetWorld()->LineTraceMultiByChannel(HitResults, StartLocation, EndLocation, ECC_Visibility, CollisionQueryParams);
+
+		//  거리순 정렬
+		HitResults.Sort([](const FHitResult& A, const FHitResult& B) {
+			return A.Distance < B.Distance;
+			});
+
 		for (const auto& HitResult : HitResults)
 		{
 			//NET_LOG(FString::Printf(TEXT("%s"), *HitResult.GetActor()->GetName()));
+			//DrawDebugSphere(GetWorld(), HitResult.Location, 5.f, 5, FColor::Cyan, false, 3.f);
+			
+			DrawDebugSphere(GetWorld(), HitResult.Location, 5.f, 5, FColor::Red, false, 3.f);
+
+			// 충돌 처리 
+			AATGRangeWeapon* WeaponBase = Bullet.BulletOwner ? Cast<AATGRangeWeapon>(Bullet.BulletOwner) : nullptr;
+			if (WeaponBase)
+			{
+				FBulletHitResult BulletHitResult;
+				BulletHitResult.Bullet = Bullet;
+				BulletHitResult.HitLocation = HitResult.Location;
+				BulletHitResult.Result = HitResult;
+				WeaponBase->TryHitFire(BulletHitResult);
+			}
+
 			if (!HitResult.bBlockingHit)
 			{
 				Bullet.PierceActors.Add(HitResult.GetActor());
-				DrawDebugSphere(GetWorld(), HitResult.Location, 5.f, 5, FColor::Cyan, false, 3.f);
 			}
 			else
 			{
-				DrawDebugSphere(GetWorld(), HitResult.Location, 5.f, 5, FColor::Red, false, 3.f);
-
-				// 충돌 처리 
-				AATGRangeWeapon* WeaponBase = Bullet.BulletOwner ? Cast<AATGRangeWeapon>(Bullet.BulletOwner) : nullptr;
-				if (WeaponBase)
-				{
-					FBulletHitResult BulletHitResult;
-					BulletHitResult.Bullet = Bullet;
-					BulletHitResult.HitLocation = HitResult.Location;
-					BulletHitResult.Result = HitResult;
-					WeaponBase->TryHitFire(BulletHitResult);
-				}
-				ActiveBullets.RemoveAtSwap(i);
-				continue;
+				bShouldDestroyBullet = true;
+				break; // 막히면 로직 종료
 			}
+			continue;
 		}
 
 		Bullet.Location = EndLocation;
 		Bullet.LifeTime += SimulateInterval;
-		if (Bullet.LifeTime > 5.f)
+		if (Bullet.LifeTime > 5.f || bShouldDestroyBullet)
 		{
 			ActiveBullets.RemoveAtSwap(i);
 		}
