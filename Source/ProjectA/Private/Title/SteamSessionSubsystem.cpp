@@ -6,6 +6,7 @@
 #include "OnlineSessionSettings.h"
 #include "Online/OnlineSessionNames.h"
 #include "Kismet/GameplayStatics.h"
+#include "Title/NetworkGameInstanceSubsystem.h"
 
 USteamSessionSubsystem::USteamSessionSubsystem()
 {
@@ -78,8 +79,14 @@ void USteamSessionSubsystem::OnCreateSessionCompleteCallback(FName SessionName, 
 
 	if (bWasSuccessful)
 	{
-		// 세션 생성 성공 시 로비 레벨(Listen Server)로 이동
-		UGameplayStatics::OpenLevel(GetWorld(), "DevLevel", true, "listen");
+		UNetworkGameInstanceSubsystem* NetworkGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+		if (NetworkGameInstanceSubsystem)
+		{
+			const FString Token = NetworkGameInstanceSubsystem->LoginData.token;
+			FString Options = FString::Printf(TEXT("?listen?Token=%s"), *Token);
+			// 세션 생성 성공 시 로비 레벨(Listen Server)로 이동
+			UGameplayStatics::OpenLevel(GetWorld(), "DevLevel", true, Options);
+		}
 	}
 }
 
@@ -205,7 +212,13 @@ void USteamSessionSubsystem::OnJoinSessionCompleteCallback(FName SessionName, EO
 			APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 			if (PlayerController)
 			{
-				PlayerController->ClientTravel(ConnectString, ETravelType::TRAVEL_Absolute);
+				UNetworkGameInstanceSubsystem* NetworkGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+				if (NetworkGameInstanceSubsystem)
+				{
+					const FString Token = NetworkGameInstanceSubsystem->LoginData.token;
+					FString FinalURL = FString::Printf(TEXT("%s?Token=%s"), *ConnectString, *Token);
+					PlayerController->ClientTravel(FinalURL, ETravelType::TRAVEL_Absolute);
+				}
 			}
 		}
 	}

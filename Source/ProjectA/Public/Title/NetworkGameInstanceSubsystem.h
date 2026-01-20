@@ -9,7 +9,7 @@
 #include "HttpModule.h"
 #include "HAL/Runnable.h"
 #include "Sockets.h"
-
+#include "GameFramework/OnlineReplStructs.h"
 #include "flatbuffers/flatbuffers.h"
 #include "cpp_gen/game_generated.h"
 
@@ -48,8 +48,24 @@ public:
 	FString message;
 };
 
+USTRUCT(BlueprintType)
+struct FBackendValidateData
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY()
+	int uid;
+
+	UPROPERTY()
+	FString username;
+
+	UPROPERTY()
+	FString message;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatReceived, FString, Sender, FString, Message, int64, Timestamp);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBackendRequstResult, FBackendRequstResult, RequstResult);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnValidateRequstResult, const FBackendValidateData&, ValidateData, int32, Code, const FUniqueNetIdRepl&, RequestUserID);
 
 class FTcpSocketWorker : public FRunnable
 {
@@ -109,13 +125,21 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void TCPDisconnect();
 
+	UFUNCTION(BlueprintCallable)
+	void BackendValidateToken(const FString& Token, const FUniqueNetIdRepl& RequestUserID);
+
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnChatReceived OnChatReceived;
 
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnBackendRequstResult OnRequstResult;
 
+	UPROPERTY(BlueprintAssignable, Category = "Network")
+	FOnValidateRequstResult OnValidateRequstResult;
+
 	FString BackendIP = TEXT("127.0.0.1");
+
+	FBackendLoginData LoginData;
 protected:
 
 	FHttpModule* HTTPModule;
@@ -123,6 +147,8 @@ protected:
 	void OnBackendLoginProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully);
 
 	void OnBackendRegisterProcessRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully);
+
+	void OnBackendValidateTokenRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully);
 
 	void SendLoginPacket(FString Token);
 

@@ -131,6 +131,47 @@ struct FInventoryChangeResult
     int32 SuggestedY = -1;
 };
 
+//DB 저장용 최소 data
+USTRUCT()
+struct FInventoryEntrySaveData
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    FString ItemAssetPath; // TSoftObjectPtr -> String
+
+    UPROPERTY()
+    int32 Quantity = 0;
+
+    UPROPERTY()
+    int32 X = 0;
+
+    UPROPERTY()
+    int32 Y = 0;
+
+    UPROPERTY()
+    bool bRotated = false;
+
+    //UPROPERTY()
+    //int32 Id = -1; // ID 보존이 필요한 경우 
+};
+
+// 전체 인벤토리 DB저장
+USTRUCT()
+struct FInventorySaveData
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    TArray<FInventoryEntrySaveData> SavedEntries;
+
+    UPROPERTY()
+    int32 GridWidth = 0;
+
+    UPROPERTY()
+    int32 GridHeight = 0;
+};
+
 
 /**
  * 

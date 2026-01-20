@@ -13,6 +13,7 @@
 #include "Utils/NetworkUtil.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
+#include "Utils/ATGSerializationLibrary.h"
 
 
 // Sets default values for this component's properties

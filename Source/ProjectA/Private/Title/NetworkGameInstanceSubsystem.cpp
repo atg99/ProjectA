@@ -139,7 +139,6 @@ void UNetworkGameInstanceSubsystem::OnBackendLoginProcessRequestComplete(FHttpRe
 	UE_LOG(LogTemp, Warning, TEXT("LoginResponseCode %d"), StatusCode);
 
 	FString ResponseContent = Response->GetContentAsString();
-	FBackendLoginData LoginData;
 
 	if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendLoginData>(ResponseContent, &LoginData, 0, 0))
 	{
@@ -444,5 +443,102 @@ void UNetworkGameInstanceSubsystem::HandlePacket(const uint8* Data, int32 DataSi
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("Empty or Unknown Packet Type"));
 		break;
+	}
+}
+
+void UNetworkGameInstanceSubsystem::BackendValidateToken(const FString& Token, const FUniqueNetIdRepl& RequestUserID)
+{
+	auto Request = HTTPModule->CreateRequest();
+	
+	// RequestUserID: 응답이 올 때까지 이 ID를 람다 안에 저장해둠 (복사됨)
+	Request->OnProcessRequestComplete().BindLambda(
+		[this, RequestUserID](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
+		{
+			if (!bConnected || !Response.IsValid())
+			{
+				OnValidateRequstResult.Broadcast(FBackendValidateData(), 0, RequestUserID);
+				return;
+			}
+
+			int32 StatusCode = Response->GetResponseCode();
+
+			UE_LOG(LogTemp, Warning, TEXT("ValidateResponseCode %d"), StatusCode);
+
+			FString ResponseContent = Response->GetContentAsString();
+			FBackendValidateData ValidatData;
+
+			if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendValidateData>(ResponseContent, &ValidatData, 0, 0))
+			{
+				// 파싱 성공
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Json Parse Fail"));
+			}
+
+			if (StatusCode == 200)
+			{
+				
+				UE_LOG(LogTemp, Log, TEXT("Success for NetID: %s , username : %s"), *RequestUserID.GetUniqueNetId()->ToString(), *ValidatData.username);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Fail for NetID: %s, username : %s"), *RequestUserID.GetUniqueNetId()->ToString(), *ValidatData.username);
+			}
+
+			//캡처해뒀던 RequestUserID
+			OnValidateRequstResult.Broadcast(ValidatData, StatusCode, RequestUserID);
+		});
+
+	FString URL = FString::Printf(TEXT("http://%s:3000/auth/verify"), *BackendIP);
+
+	Request->SetURL(URL);
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetStringField(TEXT("token"), Token);
+
+	FString RequestBody;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBody);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+
+	Request->SetContentAsString(RequestBody);
+
+	Request->ProcessRequest();
+}
+
+//deprecated
+void UNetworkGameInstanceSubsystem::OnBackendValidateTokenRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully)
+{
+	if (!bProcessedSuccessfully || !Response.IsValid())
+	{
+		return;
+	}
+
+	int32 StatusCode = Response->GetResponseCode();
+	UE_LOG(LogTemp, Warning, TEXT("ValidateResponseCode %d"), StatusCode);
+
+	FString ResponseContent = Response->GetContentAsString();
+
+	FBackendValidateData ValidatData;
+
+	if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendValidateData>(ResponseContent, &ValidatData, 0, 0))
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("Token : %s, Login message : %s"), *ValidatData.uid, *ValidatData.message);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("OnBackendValidateTokenRequestComplete : JsonObjectStringToUStruct Fail"));
+	}
+
+	if (StatusCode == 200)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Validate Success uid : %d, username : %s"), ValidatData.uid, *ValidatData.username);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Validate Failed : code: %d, message : %s "), StatusCode, *ValidatData.message);
+	
 	}
 }

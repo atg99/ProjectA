@@ -6,7 +6,6 @@
 #include "Utils/NetworkUtil.h"
 #include "GameFramework/Character.h"
 #include "ATGPlayerCharacter.h"
-#include "Utils/NetworkUtil.h"
 #include "Weapon/ProjectileBase.h"
 #include "Weapon/BulletManager.h"
 #include "Net/UnrealNetwork.h"
@@ -231,7 +230,6 @@ void AATGRangeWeapon::ServerHitFire_Implementation(const FBulletHitResult& Bulle
 			return;
 		}
 	}
-
 
 	//데미지 적용
 	NET_LOG(TEXT("Hit Verified Dealing Damage"));

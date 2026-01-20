@@ -18,6 +18,8 @@ class PROJECTA_API AATGPlayerState : public APlayerState
 public:
 	AATGPlayerState();
 
+	int32 BackendUserID = 0;
+	FString BackendUserName;
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
