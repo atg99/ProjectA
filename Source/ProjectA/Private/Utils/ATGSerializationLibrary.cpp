@@ -4,6 +4,7 @@
 #include "Utils/ATGSerializationLibrary.h"
 #include "JsonUtilities.h"
 #include "Data/ATGItemData.h"
+#include "Engine/AssetManager.h"
 
 TSharedPtr<FJsonObject> UATGSerializationLibrary::SerializeActorToJson(AActor* Actor)
 {
@@ -150,32 +151,47 @@ FString UATGSerializationLibrary::ConvertGridToJson(const FInventoryGrid& Grid)
 	FInventorySaveData SaveData;
 
 	// Grid 기본 정보 저장
-	SaveData.GridWidth = Grid.GridWidth;
-	SaveData.GridHeight = Grid.GridHeight;
+	SaveData.grid_width = Grid.GridWidth;
+	SaveData.grid_height = Grid.GridHeight;
 
 	// Entries 순회하며 DTO로 변환
 	for (const FInventoryEntry& Entry : Grid.Entries)
 	{
-		// 수량이 없거나 아이템이 유효하지 않으면 스킵 (선택 사항)
+		// 수량이 없거나 아이템이 유효하지 않으면 스킵
 		if (Entry.Quantity <= 0 || Entry.Item.IsNull())
 		{
 			continue;
 		}
 
 		FInventoryEntrySaveData EntryData;
-		// TSoftObjectPtr -> String 변환
-		EntryData.ItemAssetPath = Entry.Item.ToSoftObjectPath().ToString();
 
-		EntryData.Quantity = Entry.Quantity;
-		EntryData.X = Entry.X;
-		EntryData.Y = Entry.Y;
-		EntryData.bRotated = Entry.bRotated;
+		UATGItemData* ItemRaw = Entry.Item.Get();
+		if (!ItemRaw)
+		{
+			ItemRaw = Entry.Item.LoadSynchronous();
+
+		}
+
+		if (ItemRaw)
+		{
+			// PrimaryAssetId
+			EntryData.primary_asset_id = ItemRaw->GetPrimaryAssetId().ToString();
+		}
+		else
+		{
+			continue;
+		}
+
+		EntryData.qty = Entry.Quantity;
+		EntryData.x = Entry.X;
+		EntryData.y = Entry.Y;
+		EntryData.b_rotated = Entry.bRotated;
 		//EntryData.Id = Entry.Id; // 필요하다면 저장
 
-		SaveData.SavedEntries.Add(EntryData);
+		SaveData.saved_entries.Add(EntryData);
 	}
 
-	// 3. Struct -> JSON String 변환
+	// Struct -> JSON String
 	FString JsonString;
 	FJsonObjectConverter::UStructToJsonObjectString(SaveData, JsonString);
 
@@ -199,11 +215,13 @@ bool UATGSerializationLibrary::ConvertJsonToGrid(const FString& JsonString, FInv
 	OutGrid.Entries.Empty();
 	OutGrid.MarkArrayDirty();
 
-	OutGrid.GridWidth = LoadedData.GridWidth;
-	OutGrid.GridHeight = LoadedData.GridHeight;
+	OutGrid.GridWidth = LoadedData.grid_width;
+	OutGrid.GridHeight = LoadedData.grid_height;
+
+	UAssetManager& AssetManager = UAssetManager::Get();
 
 	// DTO -> Runtime Entry 변환
-	for (const FInventoryEntrySaveData& SavedEntry : LoadedData.SavedEntries)
+	for (const FInventoryEntrySaveData& SavedEntry : LoadedData.saved_entries)
 	{
 		FInventoryEntry NewEntry;
 		if (NewEntry.Item.IsNull())
@@ -211,13 +229,33 @@ bool UATGSerializationLibrary::ConvertJsonToGrid(const FString& JsonString, FInv
 			UE_LOG(LogTemp, Error, TEXT("ConvertJsonToGrid : Item IsNull !!!"));
 			continue;
 		}
-		// String -> TSoftObjectPtr 변환
-		NewEntry.Item = TSoftObjectPtr<UATGItemData>(FSoftObjectPath(SavedEntry.ItemAssetPath));
 
-		NewEntry.Quantity = SavedEntry.Quantity;
-		NewEntry.X = SavedEntry.X;
-		NewEntry.Y = SavedEntry.Y;
-		NewEntry.bRotated = SavedEntry.bRotated;
+		FPrimaryAssetId AssetId = FPrimaryAssetId::FromString(SavedEntry.primary_asset_id);
+		if (AssetId.IsValid())
+		{
+			// AssetManager를 통해 해당 ID의 실제 경로를 찾음
+			FSoftObjectPath ItemPath = AssetManager.GetPrimaryAssetPath(AssetId);
+
+			if (ItemPath.IsValid())
+			{
+				NewEntry.Item = TSoftObjectPtr<UATGItemData>(ItemPath);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("Asset Manager could not find path for ID: %s"), *SavedEntry.primary_asset_id);
+				continue;
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Invalid PrimaryAssetId String: %s"), *SavedEntry.primary_asset_id);
+			continue;
+		}
+
+		NewEntry.Quantity = SavedEntry.qty;
+		NewEntry.X = SavedEntry.x;
+		NewEntry.Y = SavedEntry.y;
+		NewEntry.bRotated = SavedEntry.b_rotated;
 		//NewEntry.Id = SavedEntry.Id;
 
 		if (UATGItemData* ItemData = NewEntry.Item.LoadSynchronous())

@@ -138,19 +138,19 @@ struct FInventoryEntrySaveData
     GENERATED_BODY()
 
     UPROPERTY()
-    FString ItemAssetPath; // TSoftObjectPtr -> String
+    FString primary_asset_id;
 
     UPROPERTY()
-    int32 Quantity = 0;
+    int32 qty = 0;
 
     UPROPERTY()
-    int32 X = 0;
+    int32 x = 0;
 
     UPROPERTY()
-    int32 Y = 0;
+    int32 y = 0;
 
     UPROPERTY()
-    bool bRotated = false;
+    bool b_rotated = false;
 
     //UPROPERTY()
     //int32 Id = -1; // ID 보존이 필요한 경우 
@@ -163,13 +163,13 @@ struct FInventorySaveData
     GENERATED_BODY()
 
     UPROPERTY()
-    TArray<FInventoryEntrySaveData> SavedEntries;
+    TArray<FInventoryEntrySaveData> saved_entries;
 
     UPROPERTY()
-    int32 GridWidth = 0;
+    int32 grid_width = 0;
 
     UPROPERTY()
-    int32 GridHeight = 0;
+    int32 grid_height = 0;
 };
 
 
