@@ -132,7 +132,7 @@ struct FInventoryChangeResult
 };
 
 //DB 저장용 최소 data
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FInventoryEntrySaveData
 {
     GENERATED_BODY()
@@ -157,7 +157,7 @@ struct FInventoryEntrySaveData
 };
 
 // 전체 인벤토리 DB저장
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FInventorySaveData
 {
     GENERATED_BODY()

@@ -36,7 +36,6 @@ UCLASS()
 class PROJECTA_API AATGGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
-
 public:
     virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 
@@ -49,9 +48,12 @@ public:
 protected:
 
 	UFUNCTION()
-	void OnBackEndValidateComplete(const FBackendValidateData& BackendValidateData, int32 Code, const FUniqueNetIdRepl& RequestUserID);
+	void OnBackendValidateComplete(const FBackendValidateData& BackendValidateData, int32 Code, const FUniqueNetIdRepl& RequestUserID);
 
-    void ProcessValidationResult(APlayerController* PC, const FBackendValidateResult& Data);
+	UFUNCTION()
+	void OnBackendLoadInventoryComplete(const FInventorySaveData& InventoryLoadedData, int32 Code, const APlayerController* InventoryOwner);
+
+    bool ProcessValidationResult(APlayerController* PC, const FBackendValidateResult& Data);
 
     TMap<FUniqueNetIdRepl, FBackendValidateResult> EarlyValidationResults;
 

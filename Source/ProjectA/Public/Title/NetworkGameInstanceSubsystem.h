@@ -15,6 +15,8 @@
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
+struct FInventorySaveData;
+
 UENUM(BlueprintType)
 enum class EBackendResultType : uint8
 {
@@ -30,9 +32,9 @@ struct FBackendRequstResult
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EBackendResultType ResultType;
+	EBackendResultType ResultType = EBackendResultType::None;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsSuccessful;
+	bool bIsSuccessful = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Message;
 };
@@ -54,7 +56,7 @@ struct FBackendValidateData
 	GENERATED_BODY()
 public:
 	UPROPERTY()
-	int uid;
+	int uid = -1;
 
 	UPROPERTY()
 	FString username;
@@ -63,9 +65,23 @@ public:
 	FString message;
 };
 
+USTRUCT(BlueprintType)
+struct FBackendSaveInvenResult
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY()
+	FString message;
+
+	UPROPERTY()
+	int32 inventory_id = -1;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatReceived, FString, Sender, FString, Message, int64, Timestamp);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBackendRequstResult, FBackendRequstResult, RequstResult);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnValidateRequstResult, const FBackendValidateData&, ValidateData, int32, Code, const FUniqueNetIdRepl&, RequestUserID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSaveInvenRequstResult, const FBackendSaveInvenResult&, SaveResult, int32, Code);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnLoadInvenRequstResult, const FInventorySaveData&, InventorySaveData, int32, Code, const APlayerController*, InventoryOwner);
 
 class FTcpSocketWorker : public FRunnable
 {
@@ -128,6 +144,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void BackendValidateToken(const FString& Token, const FUniqueNetIdRepl& RequestUserID);
 
+	// DBø° Inventory ¿˙¿Â
+	UFUNCTION(BlueprintCallable)
+	void SaveInventoryData(FString AuthToken, FString InvenJson);
+
+	UFUNCTION(BlueprintCallable)
+	void LoadInventoryData(FString AuthToken, APlayerController* Exiting);
+
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnChatReceived OnChatReceived;
 
@@ -136,6 +159,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnValidateRequstResult OnValidateRequstResult;
+
+	UPROPERTY(BlueprintAssignable, Category = "Network")
+	FOnSaveInvenRequstResult OnSaveInvenRequstResult;
+
+	UPROPERTY(BlueprintAssignable, Category = "Network")
+	FOnLoadInvenRequstResult OnLoadInvenRequstResult;
 
 	FString BackendIP = TEXT("127.0.0.1");
 

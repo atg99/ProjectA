@@ -25,7 +25,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SaveLoad")
 	static FString ConvertGridToJson(const FInventoryGrid& Grid);
 
-	// Json String -> FInventoryGrid 로드
+	// FInventorySaveData -> FInventoryGrid 로드
 	UFUNCTION(BlueprintCallable, Category = "SaveLoad")
-	static bool ConvertJsonToGrid(const FString& JsonString, FInventoryGrid& OutGrid);
+	static bool ConvertDataToGrid(const FInventorySaveData& LoadedData, FInventoryGrid& OutGrid);
 };

@@ -4,12 +4,12 @@
 #include "Title/NetworkGameInstanceSubsystem.h"
 #include "JsonUtilities.h"
 #include "Kismet/GameplayStatics.h"
-
+#include "Utils/NetworkUtil.h"
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "Common/TcpSocketBuilder.h"
 #include "Async/Async.h"
-
+#include "InventoryTypes.h"
 //namespace GamePacket;
 
 FTcpSocketWorker::FTcpSocketWorker(FSocket* InSocket, FOnBytesReceived InCallback)
@@ -448,6 +448,7 @@ void UNetworkGameInstanceSubsystem::HandlePacket(const uint8* Data, int32 DataSi
 
 void UNetworkGameInstanceSubsystem::BackendValidateToken(const FString& Token, const FUniqueNetIdRepl& RequestUserID)
 {
+	NET_LOG("");
 	auto Request = HTTPModule->CreateRequest();
 	
 	// RequestUserID: 응답이 올 때까지 이 ID를 람다 안에 저장해둠 (복사됨)
@@ -508,6 +509,118 @@ void UNetworkGameInstanceSubsystem::BackendValidateToken(const FString& Token, c
 	Request->ProcessRequest();
 }
 
+void UNetworkGameInstanceSubsystem::SaveInventoryData(FString AuthToken, FString InvenJson)
+{
+	NET_LOG("");
+	auto Request = HTTPModule->CreateRequest();
+
+	Request->OnProcessRequestComplete().BindLambda(
+		[this](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
+		{
+			int32 StatusCode = Response->GetResponseCode();
+
+			if (!bConnected || !Response.IsValid())
+			{
+				OnSaveInvenRequstResult.Broadcast(FBackendSaveInvenResult(), StatusCode);
+				return;
+			}
+
+			FString ResponseContent = Response->GetContentAsString();
+			FBackendSaveInvenResult BackendSaveInvenResult;
+			if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendSaveInvenResult>(ResponseContent, &BackendSaveInvenResult, 0, 0))
+			{
+
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Save InventoryJson Parse Fail"));
+				OnSaveInvenRequstResult.Broadcast(FBackendSaveInvenResult(), StatusCode);
+				return;
+			}
+
+			if (StatusCode == 200)
+			{
+
+				UE_LOG(LogTemp, Log, TEXT("Success for Save Inventory code: %d , message : %s"), StatusCode, *BackendSaveInvenResult.message);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Fail for Save Inventory code: %d , message : %s"), StatusCode, *BackendSaveInvenResult.message);
+			}
+
+			OnSaveInvenRequstResult.Broadcast(BackendSaveInvenResult, StatusCode);
+		});
+
+	FString URL = FString::Printf(TEXT("http://%s:3000/inventory/save"), *BackendIP);
+
+	Request->SetURL(URL);
+	Request->SetVerb(TEXT("POST"));
+
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	if (!AuthToken.IsEmpty())
+	{
+		Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *AuthToken));
+	}
+
+	Request->SetContentAsString(InvenJson);
+
+	Request->ProcessRequest();
+}
+
+void UNetworkGameInstanceSubsystem::LoadInventoryData(FString AuthToken, APlayerController* InventoryOwner)
+{
+	NET_LOG("");
+	auto Request = HTTPModule->CreateRequest();
+	Request->OnProcessRequestComplete().BindLambda(
+		[this, InventoryOwner](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
+		{
+			int32 StatusCode = Response->GetResponseCode();
+
+			if (!bConnected || !Response.IsValid())
+			{
+				OnLoadInvenRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
+				return;
+			}
+
+			FString ResponseContent = Response->GetContentAsString();
+			FInventorySaveData InventorySaveData;
+			if (FJsonObjectConverter::JsonObjectStringToUStruct<FInventorySaveData>(ResponseContent, &InventorySaveData, 0, 0))
+			{
+
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Load Inventory Json Parse Fail"));
+				OnLoadInvenRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
+				return;
+			}
+
+			if (StatusCode == 200)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Success for Load Inventory code: %d"), StatusCode);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Fail for Load Inventory code: %d"), StatusCode);
+			}
+
+			OnLoadInvenRequstResult.Broadcast(InventorySaveData, StatusCode, InventoryOwner);
+		});
+
+	FString URL = FString::Printf(TEXT("http://%s:3000/inventory/load"), *BackendIP);
+
+	Request->SetURL(URL);
+	Request->SetVerb(TEXT("POST"));
+
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	if (!AuthToken.IsEmpty())
+	{
+		Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *AuthToken));
+	}
+
+	Request->ProcessRequest();
+}
+
 //deprecated
 void UNetworkGameInstanceSubsystem::OnBackendValidateTokenRequestComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bProcessedSuccessfully)
 {
@@ -539,6 +652,5 @@ void UNetworkGameInstanceSubsystem::OnBackendValidateTokenRequestComplete(FHttpR
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Validate Failed : code: %d, message : %s "), StatusCode, *ValidatData.message);
-	
 	}
 }

@@ -151,7 +151,7 @@ public:
 	virtual const TArray<FInventoryEntry>& GetEntries() override { return Inventory.Entries; } 
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
-	virtual const FInventoryGrid& GetInventory() override { return Inventory; }
+	virtual FInventoryGrid& GetInventory() override { return Inventory; }
 
 	//UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
 	virtual int32 GetGridWidth() const override { return Inventory.GridWidth; }

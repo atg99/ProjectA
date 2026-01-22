@@ -19,38 +19,44 @@ class PROJECTA_API UATGItemData : public UPrimaryDataAsset
 
 public:
 
-    //Display Item Name
+    // 식별자용 타입 이름 
+    static const FPrimaryAssetType ATGItemData;
+
+    // AssetManager가 ID 생성
+    virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+
+    // Display Item Name
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     FText DisplayName;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     EItemType ItemType = EItemType::None;
 
-    //Category key
+    // Category key
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     int32 ItemId;
 
-    //Inventory Image
+    // Inventory Image
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     UTexture2D* Icon = nullptr;
 
-    //World spawn item mesh
+    // World spawn item mesh
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     UStaticMesh* Mesh = nullptr;
 
-    //Max stack at inventory grid
+    // Max stack at inventory grid
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     int32 MaxStack = 99;
 
-    //Widget size at inventory grid
+    // Widget size at inventory grid
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Grid")
     int32 Width = 1;
 
-    //Height size at inventory grid
+    // Height size at inventory grid
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Grid")
     int32 Height = 1;
 	
-    //GAS Tag
+    // GAS Tag
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
     FGameplayTagContainer OwnedTags;
 };

@@ -193,25 +193,14 @@ FString UATGSerializationLibrary::ConvertGridToJson(const FInventoryGrid& Grid)
 
 	// Struct -> JSON String
 	FString JsonString;
+	//FJsonObjectConverter::UStructToJsonObject<FInventoryEntrySaveData>(SaveData,)
 	FJsonObjectConverter::UStructToJsonObjectString(SaveData, JsonString);
 
 	return JsonString;
 }
 
-bool UATGSerializationLibrary::ConvertJsonToGrid(const FString& JsonString, FInventoryGrid& OutGrid)
+bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& LoadedData, FInventoryGrid& OutGrid)
 {
-	if (JsonString.IsEmpty()) return false;
-
-	FInventorySaveData LoadedData;
-
-	// 1. JSON String -> Struct 변환
-	if (!FJsonObjectConverter::JsonObjectStringToUStruct(JsonString, &LoadedData))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to parse Inventory JSON"));
-		return false;
-	}
-
-	// 기존 인벤토리 클리어
 	OutGrid.Entries.Empty();
 	OutGrid.MarkArrayDirty();
 
@@ -223,64 +212,56 @@ bool UATGSerializationLibrary::ConvertJsonToGrid(const FString& JsonString, FInv
 	// DTO -> Runtime Entry 변환
 	for (const FInventoryEntrySaveData& SavedEntry : LoadedData.saved_entries)
 	{
+		// 초기 Null 체크 삭제함 (여기서 체크하면 안됨)
 		FInventoryEntry NewEntry;
-		if (NewEntry.Item.IsNull())
-		{
-			UE_LOG(LogTemp, Error, TEXT("ConvertJsonToGrid : Item IsNull !!!"));
-			continue;
-		}
 
+		// Asset ID 확인
 		FPrimaryAssetId AssetId = FPrimaryAssetId::FromString(SavedEntry.primary_asset_id);
-		if (AssetId.IsValid())
-		{
-			// AssetManager를 통해 해당 ID의 실제 경로를 찾음
-			FSoftObjectPath ItemPath = AssetManager.GetPrimaryAssetPath(AssetId);
-
-			if (ItemPath.IsValid())
-			{
-				NewEntry.Item = TSoftObjectPtr<UATGItemData>(ItemPath);
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("Asset Manager could not find path for ID: %s"), *SavedEntry.primary_asset_id);
-				continue;
-			}
-		}
-		else
+		if (!AssetId.IsValid())
 		{
 			UE_LOG(LogTemp, Error, TEXT("Invalid PrimaryAssetId String: %s"), *SavedEntry.primary_asset_id);
 			continue;
 		}
 
+		// Asset Path 찾기
+		FSoftObjectPath ItemPath = AssetManager.GetPrimaryAssetPath(AssetId);
+		if (!ItemPath.IsValid())
+		{
+			UE_LOG(LogTemp, Error, TEXT("Asset Manager could not find path for ID: %s"), *SavedEntry.primary_asset_id);
+			continue;
+		}
+
+		// Soft Pointer 할당
+		NewEntry.Item = TSoftObjectPtr<UATGItemData>(ItemPath);
+
 		NewEntry.Quantity = SavedEntry.qty;
 		NewEntry.X = SavedEntry.x;
 		NewEntry.Y = SavedEntry.y;
 		NewEntry.bRotated = SavedEntry.b_rotated;
-		//NewEntry.Id = SavedEntry.Id;
 
-		if (UATGItemData* ItemData = NewEntry.Item.LoadSynchronous())
+		UATGItemData* ItemData = NewEntry.Item.LoadSynchronous();
+		if (ItemData)
 		{
-			NewEntry.Width = ItemData->Width;  
+			NewEntry.Width = ItemData->Width;
 			NewEntry.Height = ItemData->Height;
+
+			OutGrid.AddItemAt(
+				NewEntry.Item,
+				NewEntry.Quantity,
+				NewEntry.X,
+				NewEntry.Y,
+				ItemData->Width,
+				ItemData->Height,
+				NewEntry.bRotated
+			);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Error, TEXT("ConvertJsonToGrid : Load Item Fail !!!"));
+			UE_LOG(LogTemp, Error, TEXT("ConvertJsonToGrid : Load Item Fail !!! Asset: %s"), *SavedEntry.primary_asset_id);
 			continue;
 		}
-
-		int32 Qty = NewEntry.Quantity;
-		int32 X = NewEntry.X;
-		int32 Y = NewEntry.Y;
-		int32 W = NewEntry.Item->Width;
-		int32 H = NewEntry.Item->Height;
-		bool bRotated = NewEntry.bRotated;
-		OutGrid.AddItemAt(NewEntry.Item, Qty, X, Y, W, H, bRotated);
-
 	}
+
 	OutGrid.MarkArrayDirty();
-
-	// 중요: GlobalEntryIdCounter는 AddItemAt에서 생성
-
 	return true;
 }

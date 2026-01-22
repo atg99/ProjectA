@@ -55,6 +55,14 @@ void AATGPlayerController::BeginPlay()
 	}
 }
 
+void AATGPlayerController::ClientTravelToLobby()
+{
+	if (HasAuthority())
+	{
+		this->ClientTravel(TEXT("/Game/Maps/LobbyMap"), ETravelType::TRAVEL_Absolute, false);
+	}
+}
+
 void AATGPlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();

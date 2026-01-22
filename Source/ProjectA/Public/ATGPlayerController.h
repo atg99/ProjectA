@@ -45,6 +45,9 @@ public:
 
 	virtual void BeginPlay() override;
 
+	// (Server Only) 게임맵에서 탈출해서 로비로
+	UFUNCTION(BlueprintCallable)
+	void ClientTravelToLobby();
 protected:
 
 	virtual void OnRep_PlayerState() override;
@@ -77,7 +80,5 @@ public:
 
 	void WeaponInputMapping(EWeaponCategory WeaponInputType);
 	//void ToggleInventoryUI();
-protected:
-
 
 };
