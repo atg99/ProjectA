@@ -390,6 +390,12 @@ void UATGInventoryComponent::ServerSortByItemId_Implementation()
 
 void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId, int32 SplitNum)
 {
+	// ItemBPClass가 설정되있지 않다면 Lobby Drop X
+	if (!ItemBPClass)
+	{
+		return;
+	}
+
 	ServerSpawnItem(EntryId, SplitNum);
 	if (SplitNum > 0)
 	{
@@ -437,6 +443,12 @@ void UATGInventoryComponent::ServerRemoveItem_Implementation(int32 EntryId)
 
 void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId, int32 SplitNum)
 {
+	// ItemBPClass가 설정되있지 않다면 Lobby Spawn X
+	if (!ItemBPClass)
+	{
+		return;
+	}
+
 	FInventoryEntry* Entry = Inventory.GetById(EntryId);
 	if (!Entry)
 	{

@@ -4,6 +4,9 @@
 #include "Lobby/LobbyPC.h"
 #include "Lobby/LobbyWidget.h"
 #include "Utils/NetworkUtil.h"
+#include "ATGHUDComponent.h"
+#include "GameFramework/HUD.h"
+
 
 ALobbyPC::ALobbyPC()
 {

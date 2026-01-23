@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "Title/NetworkGameInstanceSubsystem.h"
 #include "LobbyGameMode.generated.h"
 
 /**
@@ -23,6 +24,8 @@ public:
 
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 
+	virtual void Logout(AController* Exiting) override;
+
 	virtual void BeginPlay() override;
 
 	virtual void StartPlay() override;
@@ -30,4 +33,8 @@ public:
 	virtual void PostInitializeComponents() override;
 	
 	FTimerHandle LeftTimeHandle;
+
+protected:
+	UFUNCTION()
+	void OnBackendLoadInventoryComplete(const FInventorySaveData& InventoryLoadedData, int32 Code, const APlayerController* InventoryOwner);
 };

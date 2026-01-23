@@ -3,6 +3,11 @@
 
 #include "Lobby/LobbyGameMode.h"
 #include "Lobby/LobbyGameState.h"
+#include "Utils/NetworkUtil.h"
+#include "Utils/ATGSerializationLibrary.h"
+#include "GameFramework/PlayerState.h"
+#include "ATGInventoryComponent.h"
+#include "Title/NetworkGameInstanceSubsystem.h"
 
 ALobbyGameMode::ALobbyGameMode()
 {
@@ -25,9 +30,50 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 
+	UNetworkGameInstanceSubsystem* NetworkGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+	if (NetworkGameInstanceSubsystem)
+	{
+		NetworkGameInstanceSubsystem->OnLoadInvenRequstResult.RemoveDynamic(this, &ALobbyGameMode::OnBackendLoadInventoryComplete);
+		NetworkGameInstanceSubsystem->OnLoadInvenRequstResult.AddDynamic(this, &ALobbyGameMode::OnBackendLoadInventoryComplete);
+		NetworkGameInstanceSubsystem->LoadInventoryData(NetworkGameInstanceSubsystem->LoginData.token, NewPlayer);
+	}
+
 	//GetWorld()->GetPlayerControllerIterator();
 }
 
+void ALobbyGameMode::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+}
+
+void ALobbyGameMode::OnBackendLoadInventoryComplete(const FInventorySaveData& InventoryLoadedData, int32 Code, const APlayerController* InventoryOwner)
+{
+	NET_LOG(FString::Printf(TEXT("Code : %d, entry num : %d"), Code, InventoryLoadedData.saved_entries.Num()));
+	for (auto entry : InventoryLoadedData.saved_entries)
+	{
+		NET_LOG(FString::Printf(TEXT("asset id : %s"), *entry.primary_asset_id));
+	}
+	if (Code == 200 && InventoryOwner)
+	{
+		APlayerState* PS = InventoryOwner->GetPlayerState<APlayerState>();
+		if (PS)
+		{
+			UActorComponent* AC = PS->GetComponentByClass(UATGInventoryComponent::StaticClass());
+			if (AC)
+			{
+				UATGInventoryComponent* InvenComp = Cast<UATGInventoryComponent>(AC);
+				if (InvenComp)
+				{
+					UATGSerializationLibrary::ConvertDataToGrid(InventoryLoadedData, InvenComp->GetInventory());
+				}
+			}
+		}
+		else
+		{
+			NET_LOG(TEXT("ATGPlayerState Null"));
+		}
+	}
+}
 void ALobbyGameMode::BeginPlay()
 {
 	Super::BeginPlay();

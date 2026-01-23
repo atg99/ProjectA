@@ -163,6 +163,7 @@ public:
 
 	UATGPickupComponent* GetPickupComp(AActor* InteractedActor);
 
+	// 로비라면 None으로 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
 	TSubclassOf<AATGItem> ItemBPClass;
 

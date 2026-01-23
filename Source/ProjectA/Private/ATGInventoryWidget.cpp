@@ -31,7 +31,15 @@ void UATGInventoryWidget::NativeConstruct()
 		{
 			auto EquipComp = PS->FindComponentByClass<UATGEquipmentComponent>();
 			auto InvenComp = PS->FindComponentByClass<UATGInventoryComponent>();
+
 			InjectInvenComp(InvenComp, EquipComp);
+
+			// 로비맵일때 PS에 ContainerComponent추가 DB data 연결
+			auto ContainerComp = PS->FindComponentByClass<UATGContainerComponent>();
+			if (ContainerComp)
+			{
+				HandleContainerToggle(ContainerComp);
+			}
 		}
 	}	
 
@@ -79,8 +87,11 @@ void UATGInventoryWidget::SetHUDComp(UATGHUDComponent* InHUDComp)
 
 void UATGInventoryWidget::HandleContainerToggle(UATGContainerComponent* ContainerComp)
 {
-	ContainerGrid->Inven = ContainerComp;
-	ContainerGrid->BindInventoryComp();
+	if (ContainerComp)
+	{
+		ContainerGrid->Inven = ContainerComp;
+		ContainerGrid->BindInventoryComp();
+	}
 }
 
 void UATGInventoryWidget::HandleInitInventoryComp(UATGInventoryComponent* GetInventoryComponent)

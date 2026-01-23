@@ -34,4 +34,5 @@ public:
 	UFUNCTION(Client, Reliable)
 	void ClientSendMessage(const FText& Message);
 	
+
 };
