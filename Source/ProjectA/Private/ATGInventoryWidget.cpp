@@ -34,7 +34,7 @@ void UATGInventoryWidget::NativeConstruct()
 
 			InjectInvenComp(InvenComp, EquipComp);
 
-			// 로비맵일때 PS에 ContainerComponent추가 DB data 연결
+			// 로비맵일때 PS에 ContainerComponent추가 DB data 연결 (게임맵 PS 에 ContainerComp 달면안됨)
 			auto ContainerComp = PS->FindComponentByClass<UATGContainerComponent>();
 			if (ContainerComp)
 			{

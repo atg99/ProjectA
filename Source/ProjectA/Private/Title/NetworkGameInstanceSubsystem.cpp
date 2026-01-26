@@ -517,13 +517,14 @@ void UNetworkGameInstanceSubsystem::SaveInventoryData(FString AuthToken, FString
 	Request->OnProcessRequestComplete().BindLambda(
 		[this](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
 		{
-			int32 StatusCode = Response->GetResponseCode();
-
+			
 			if (!bConnected || !Response.IsValid())
 			{
-				OnSaveInvenRequstResult.Broadcast(FBackendSaveInvenResult(), StatusCode);
+				OnSaveInvenRequstResult.Broadcast(FBackendSaveInvenResult(), -1);
 				return;
 			}
+
+			int32 StatusCode = Response->GetResponseCode();
 
 			FString ResponseContent = Response->GetContentAsString();
 			FBackendSaveInvenResult BackendSaveInvenResult;

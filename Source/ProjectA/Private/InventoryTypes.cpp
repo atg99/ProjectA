@@ -450,14 +450,12 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         // 성공 확정이므로 실제 회전 반영
         if (bIsRotate)
         {
-            //Me->bRotated = !Me->bRotated;
             UE_LOG(LogTemp, Warning, TEXT("FInventoryGrid::MoveOrSwap Swap Size"));
-            //Swap(Me->Width, Me->Height); // 또는 Orientation 토글
             
         }
+
         if (Owner && OwnerHasAuthority())
         {
-
             MarkItemDirty(*Me);
 
             Owner->ItemChanged(EntryId);
@@ -551,7 +549,8 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
             MarkItemDirty(*Me);
 
             Owner->ItemChanged(EntryId);
-           
+            Owner->ItemChanged(Other->Id);
+
             Owner->InventoryForceNetUpdate();
            
         }
@@ -965,6 +964,7 @@ bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bo
 
 bool FInventoryGrid::OwnerHasAuthority()
 {
+    UE_LOG(LogTemp, Warning, TEXT("FInventoryGrid::OwnerHasAuthority"));
     if (!Owner.GetObject())
     {
         UE_LOG(LogTemp, Display, TEXT("!!! !Owner.GetObject()"));
@@ -978,6 +978,7 @@ bool FInventoryGrid::OwnerHasAuthority()
     }
     if (OnwerComp->GetOwner()->HasAuthority())
     {
+        UE_LOG(LogTemp, Warning, TEXT("FInventoryGrid::OwnerHasAuthority : true"));
         return true;
     }
     UE_LOG(LogTemp, Display, TEXT("!OnwerComp->GetOwner()->HasAuthority()"));
