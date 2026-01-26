@@ -22,7 +22,6 @@ UATGContainerComponent::UATGContainerComponent()
 	//ContainerInventory.GridHeight = GridHeight;
 }
 
-
 // Called when the game starts
 void UATGContainerComponent::BeginPlay()
 {
@@ -30,7 +29,7 @@ void UATGContainerComponent::BeginPlay()
 
 	ContainerInventory.GridWidth = GridWidth;
 	ContainerInventory.GridHeight = GridHeight;
-	//ContainerInventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
+	ContainerInventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
 
 	for (auto& Item : ContainerItems)
 	{
@@ -180,10 +179,9 @@ void UATGContainerComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int3
 {
 	UE_LOG(LogTemp, Display, TEXT("UATGContainerComponent::TryMoveOrSwapClient"));
 
-	if (IsLocallyOwned())
-	{
-		ServerMoveOrSwap(EntryId, NewX, NewY, bIsRotate);
-	}
+	//if (IsLocallyOwned())
+
+	ServerMoveOrSwap(EntryId, NewX, NewY, bIsRotate);
 }
 
 void UATGContainerComponent::TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum)

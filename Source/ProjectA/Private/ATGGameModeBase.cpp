@@ -22,33 +22,7 @@ void AATGGameModeBase::InitGame(const FString& MapName, const FString& Options, 
 // 접속 종료시 PS에 저장된 토큰으로 Inventory 저장요청
 void AATGGameModeBase::Logout(AController* Exiting)
 {
-    NET_LOG(TEXT(""));
-    UNetworkGameInstanceSubsystem* NetworkGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
-    if (!NetworkGameInstanceSubsystem)
-    {
-        NET_LOG(FString::Printf(TEXT("Can't Find NetworkGameInstanceSubsystem")));
-        return;
-    }
-
-	AATGPlayerState* ATGPlayerState = Exiting->GetPlayerState<AATGPlayerState>();
-	if (ATGPlayerState)
-	{
-		UActorComponent* AC = ATGPlayerState->GetComponentByClass(UATGInventoryComponent::StaticClass());
-		if (AC)
-		{
-			UATGInventoryComponent* InvenComp = Cast<UATGInventoryComponent>(AC);
-			if (InvenComp)
-			{
-				FString GridJson = UATGSerializationLibrary::ConvertGridToJson(InvenComp->GetInventory());
-                FString AuthToken = ATGPlayerState->BackendToken;
-
-                NET_LOG(FString::Printf(TEXT("GridJson : %s"), *GridJson));
-                NET_LOG(FString::Printf(TEXT("Token : %s"), *AuthToken));
-
-                NetworkGameInstanceSubsystem->SaveInventoryData(AuthToken, GridJson);
-			}
-		}
-	}
+    SaveInventoyData(Exiting);
 
     if (Exiting && Exiting->PlayerState)
     {
@@ -141,6 +115,51 @@ void AATGGameModeBase::PostLogin(APlayerController* NewPlayer)
 
 }
 
+void AATGGameModeBase::SaveInventoyData(AController* Controller)
+{
+    NET_LOG(TEXT(""));
+    UNetworkGameInstanceSubsystem* NetworkGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+    if (!NetworkGameInstanceSubsystem)
+    {
+        NET_LOG(FString::Printf(TEXT("Can't Find NetworkGameInstanceSubsystem")));
+        return;
+    }
+
+    AATGPlayerState* ATGPlayerState = Controller->GetPlayerState<AATGPlayerState>();
+    if (ATGPlayerState)
+    {
+        UActorComponent* AC = ATGPlayerState->GetComponentByClass(UATGInventoryComponent::StaticClass());
+        if (AC)
+        {
+            UATGInventoryComponent* InvenComp = Cast<UATGInventoryComponent>(AC);
+            if (InvenComp)
+            {
+                FString GridJson = UATGSerializationLibrary::ConvertGridToJson(InvenComp->GetInventory());
+                FString AuthToken = ATGPlayerState->BackendToken;
+
+                NET_LOG(FString::Printf(TEXT("GridJson : %s"), *GridJson));
+                NET_LOG(FString::Printf(TEXT("Token : %s"), *AuthToken));
+
+                NetworkGameInstanceSubsystem->SaveInventoryData(AuthToken, GridJson);
+            }
+        }
+    }
+}
+
+void AATGGameModeBase::LoadInventoryData(APlayerController* PC)
+{
+    if (AATGPlayerState* PS = PC->GetPlayerState<AATGPlayerState>())
+    {
+        UNetworkGameInstanceSubsystem* NetworkGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+        if (NetworkGameInstanceSubsystem)
+        {
+            NetworkGameInstanceSubsystem->OnLoadInvenRequstResult.RemoveDynamic(this, &AATGGameModeBase::OnBackendLoadInventoryComplete);
+            NetworkGameInstanceSubsystem->OnLoadInvenRequstResult.AddDynamic(this, &AATGGameModeBase::OnBackendLoadInventoryComplete);
+            NetworkGameInstanceSubsystem->LoadInventoryData(PS->BackendToken, PC);
+        }
+    }
+}
+
 // 백엔드 토큰 인증요청 성공시 RequestUserID로 PC가 생성됬다면 결과처리 생성 전이라면 버퍼에 저장하고 PostLogin에서 처리
 void AATGGameModeBase::OnBackendValidateComplete(const FBackendValidateData& BackendValidateData, int32 Code, const FUniqueNetIdRepl& RequestUserID)
 {
@@ -225,13 +244,8 @@ bool AATGGameModeBase::ProcessValidationResult(APlayerController* PC, const FBac
             PS->BackendToken = Data.token;
             UE_LOG(LogTemp, Log, TEXT("Auth Success for: %d, %s %s Start LoadInventory"), PS->BackendUserID, *PS->BackendUserName, *Data.message);
 
-            UNetworkGameInstanceSubsystem* NetworkGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
-            if (NetworkGameInstanceSubsystem)
-            {
-                NetworkGameInstanceSubsystem->OnLoadInvenRequstResult.RemoveDynamic(this, &AATGGameModeBase::OnBackendLoadInventoryComplete);
-                NetworkGameInstanceSubsystem->OnLoadInvenRequstResult.AddDynamic(this, &AATGGameModeBase::OnBackendLoadInventoryComplete);
-                NetworkGameInstanceSubsystem->LoadInventoryData(PS->BackendToken, PC);
-            }
+            LoadInventoryData(PC);
+
             return true;
         }
     }

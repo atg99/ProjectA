@@ -450,6 +450,7 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         // 성공 확정이므로 실제 회전 반영
         if (bIsRotate)
         {
+            Me->bRotated = !Me->bRotated;
             UE_LOG(LogTemp, Warning, TEXT("FInventoryGrid::MoveOrSwap Swap Size"));
             
         }
@@ -536,11 +537,13 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
 
         Me->X = NewX;
         Me->Y = NewY;
-
+        Me->Width = NewW;
+        Me->Height = NewH;
         // 성공 확정이므로 실제 회전 반영
         if (bIsRotate)
         {
-            Swap(Me->Width, Me->Height); // 또는 Orientation 토글
+            Me->bRotated = !Me->bRotated;
+            //Swap(Me->Width, Me->Height); // 또는 Orientation 토글
         }
 
         if (Owner && OwnerHasAuthority())

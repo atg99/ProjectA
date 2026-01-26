@@ -34,7 +34,29 @@ public:
 	
 	FTimerHandle LeftTimeHandle;
 
+	UFUNCTION(BlueprintCallable)
+	void SaveInventoyData(AController* Controller);
+
+	UFUNCTION(BlueprintCallable)
+	void SaveStashData(AController* Controller);
+
+	UFUNCTION(BlueprintCallable)
+	void LoadInvenData(APlayerController* Controller);
+
+	UFUNCTION(BlueprintCallable)
+	void LoadStashData(APlayerController* Controller);
+
 protected:
 	UFUNCTION()
 	void OnBackendLoadInventoryComplete(const FInventorySaveData& InventoryLoadedData, int32 Code, const APlayerController* InventoryOwner);
+
+	UFUNCTION()
+	void OnBackendLoadStashComplete(const FInventorySaveData& StashLoadedData, int32 Code, const APlayerController* InventoryOwner);
+
+	UFUNCTION()
+	void OnSaveInvenResult(const FBackendSaveInvenResult& InvenSaveResult, int32 Code);
+
+	UFUNCTION()
+	void OnSaveStashResult(const FBackendSaveStashResult& StashSaveResult, int32 Code);
+
 };

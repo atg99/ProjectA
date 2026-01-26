@@ -244,11 +244,16 @@ void UNetworkGameInstanceSubsystem::ConnectToTCPServer(FString IpAddress, int32 
 		bIsConnected = true;
 		UE_LOG(LogTemp, Log, TEXT("Connected to Server: %s:%d"), *IpAddress, Port);
 
+		TWeakObjectPtr<UNetworkGameInstanceSubsystem> WeakThis(this);
+
 		// 스레드 시작 (람다로 콜백 연결)
 		SocketWorker = MakeShareable(new FTcpSocketWorker(Socket,
-			[this](const TArray<uint8>& Data)
+			[WeakThis](const TArray<uint8>& Data)
 			{
-				OnDataReceived(Data);
+				if (UNetworkGameInstanceSubsystem* EnsureThis = WeakThis.Get())
+				{
+					EnsureThis->OnDataReceived(Data);
+				}
 			}));
 
 		// 연결 즉시 로그인 패킷 전송
@@ -451,13 +456,20 @@ void UNetworkGameInstanceSubsystem::BackendValidateToken(const FString& Token, c
 	NET_LOG("");
 	auto Request = HTTPModule->CreateRequest();
 	
+	TWeakObjectPtr<UNetworkGameInstanceSubsystem> WeakThis(this);
+
 	// RequestUserID: 응답이 올 때까지 이 ID를 람다 안에 저장해둠 (복사됨)
 	Request->OnProcessRequestComplete().BindLambda(
-		[this, RequestUserID](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
+		[WeakThis, RequestUserID](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
 		{
+			if (!WeakThis.IsValid())
+			{
+				return;
+			}
+
 			if (!bConnected || !Response.IsValid())
 			{
-				OnValidateRequstResult.Broadcast(FBackendValidateData(), 0, RequestUserID);
+				WeakThis->OnValidateRequstResult.Broadcast(FBackendValidateData(), 0, RequestUserID);
 				return;
 			}
 
@@ -488,7 +500,7 @@ void UNetworkGameInstanceSubsystem::BackendValidateToken(const FString& Token, c
 			}
 
 			//캡처해뒀던 RequestUserID
-			OnValidateRequstResult.Broadcast(ValidatData, StatusCode, RequestUserID);
+			WeakThis->OnValidateRequstResult.Broadcast(ValidatData, StatusCode, RequestUserID);
 		});
 
 	FString URL = FString::Printf(TEXT("http://%s:3000/auth/verify"), *BackendIP);
@@ -514,13 +526,19 @@ void UNetworkGameInstanceSubsystem::SaveInventoryData(FString AuthToken, FString
 	NET_LOG("");
 	auto Request = HTTPModule->CreateRequest();
 
+	TWeakObjectPtr<UNetworkGameInstanceSubsystem> WeakThis(this);
+
 	Request->OnProcessRequestComplete().BindLambda(
-		[this](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
+		[WeakThis](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
 		{
+			if (!WeakThis.IsValid())
+			{
+				return;
+			}
 			
 			if (!bConnected || !Response.IsValid())
 			{
-				OnSaveInvenRequstResult.Broadcast(FBackendSaveInvenResult(), -1);
+				WeakThis->OnSaveInvenRequstResult.Broadcast(FBackendSaveInvenResult(), -1);
 				return;
 			}
 
@@ -535,7 +553,7 @@ void UNetworkGameInstanceSubsystem::SaveInventoryData(FString AuthToken, FString
 			else
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Save InventoryJson Parse Fail"));
-				OnSaveInvenRequstResult.Broadcast(FBackendSaveInvenResult(), StatusCode);
+				WeakThis->OnSaveInvenRequstResult.Broadcast(FBackendSaveInvenResult(), StatusCode);
 				return;
 			}
 
@@ -549,7 +567,7 @@ void UNetworkGameInstanceSubsystem::SaveInventoryData(FString AuthToken, FString
 				UE_LOG(LogTemp, Warning, TEXT("Fail for Save Inventory code: %d , message : %s"), StatusCode, *BackendSaveInvenResult.message);
 			}
 
-			OnSaveInvenRequstResult.Broadcast(BackendSaveInvenResult, StatusCode);
+			WeakThis->OnSaveInvenRequstResult.Broadcast(BackendSaveInvenResult, StatusCode);
 		});
 
 	FString URL = FString::Printf(TEXT("http://%s:3000/inventory/save"), *BackendIP);
@@ -572,14 +590,22 @@ void UNetworkGameInstanceSubsystem::LoadInventoryData(FString AuthToken, APlayer
 {
 	NET_LOG("");
 	auto Request = HTTPModule->CreateRequest();
+
+	TWeakObjectPtr<UNetworkGameInstanceSubsystem> WeakThis(this);
+
 	Request->OnProcessRequestComplete().BindLambda(
-		[this, InventoryOwner](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
+		[WeakThis, InventoryOwner](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
 		{
+			if (!WeakThis.IsValid())
+			{
+				return;
+			}
+
 			int32 StatusCode = Response->GetResponseCode();
 
 			if (!bConnected || !Response.IsValid())
 			{
-				OnLoadInvenRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
+				WeakThis->OnLoadInvenRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
 				return;
 			}
 
@@ -592,7 +618,7 @@ void UNetworkGameInstanceSubsystem::LoadInventoryData(FString AuthToken, APlayer
 			else
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Load Inventory Json Parse Fail"));
-				OnLoadInvenRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
+				WeakThis->OnLoadInvenRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
 				return;
 			}
 
@@ -605,10 +631,137 @@ void UNetworkGameInstanceSubsystem::LoadInventoryData(FString AuthToken, APlayer
 				UE_LOG(LogTemp, Warning, TEXT("Fail for Load Inventory code: %d"), StatusCode);
 			}
 
-			OnLoadInvenRequstResult.Broadcast(InventorySaveData, StatusCode, InventoryOwner);
+			WeakThis->OnLoadInvenRequstResult.Broadcast(InventorySaveData, StatusCode, InventoryOwner);
 		});
 
 	FString URL = FString::Printf(TEXT("http://%s:3000/inventory/load"), *BackendIP);
+
+	Request->SetURL(URL);
+	Request->SetVerb(TEXT("POST"));
+
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	if (!AuthToken.IsEmpty())
+	{
+		Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *AuthToken));
+	}
+
+	Request->ProcessRequest();
+}
+
+void UNetworkGameInstanceSubsystem::SaveStashData(FString AuthToken, FString InvenJson)
+{
+	NET_LOG("");
+	auto Request = HTTPModule->CreateRequest();
+
+	TWeakObjectPtr<UNetworkGameInstanceSubsystem> WeakThis(this);
+
+	Request->OnProcessRequestComplete().BindLambda(
+		[WeakThis](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
+		{
+			if (!WeakThis.IsValid())
+			{
+				return;
+			}
+
+			if (!bConnected || !Response.IsValid())
+			{
+				WeakThis->OnSaveStashRequstResult.Broadcast(FBackendSaveStashResult(), -1);
+				return;
+			}
+
+			int32 StatusCode = Response->GetResponseCode();
+
+			FString ResponseContent = Response->GetContentAsString();
+			FBackendSaveStashResult BackendSaveStashResult;
+			if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendSaveStashResult>(ResponseContent, &BackendSaveStashResult, 0, 0))
+			{
+
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Save InventoryJson Parse Fail"));
+				WeakThis->OnSaveStashRequstResult.Broadcast(FBackendSaveStashResult(), StatusCode);
+				return;
+			}
+
+			if (StatusCode == 200)
+			{
+
+				UE_LOG(LogTemp, Log, TEXT("Success for Save Inventory code: %d , message : %s"), StatusCode, *BackendSaveStashResult.message);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Fail for Save Inventory code: %d , message : %s"), StatusCode, *BackendSaveStashResult.message);
+			}
+
+			WeakThis->OnSaveStashRequstResult.Broadcast(BackendSaveStashResult, StatusCode);
+		});
+
+	FString URL = FString::Printf(TEXT("http://%s:3000/stash/save"), *BackendIP);
+
+	Request->SetURL(URL);
+	Request->SetVerb(TEXT("POST"));
+
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	if (!AuthToken.IsEmpty())
+	{
+		Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *AuthToken));
+	}
+
+	Request->SetContentAsString(InvenJson);
+
+	Request->ProcessRequest();
+}
+
+void UNetworkGameInstanceSubsystem::LoadStashData(FString AuthToken, APlayerController* InventoryOwner)
+{
+	NET_LOG("");
+	auto Request = HTTPModule->CreateRequest();
+
+	TWeakObjectPtr<UNetworkGameInstanceSubsystem> WeakThis(this);
+
+	Request->OnProcessRequestComplete().BindLambda(
+		[WeakThis, InventoryOwner](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnected)
+		{
+			if (!WeakThis.IsValid())
+			{
+				return;
+			}
+
+			int32 StatusCode = Response->GetResponseCode();
+
+			if (!bConnected || !Response.IsValid())
+			{
+				WeakThis->OnLoadStashRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
+				return;
+			}
+
+			FString ResponseContent = Response->GetContentAsString();
+			FInventorySaveData InventorySaveData;
+			if (FJsonObjectConverter::JsonObjectStringToUStruct<FInventorySaveData>(ResponseContent, &InventorySaveData, 0, 0))
+			{
+
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Load Inventory Json Parse Fail"));
+				WeakThis->OnLoadStashRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
+				return;
+			}
+
+			if (StatusCode == 200)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Success for Load Inventory code: %d"), StatusCode);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Fail for Load Inventory code: %d"), StatusCode);
+			}
+
+			WeakThis->OnLoadStashRequstResult.Broadcast(InventorySaveData, StatusCode, InventoryOwner);
+		});
+
+	FString URL = FString::Printf(TEXT("http://%s:3000/stash/load"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));

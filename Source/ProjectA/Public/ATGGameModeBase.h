@@ -45,6 +45,12 @@ public:
 
     virtual void PostLogin(APlayerController* NewPlayer) override;
 
+	UFUNCTION(BlueprintCallable)
+	void SaveInventoyData(AController* Controller);
+
+	UFUNCTION(BlueprintCallable)
+	void LoadInventoryData(APlayerController* PC);
+
 protected:
 
 	UFUNCTION()

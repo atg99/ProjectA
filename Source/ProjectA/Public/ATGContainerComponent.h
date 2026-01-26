@@ -83,7 +83,9 @@ public:
 
 	void InitContainerItem();
 
-	//RPCs
+	////RPCs
+	//UFUNCTION(BlueprintCallable)
+	//virtual const struct FInventoryGrid& GetInventory() override { return };
 
 protected:
 

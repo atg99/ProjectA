@@ -77,11 +77,28 @@ public:
 	int32 inventory_id = -1;
 };
 
+USTRUCT(BlueprintType)
+struct FBackendSaveStashResult
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY()
+	FString message;
+
+	UPROPERTY()
+	int32 stash_id = -1;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatReceived, FString, Sender, FString, Message, int64, Timestamp);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBackendRequstResult, FBackendRequstResult, RequstResult);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnValidateRequstResult, const FBackendValidateData&, ValidateData, int32, Code, const FUniqueNetIdRepl&, RequestUserID);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSaveInvenRequstResult, const FBackendSaveInvenResult&, SaveResult, int32, Code);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnLoadInvenRequstResult, const FInventorySaveData&, InventorySaveData, int32, Code, const APlayerController*, InventoryOwner);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSaveStashRequstResult, const FBackendSaveStashResult&, StashSaveResult, int32, Code);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnLoadStashRequstResult, const FInventorySaveData&, InventorySaveData, int32, Code, const APlayerController*, StashOwner);
 
 class FTcpSocketWorker : public FRunnable
 {
@@ -149,7 +166,14 @@ public:
 	void SaveInventoryData(FString AuthToken, FString InvenJson);
 
 	UFUNCTION(BlueprintCallable)
-	void LoadInventoryData(FString AuthToken, APlayerController* Exiting);
+	void LoadInventoryData(FString AuthToken, APlayerController* InventoryOwner);
+
+	// Stash
+	UFUNCTION(BlueprintCallable)
+	void SaveStashData(FString AuthToken, FString InvenJson);
+
+	UFUNCTION(BlueprintCallable)
+	void LoadStashData(FString AuthToken, APlayerController* Exiting);
 
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnChatReceived OnChatReceived;
@@ -165,6 +189,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnLoadInvenRequstResult OnLoadInvenRequstResult;
+
+	UPROPERTY(BlueprintAssignable, Category = "Network")
+	FOnSaveStashRequstResult OnSaveStashRequstResult;
+
+	UPROPERTY(BlueprintAssignable, Category = "Network")
+	FOnLoadStashRequstResult OnLoadStashRequstResult;
 
 	FString BackendIP = TEXT("127.0.0.1");
 
