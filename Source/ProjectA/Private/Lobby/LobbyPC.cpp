@@ -6,7 +6,9 @@
 #include "Utils/NetworkUtil.h"
 #include "ATGHUDComponent.h"
 #include "GameFramework/HUD.h"
-
+#include "EnhancedInputSubsystems.h"
+#include "Engine/LocalPlayer.h"
+#include "InputMappingContext.h"
 
 ALobbyPC::ALobbyPC()
 {
@@ -25,14 +27,21 @@ void ALobbyPC::BeginPlay()
 			{
 				LobbyWidgetObject->AddToViewport();
 
-				bShowMouseCursor = true;
-				SetInputMode(FInputModeUIOnly());
+				FInputModeGameAndUI InputMode;
+				InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+				InputMode.SetHideCursorDuringCapture(false);
+				SetInputMode(InputMode);
+
+				SetShowMouseCursor(true);
+
+				//SetInputMode(FInputModeUIOnly());
 				if (HasAuthority())
 				{
 					LobbyWidgetObject->ShowStartBtn();
 				}
 			}
 		}
+
 	}
 }
 

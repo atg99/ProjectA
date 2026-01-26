@@ -64,6 +64,7 @@ void ALobbyGameMode::OnBackendLoadInventoryComplete(const FInventorySaveData& In
 				if (InvenComp)
 				{
 					UATGSerializationLibrary::ConvertDataToGrid(InventoryLoadedData, InvenComp->GetInventory());
+					InvenComp->OnRebuildAll.Broadcast(-1);
 				}
 			}
 		}
@@ -93,6 +94,7 @@ void ALobbyGameMode::OnBackendLoadStashComplete(const FInventorySaveData& StashL
 				if (ContainerComp)
 				{
 					UATGSerializationLibrary::ConvertDataToGrid(StashLoadedData, ContainerComp->GetContainerInventory());
+					ContainerComp->OnRebuildAll.Broadcast(-1);
 				}
 			}
 		}
@@ -132,7 +134,7 @@ void ALobbyGameMode::SaveInventoyData(AController* Controller)
 
 				UWorld* World = GetWorld();
 				// 월드가 파괴 중이거나 에디터 종료 중이면 저장하지 않고 리턴
-				if (World && !World->bIsTearingDown && !GIsRequestingExit)
+				if (World && !World->bIsTearingDown && !IsEngineExitRequested())
 				{
 					NetworkGameInstanceSubsystem->OnSaveInvenRequstResult.RemoveDynamic(this, &ALobbyGameMode::OnSaveInvenResult);
 					NetworkGameInstanceSubsystem->OnSaveInvenRequstResult.AddDynamic(this, &ALobbyGameMode::OnSaveInvenResult);
@@ -171,7 +173,7 @@ void ALobbyGameMode::SaveStashData(AController* Controller)
 
 				UWorld* World = GetWorld();
 				// 월드가 파괴 중이거나 에디터 종료 중이면 저장하지 않고 리턴
-				if (World && !World->bIsTearingDown && !GIsRequestingExit)
+				if (World && !World->bIsTearingDown && !IsEngineExitRequested())
 				{
 					NetworkGameInstanceSubsystem->OnSaveStashRequstResult.RemoveDynamic(this, &ALobbyGameMode::OnSaveStashResult);
 					NetworkGameInstanceSubsystem->OnSaveStashRequstResult.AddDynamic(this, &ALobbyGameMode::OnSaveStashResult);

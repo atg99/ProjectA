@@ -32,6 +32,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	int32 Quantity = -1;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	bool bIsRotated = false;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Item")
 	TSoftObjectPtr<UATGItemData> ItemDef;
 

@@ -22,6 +22,7 @@ void UATGInventoryItemWidget::SetupFromEntry(const TScriptInterface<IATGInventor
 	CachedCellSize = InCellSize;
 	CachedCellPadding = InCellPadding;
 	Quantity = InEntry.Quantity;
+	bIsRotated = InEntry.bRotated;
 
 	// 아이콘 & 수량 갱신
 	if (ItemIcon)
@@ -67,6 +68,7 @@ void UATGInventoryItemWidget::RefreshFromEntry(const FInventoryEntry& InEntry, i
 	}
 
 	Quantity = InEntry.Quantity;
+	bIsRotated = InEntry.bRotated;
 	if (QuantityText)
 	{
 		//QuantityText->SetText(FText::AsNumber(InEntry.Quantity));

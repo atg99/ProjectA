@@ -4,17 +4,20 @@
 #include "ATGDragDropOperation.h"
 #include <Kismet/GameplayStatics.h>
 #include "UMG.h"
+#include "Utils/NetworkUtil.h"
 
 void UATGDragDropOperation::Dragged_Implementation(const FPointerEvent& PointerEvent)
 {
 	Super::Dragged_Implementation(PointerEvent);
 
+	//NET_LOG(TEXT(""));
 	if (!DragController)
 	{
 		DragController = UGameplayStatics::GetPlayerController(this, 0);
 	}
 
 	bool bCurrentRPressed = DragController->IsInputKeyDown(EKeys::R);
+	NET_LOG(FString::Printf(TEXT("bCurrentRPressed : %d"), bCurrentRPressed));
 	if (bCurrentRPressed && !bLastRPressed)
 	{
 		bIsRotated = !bIsRotated;
@@ -31,7 +34,7 @@ void UATGDragDropOperation::Dragged_Implementation(const FPointerEvent& PointerE
 		}
 
 		
-		UE_LOG(LogTemp, Log, TEXT("Drag Rotation Toggled: %s"), bIsRotated ? TEXT("True") : TEXT("False"));
+		//UE_LOG(LogTemp, Log, TEXT("Drag Rotation Toggled: %s"), bIsRotated ? TEXT("True") : TEXT("False"));
 	}
 
 	bLastRPressed = bCurrentRPressed;

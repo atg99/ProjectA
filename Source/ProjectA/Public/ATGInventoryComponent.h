@@ -68,6 +68,9 @@ public:
 	UPROPERTY(BlueprintAssignable) 
 	FOnGridEvent OnItemChanged;
 
+	UPROPERTY(BlueprintAssignable) 
+	FOnGridEvent OnRebuildAll;
+
 	//UPROPERTY(BlueprintAssignable)
 	//FOnGridEvent OnItemRotated;
 

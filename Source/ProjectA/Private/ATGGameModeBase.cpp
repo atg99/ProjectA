@@ -222,6 +222,7 @@ void AATGGameModeBase::OnBackendLoadInventoryComplete(const FInventorySaveData& 
                 if (InvenComp)
                 {
                     UATGSerializationLibrary::ConvertDataToGrid(InventoryLoadedData, InvenComp->GetInventory());
+                    InvenComp->OnRebuildAll.Broadcast(-1);
                 }
             }
         }

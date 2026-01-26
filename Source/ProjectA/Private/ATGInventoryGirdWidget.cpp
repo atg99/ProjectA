@@ -95,6 +95,7 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		InventoryComp->OnItemAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
 		InventoryComp->OnItemChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		InventoryComp->OnItemRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
+		InventoryComp->OnRebuildAll.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleRebuildAll);
 		//InventoryComp->OnItemRotated.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
 
 		//preview
@@ -105,6 +106,7 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		InventoryComp->OnItemAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
 		InventoryComp->OnItemChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		InventoryComp->OnItemRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
+		InventoryComp->OnRebuildAll.AddDynamic(this, &UATGInventoryGirdWidget::HandleRebuildAll);
 		//InventoryComp->OnItemRotated.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
 
 		//preview
@@ -117,11 +119,13 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 		ContainerComp->OnContainerAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
 		ContainerComp->OnContainerChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		ContainerComp->OnContainerRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
+		ContainerComp->OnRebuildAll.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleRebuildAll);
 		//ContainerComp->OnContainerRotated.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
 
 		ContainerComp->OnContainerAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
 		ContainerComp->OnContainerChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
 		ContainerComp->OnContainerRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
+		ContainerComp->OnRebuildAll.AddDynamic(this, &UATGInventoryGirdWidget::HandleRebuildAll);
 		//ContainerComp->OnContainerRotated.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRotated);
 	}
 
@@ -143,7 +147,6 @@ void UATGInventoryGirdWidget::BuildCellBackground()
 			USizeBox* CellBox = NewObject<USizeBox>(this);
 			CellBox->SetWidthOverride(CellSize);
 			CellBox->SetHeightOverride(CellSize);
-
 
 			UImage* Cell = NewObject<UImage>(this);
 			if (DefaultCellBg)
@@ -181,7 +184,14 @@ void UATGInventoryGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation
 	UATGDragDropOperation* Op = Cast<UATGDragDropOperation>(InOperation);
 	if (ensure(Op))
 	{
-		bIsR = Op->bIsRotated;
+		if (Op->bIsRotated)
+		{
+			bIsR = !InDragged->bIsRotated;
+		}
+		else
+		{
+			bIsR = InDragged->bIsRotated;
+		}
 	}
 
 	Inven->TryAddItemAt(InDragged->Inven, InDragged->EntryId, InDragged->ItemDef, InDragged->Quantity, Cell.X, Cell.Y, bIsR);
@@ -625,6 +635,11 @@ void UATGInventoryGirdWidget::HandleItemRemoved(int32 EntryId)
 		W->RemoveFromParent();
 	}
 	IdToWidget.Remove(EntryId);
+}
+
+void UATGInventoryGirdWidget::HandleRebuildAll(int32 EntryId)
+{
+	RebuildAll();
 }
 
 //void UATGInventoryGirdWidget::HandleItemRotated(int32 EntryId)

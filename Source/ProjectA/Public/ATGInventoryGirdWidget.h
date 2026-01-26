@@ -113,6 +113,7 @@ protected:
 	UFUNCTION() void HandleItemAdded(int32 EntryId);
 	UFUNCTION() void HandleItemChanged(int32 EntryId);
 	UFUNCTION() void HandleItemRemoved(int32 EntryId);
+	UFUNCTION() void HandleRebuildAll(int32 EntryId);
 	//UFUNCTION() void HandleItemRotated(int32 EntryId);
 
 	UFUNCTION() void HandleItemPreAdded(FInventoryEntry PreE);

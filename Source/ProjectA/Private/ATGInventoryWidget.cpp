@@ -140,6 +140,10 @@ bool UATGInventoryWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEv
 
 	UE_LOG(LogTemp, Display, TEXT("PlayerLocal : %f, %f \n ContainerLocal : %f, %f"), PlayerLocal.X, PlayerLocal.Y, ContainerLocal.X, ContainerLocal.Y);
 
+	// 그리드 상위 위젯이 다른 그리드에서 온 drag drop 이벤트 처리   
+	// InOperation에 있는 TScriptInterface로 자기 그리드에서온 이벤트인지 검사후 다른 그리드면 TryAddItemAt 서버 RPC전송
+	// 후 이벤트 소스 그리드는 수량감소, 받은 그리드는 수량 증가
+
 	PlayerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
 	ContainerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
 
