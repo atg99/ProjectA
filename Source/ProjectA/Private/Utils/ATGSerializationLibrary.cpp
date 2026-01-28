@@ -186,7 +186,6 @@ FString UATGSerializationLibrary::ConvertGridToJson(const FInventoryGrid& Grid)
 		EntryData.x = Entry.X;
 		EntryData.y = Entry.Y;
 		EntryData.b_rotated = Entry.bRotated;
-		//EntryData.Id = Entry.Id; // 필요하다면 저장
 
 		SaveData.saved_entries.Add(EntryData);
 	}
@@ -239,6 +238,9 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 		NewEntry.Y = SavedEntry.y;
 		NewEntry.bRotated = SavedEntry.b_rotated;
 
+		// DB Item PK 저장 거래소에 아이템 팔거나 할때 필요
+		NewEntry.DBId = SavedEntry.item_entry_id;
+
 		UATGItemData* ItemData = NewEntry.Item.LoadSynchronous();
 		if (ItemData)
 		{
@@ -252,7 +254,8 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 				NewEntry.Y,
 				ItemData->Width,
 				ItemData->Height,
-				NewEntry.bRotated
+				NewEntry.bRotated,
+				NewEntry.DBId
 			);
 		}
 		else

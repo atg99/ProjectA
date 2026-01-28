@@ -85,7 +85,7 @@ void UNetworkGameInstanceSubsystem::BackendLogin()
 		&UNetworkGameInstanceSubsystem::OnBackendLoginProcessRequestComplete
 	);
 
-	FString URL = FString::Printf(TEXT("http://%s:3000/auth/login"), *BackendIP);
+	FString URL = FString::Printf(TEXT("http://%s:3000/api/v1/auth/login"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -109,7 +109,7 @@ void UNetworkGameInstanceSubsystem::BackendRegister(FString NewUserID, FString N
 	auto Request = HTTPModule->CreateRequest();
 	Request->OnProcessRequestComplete().BindUObject(this, &UNetworkGameInstanceSubsystem::OnBackendRegisterProcessRequestComplete);
 
-	FString URL = FString::Printf(TEXT("http://%s:3000/auth/register"), *BackendIP);
+	FString URL = FString::Printf(TEXT("http://%s:3000/api/v1/auth/register"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -503,7 +503,7 @@ void UNetworkGameInstanceSubsystem::BackendValidateToken(const FString& Token, c
 			WeakThis->OnValidateRequstResult.Broadcast(ValidatData, StatusCode, RequestUserID);
 		});
 
-	FString URL = FString::Printf(TEXT("http://%s:3000/auth/verify"), *BackendIP);
+	FString URL = FString::Printf(TEXT("http://%s:3000/api/v1/auth/verify"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -570,7 +570,7 @@ void UNetworkGameInstanceSubsystem::SaveInventoryData(FString AuthToken, FString
 			WeakThis->OnSaveInvenRequstResult.Broadcast(BackendSaveInvenResult, StatusCode);
 		});
 
-	FString URL = FString::Printf(TEXT("http://%s:3000/inventory/save"), *BackendIP);
+	FString URL = FString::Printf(TEXT("http://%s:3000/api/v1/inventory/save"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -634,7 +634,7 @@ void UNetworkGameInstanceSubsystem::LoadInventoryData(FString AuthToken, APlayer
 			WeakThis->OnLoadInvenRequstResult.Broadcast(InventorySaveData, StatusCode, InventoryOwner);
 		});
 
-	FString URL = FString::Printf(TEXT("http://%s:3000/inventory/load"), *BackendIP);
+	FString URL = FString::Printf(TEXT("http://%s:3000/api/v1/inventory/load"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -697,7 +697,7 @@ void UNetworkGameInstanceSubsystem::SaveStashData(FString AuthToken, FString Inv
 			WeakThis->OnSaveStashRequstResult.Broadcast(BackendSaveStashResult, StatusCode);
 		});
 
-	FString URL = FString::Printf(TEXT("http://%s:3000/stash/save"), *BackendIP);
+	FString URL = FString::Printf(TEXT("http://%s:3000/api/v1/stash/save"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -761,7 +761,7 @@ void UNetworkGameInstanceSubsystem::LoadStashData(FString AuthToken, APlayerCont
 			WeakThis->OnLoadStashRequstResult.Broadcast(InventorySaveData, StatusCode, InventoryOwner);
 		});
 
-	FString URL = FString::Printf(TEXT("http://%s:3000/stash/load"), *BackendIP);
+	FString URL = FString::Printf(TEXT("http://%s:3000/api/v1/stash/load"), *BackendIP);
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -771,6 +771,41 @@ void UNetworkGameInstanceSubsystem::LoadStashData(FString AuthToken, APlayerCont
 	{
 		Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *AuthToken));
 	}
+
+	Request->ProcessRequest();
+}
+
+void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, FString JsonBody, FOnNetworkResponse Callback)
+{
+	auto Request = FHttpModule::Get().CreateRequest();
+	// Base URL + Endpoint
+	FString URL = FString::Printf(TEXT("http://%s:3000%s"), *BackendIP, *Endpoint);
+	Request->SetURL(URL);
+	Request->SetVerb(Verb);
+	Request->SetHeader("Content-Type", "application/json");
+
+	if (!LoginData.token.IsEmpty())
+	{
+		Request->SetHeader("Authorization", "Bearer " + LoginData.token);
+	}
+
+	if (!JsonBody.IsEmpty())
+	{
+		Request->SetContentAsString(JsonBody);
+	}
+
+	Request->OnProcessRequestComplete().BindLambda([Callback](FHttpRequestPtr Req, FHttpResponsePtr Res, bool bConnected)
+		{
+			// 200
+			if (bConnected && Res.IsValid() && EHttpResponseCodes::IsOk(Res->GetResponseCode()))
+			{
+				Callback.ExecuteIfBound(true, Res->GetContentAsString());
+			}
+			else
+			{
+				Callback.ExecuteIfBound(false, TEXT("Error"));
+			}
+		});
 
 	Request->ProcessRequest();
 }

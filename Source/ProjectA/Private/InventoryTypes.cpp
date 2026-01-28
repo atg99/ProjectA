@@ -356,7 +356,7 @@ FInventoryEntry* FInventoryGrid::GetById(int32 EntryId)
     return Entries.FindByPredicate([&](FInventoryEntry& E) { return E.Id == EntryId; });
 }
 
-int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey)
+int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey, int32 DBId)
 {
     UE_LOG(LogTemp, Warning, TEXT("%s"), ANSI_TO_TCHAR(__FUNCTION__));
     if (!ItemDef.Get())
@@ -393,6 +393,8 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
     NewE.Height = bRotated ? W : H;
 
     NewE.bRotated = bRotated;
+
+    NewE.DBId = DBId;
 
     Qty = RemainQty;
 

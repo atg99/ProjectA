@@ -24,6 +24,8 @@ void UATGInventoryItemWidget::SetupFromEntry(const TScriptInterface<IATGInventor
 	Quantity = InEntry.Quantity;
 	bIsRotated = InEntry.bRotated;
 
+	// 거래소 : 재화, 물건, 판매,구매 
+
 	// 아이콘 & 수량 갱신
 	if (ItemIcon)
 	{

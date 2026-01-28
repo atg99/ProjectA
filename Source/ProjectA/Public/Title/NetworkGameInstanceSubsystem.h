@@ -100,6 +100,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnLoadInvenRequstResult, const F
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSaveStashRequstResult, const FBackendSaveStashResult&, StashSaveResult, int32, Code);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnLoadStashRequstResult, const FInventorySaveData&, InventorySaveData, int32, Code, const APlayerController*, StashOwner);
 
+DECLARE_DELEGATE_TwoParams(FOnNetworkResponse, bool /*bSuccess*/, FString /*Content*/);
+
 class FTcpSocketWorker : public FRunnable
 {
 public:
@@ -174,6 +176,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void LoadStashData(FString AuthToken, APlayerController* Exiting);
+
+	//¹ü¿ë
+	void SendRequest(FString Verb, FString Endpoint, FString JsonBody, FOnNetworkResponse Callback);
 
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnChatReceived OnChatReceived;

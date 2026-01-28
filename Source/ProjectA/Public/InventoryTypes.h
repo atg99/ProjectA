@@ -138,6 +138,9 @@ struct FInventoryEntrySaveData
     GENERATED_BODY()
 
     UPROPERTY()
+    int32 item_entry_id = -1;
+
+    UPROPERTY()
     FString primary_asset_id;
 
     UPROPERTY()
@@ -209,6 +212,10 @@ struct FInventoryEntry : public FFastArraySerializerItem
 
     UPROPERTY() 
     int32 PredictionKey = 0;
+
+    // 데이터베이스 아이템 조회 키
+    UPROPERTY()
+    int32 DBId = -1;
 
     // Iris Change Detection
     bool operator==(const FInventoryEntry& Other) const
@@ -284,7 +291,7 @@ public:
 
     int32 SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 IgnoreId = -1);
 
-    int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey = -1);
+    int32 AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty, int32 X, int32 Y, int32 W, int32 H, bool bRotated, int32 PreKey = -1, int32 DBId = -1);
 
     bool MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
 
