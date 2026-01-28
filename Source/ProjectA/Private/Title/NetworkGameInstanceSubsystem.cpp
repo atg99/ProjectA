@@ -601,13 +601,13 @@ void UNetworkGameInstanceSubsystem::LoadInventoryData(FString AuthToken, APlayer
 				return;
 			}
 
-			int32 StatusCode = Response->GetResponseCode();
-
 			if (!bConnected || !Response.IsValid())
 			{
-				WeakThis->OnLoadInvenRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
+				WeakThis->OnLoadInvenRequstResult.Broadcast(FInventorySaveData(), -1, InventoryOwner);
 				return;
 			}
+
+			int32 StatusCode = Response->GetResponseCode();
 
 			FString ResponseContent = Response->GetContentAsString();
 			FInventorySaveData InventorySaveData;
@@ -728,13 +728,13 @@ void UNetworkGameInstanceSubsystem::LoadStashData(FString AuthToken, APlayerCont
 				return;
 			}
 
-			int32 StatusCode = Response->GetResponseCode();
-
 			if (!bConnected || !Response.IsValid())
 			{
-				WeakThis->OnLoadStashRequstResult.Broadcast(FInventorySaveData(), StatusCode, InventoryOwner);
+				WeakThis->OnLoadStashRequstResult.Broadcast(FInventorySaveData(), -1, InventoryOwner);
 				return;
 			}
+
+			int32 StatusCode = Response->GetResponseCode();
 
 			FString ResponseContent = Response->GetContentAsString();
 			FInventorySaveData InventorySaveData;
@@ -800,6 +800,10 @@ void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, 
 			if (bConnected && Res.IsValid() && EHttpResponseCodes::IsOk(Res->GetResponseCode()))
 			{
 				Callback.ExecuteIfBound(true, Res->GetContentAsString());
+			}
+			else if (bConnected && Res.IsValid())
+			{
+				Callback.ExecuteIfBound(false, Res->GetContentAsString());
 			}
 			else
 			{
