@@ -62,7 +62,7 @@ public:
 	FIntPoint PrevCell = FIntPoint(-1, -1);
 
 	// 인벤토리 소스
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	TScriptInterface<IATGInventoryOwnerInterface> Inven = nullptr;
 
 	/*UPROPERTY(BlueprintReadOnly, Category = "Inventory")
@@ -96,6 +96,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	virtual void RebuildAll();
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	virtual void BindInventoryComp();
 
 	virtual bool NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;

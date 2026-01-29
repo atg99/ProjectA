@@ -68,6 +68,10 @@ public:
 
 	FORCEINLINE FInventoryGrid& GetContainerInventory() { return ContainerInventory; }
 
+	// Blueprint Helper
+	UFUNCTION(BlueprintCallable)
+	const FInventoryEntry& GetById(int32 EntryId);
+
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnContainerGridEvent OnContainerAdded;

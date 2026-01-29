@@ -10,6 +10,8 @@
 /**
  * 
  */
+class UPrimaryDataAsset;
+
 UCLASS()
 class PROJECTA_API UATGSerializationLibrary : public UBlueprintFunctionLibrary
 {
@@ -28,4 +30,8 @@ public:
 	// FInventorySaveData -> FInventoryGrid ·Îµå
 	UFUNCTION(BlueprintCallable, Category = "SaveLoad")
 	static bool ConvertDataToGrid(const FInventorySaveData& LoadedData, FInventoryGrid& OutGrid);
+
+	// Get PrimaryAsset from PrimaryAssetName
+	UFUNCTION(BlueprintCallable, Category = "SaveLoad")
+	static UPrimaryDataAsset* GetPrimaryAssetfromPrimaryAssetName(const FString& PrimaryAssetName);
 };

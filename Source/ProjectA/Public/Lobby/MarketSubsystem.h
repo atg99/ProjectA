@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Title/NetworkGameInstanceSubsystem.h"
 #include "MarketSubsystem.generated.h"
 
 
@@ -122,6 +123,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMyListingsUpdated, const TArray<F
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLookupItem, const FMarketListingItem&, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMarketMessaged, const FMarketMessageResponse&, MessageResponse);
 
+class APlayerController;
+
 UCLASS()
 class PROJECTA_API UMarketSubsystem : public UGameInstanceSubsystem
 {
@@ -142,7 +145,7 @@ public:
 
     // 인벤토리의 아이템을 시장에 등록합니다. 아이템은 인벤토리에서 제거됩니다.
     UFUNCTION(BlueprintCallable)
-    void RequestRegisterListing(int32 ItemDBID, int32 Price = 100, int32 Qty = 1);
+    void RequestRegisterListing(int32 ItemDBID, APlayerController* PC, int32 Price = 100, int32 Qty = 1);
 
     // 등록된 매물을 구매합니다. 구매자의 골드가 차감되고 아이템은 구매자의 창고(Stash)로 지급됩니다.
     UFUNCTION(BlueprintCallable)
@@ -151,6 +154,8 @@ public:
     // 판매 중인 매물을 취소합니다. 아이템은 판매자의 창고(Stash)로 회수됩니다.
     UFUNCTION(BlueprintCallable)
     void RequestCancelListing(int32 LisingID);
+
+    void SaveStashData(AController* Controller, FOnNetworkResponse Callback);
 
     UPROPERTY(BlueprintAssignable)
     FOnMarketListingsUpdated OnMarketItemsUpdated;

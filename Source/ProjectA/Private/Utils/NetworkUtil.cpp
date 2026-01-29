@@ -2,6 +2,7 @@
 
 
 #include "Utils/NetworkUtil.h"
+#include "Engine/Engine.h"
 
 NetworkUtil::NetworkUtil()
 {
@@ -13,7 +14,27 @@ NetworkUtil::~NetworkUtil()
 
 void NetworkUtil::Log(UWorld* World, const FString& CallInfo, const FString& InString)
 {
+	UWorld* W = nullptr;
 	if (!World)
+	{
+		if (GEngine)
+		{
+			for (const FWorldContext& Context : GEngine->GetWorldContexts())
+			{
+				// PIE(에디터 플레이) 또는 Game(패키징 된 게임) 월드를 찾음
+				if (Context.WorldType == EWorldType::PIE || Context.WorldType == EWorldType::Game)
+				{
+					W = Context.World();
+				}
+			}
+		}
+	}
+	else
+	{
+		W = World;
+	}
+
+	if (!W)
 	{
 		return;
 	}
@@ -21,7 +42,7 @@ void NetworkUtil::Log(UWorld* World, const FString& CallInfo, const FString& InS
 	FString Prefix;
 
 
-	switch (World->GetNetMode())
+	switch (W->GetNetMode())
 	{
 	case NM_Client:
 		// GPlayInEditorID 0 is always the server, so 1 will be first client.

@@ -80,6 +80,17 @@ void UATGInventoryItemWidget::RefreshFromEntry(const FInventoryEntry& InEntry, i
 
 FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, const FPointerEvent& InMouseEvent)
 {
+	if (OnItemPressed.IsBound())
+	{
+		FATGItemInfo Info;
+		Info.ItemDef = ItemDef;
+		Info.Quantity = Quantity;
+		Info.bIsRotated = bIsRotated;
+		Info.EntryId = EntryId;
+
+		OnItemPressed.Broadcast(Info);
+	}
+
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;

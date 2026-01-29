@@ -780,6 +780,7 @@ void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, 
 	auto Request = FHttpModule::Get().CreateRequest();
 	// Base URL + Endpoint
 	FString URL = FString::Printf(TEXT("http://%s:3000%s"), *BackendIP, *Endpoint);
+	NET_LOG(FString::Printf(TEXT("%s"), *URL));
 	Request->SetURL(URL);
 	Request->SetVerb(Verb);
 	Request->SetHeader("Content-Type", "application/json");
@@ -799,14 +800,17 @@ void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, 
 			// 200
 			if (bConnected && Res.IsValid() && EHttpResponseCodes::IsOk(Res->GetResponseCode()))
 			{
+				NET_LOG2(TEXT("Success"));
 				Callback.ExecuteIfBound(true, Res->GetContentAsString());
 			}
 			else if (bConnected && Res.IsValid())
 			{
+				NET_LOG2(TEXT("Connect Success Respon Fail"));
 				Callback.ExecuteIfBound(false, Res->GetContentAsString());
 			}
 			else
 			{
+				NET_LOG2(TEXT("Connect Fail"));
 				Callback.ExecuteIfBound(false, TEXT("Error"));
 			}
 		});

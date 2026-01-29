@@ -452,3 +452,16 @@ void UATGContainerComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int3
 	UE_LOG(LogTemp, Warning, TEXT("UATGContainerComponent::ServerMoveOrSwap %d"), S);
 }
 
+const FInventoryEntry& UATGContainerComponent::GetById(int32 EntryId)
+{
+	FInventoryEntry* Entry = ContainerInventory.GetById(EntryId);
+	if (Entry)
+	{
+		return *Entry;
+	}
+	else
+	{
+		static FInventoryEntry EmptyEntry;
+		return EmptyEntry;
+	}
+}

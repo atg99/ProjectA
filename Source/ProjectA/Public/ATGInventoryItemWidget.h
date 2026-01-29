@@ -12,6 +12,26 @@ class UTextBlock;
 class UATGInventoryComponent;
 class USizeBox;
 
+USTRUCT(BlueprintType)
+struct FATGItemInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	TSoftObjectPtr<UATGItemData> ItemDef;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 EntryId = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Quantity = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsRotated = false;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemPressed, const FATGItemInfo&, ItemInfo);
+
 /**
  * item widget
  */
@@ -48,6 +68,9 @@ public:
 
 	UPROPERTY(meta = (BindWidget)) 
 	class USizeBox* RootSizeBox;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnItemPressed OnItemPressed;
 
 protected:
 	FInventoryEntry CachedEntry;

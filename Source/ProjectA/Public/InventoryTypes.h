@@ -189,20 +189,20 @@ struct FInventoryEntry : public FFastArraySerializerItem
     TSoftObjectPtr<UATGItemData> Item = nullptr;
 
     UPROPERTY(BlueprintReadOnly)
-    int32 Quantity = 0;
+    int32 Quantity = -1;
 
     // grid placement
     UPROPERTY(BlueprintReadWrite)
-    int32 X = 0;
+    int32 X = -1;
 
     UPROPERTY(BlueprintReadWrite)
-    int32 Y = 0;
+    int32 Y = -1;
 
     UPROPERTY(BlueprintReadOnly)
-    int32 Width = 1;
+    int32 Width = -1;
 
     UPROPERTY(BlueprintReadOnly)
-    int32 Height = 1;
+    int32 Height = -1;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool bRotated = true;
@@ -214,7 +214,7 @@ struct FInventoryEntry : public FFastArraySerializerItem
     int32 PredictionKey = 0;
 
     // 데이터베이스 아이템 조회 키
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     int32 DBId = -1;
 
     // Iris Change Detection
@@ -228,7 +228,8 @@ struct FInventoryEntry : public FFastArraySerializerItem
             Height == Other.Height &&
             bRotated == Other.bRotated &&
             Id == Other.Id &&
-            PredictionKey == Other.PredictionKey;
+            PredictionKey == Other.PredictionKey &&
+            DBId == Other.DBId;
     }
 
     void PreReplicatedRemove(const struct FInventoryGrid& InArraySerializer);

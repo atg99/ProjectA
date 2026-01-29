@@ -239,7 +239,7 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 		NewEntry.bRotated = SavedEntry.b_rotated;
 
 		// DB Item PK 저장 거래소에 아이템 팔거나 할때 필요
-		NewEntry.DBId = SavedEntry.item_entry_id;
+		SavedEntry.item_entry_id;
 
 		UATGItemData* ItemData = NewEntry.Item.LoadSynchronous();
 		if (ItemData)
@@ -255,7 +255,8 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 				ItemData->Width,
 				ItemData->Height,
 				NewEntry.bRotated,
-				NewEntry.DBId
+				-1,
+				SavedEntry.item_entry_id
 			);
 		}
 		else
@@ -267,4 +268,36 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 
 	OutGrid.MarkArrayDirty();
 	return true;
+}
+
+UPrimaryDataAsset* UATGSerializationLibrary::GetPrimaryAssetfromPrimaryAssetName(const FString& PrimaryAssetName)
+{
+	UAssetManager& AssetManager = UAssetManager::Get();
+
+	FPrimaryAssetId AssetId = FPrimaryAssetId::FromString(PrimaryAssetName);
+	if (!AssetId.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid PrimaryAssetId String: %s"), *PrimaryAssetName);
+		return nullptr;
+	}
+
+	// Asset Path 찾기
+	FSoftObjectPath ItemPath = AssetManager.GetPrimaryAssetPath(AssetId);
+	if (!ItemPath.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Asset Manager could not find path for ID: %s"), *PrimaryAssetName);
+		return nullptr;
+	}
+
+	// Soft Pointer 할당
+	TSoftObjectPtr<UPrimaryDataAsset> Item = TSoftObjectPtr<UPrimaryDataAsset>(ItemPath);
+	if (UPrimaryDataAsset* ItemData = Item.Get())
+	{
+		return ItemData;
+	}
+	else
+	{
+		UPrimaryDataAsset* ItemDat = Item.LoadSynchronous();
+		return ItemDat;
+	}
 }

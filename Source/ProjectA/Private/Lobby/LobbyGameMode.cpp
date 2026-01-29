@@ -78,9 +78,9 @@ void ALobbyGameMode::OnBackendLoadInventoryComplete(const FInventorySaveData& In
 void ALobbyGameMode::OnBackendLoadStashComplete(const FInventorySaveData& StashLoadedData, int32 Code, const APlayerController* InventoryOwner)
 {
 	NET_LOG(FString::Printf(TEXT("Code : %d, entry num : %d"), Code, StashLoadedData.saved_entries.Num()));
-	for (auto entry : StashLoadedData.saved_entries)
+	for (const FInventoryEntrySaveData& entry : StashLoadedData.saved_entries)
 	{
-		NET_LOG(FString::Printf(TEXT("asset id : %s"), *entry.primary_asset_id));
+		NET_LOG(FString::Printf(TEXT("asset id : %s, DBId : %d"), *entry.primary_asset_id, entry.item_entry_id));
 	}
 	if (Code == 200 && InventoryOwner)
 	{
