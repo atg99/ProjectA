@@ -187,6 +187,8 @@ FString UATGSerializationLibrary::ConvertGridToJson(const FInventoryGrid& Grid)
 		EntryData.y = Entry.Y;
 		EntryData.b_rotated = Entry.bRotated;
 
+		EntryData.item_entry_id = Entry.DBId;
+
 		SaveData.saved_entries.Add(EntryData);
 	}
 
@@ -202,9 +204,6 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 {
 	OutGrid.Entries.Empty();
 	OutGrid.MarkArrayDirty();
-
-	OutGrid.GridWidth = LoadedData.grid_width;
-	OutGrid.GridHeight = LoadedData.grid_height;
 
 	UAssetManager& AssetManager = UAssetManager::Get();
 
@@ -267,6 +266,12 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 	}
 
 	OutGrid.MarkArrayDirty();
+
+	int32 GridWidth = LoadedData.grid_width;
+	int32 GridHeight = LoadedData.grid_height;
+
+	OutGrid.Owner->SetGridSize(GridWidth, GridHeight);
+
 	return true;
 }
 

@@ -8,7 +8,9 @@
 #include <Kismet/GameplayStatics.h>
 #include <ATGItem.h>
 #include "ATGPickupComponent.h"
+#include "Net/Core/PushModel/PushModel.h"
 #include "Utils/NetworkUtil.h"
+#include "GameFramework/PlayerState.h"
 
 // Sets default values for this component's properties
 UATGContainerComponent::UATGContainerComponent()
@@ -18,7 +20,7 @@ UATGContainerComponent::UATGContainerComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 
-	ContainerInventory.GridWidth = GridWidth;
+	//ContainerInventory.GridWidth = GridWidth;
 	//ContainerInventory.GridHeight = GridHeight;
 }
 
@@ -27,8 +29,8 @@ void UATGContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ContainerInventory.GridWidth = GridWidth;
-	ContainerInventory.GridHeight = GridHeight;
+	ContainerInventory.GridWidth = GridSize.X;
+	ContainerInventory.GridHeight = GridSize.Y;
 	ContainerInventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
 
 	for (auto& Item : ContainerItems)
@@ -125,7 +127,71 @@ void UATGContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	FDoRepLifetimeParams RepParams;
+	RepParams.bIsPushBased = true;
+	//RepParams.Condition = ELifetimeCondition::;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UATGContainerComponent, GridSize, RepParams);
+
 	DOREPLIFETIME_CONDITION(UATGContainerComponent, ContainerInventory, COND_None);
+}
+
+void UATGContainerComponent::OnRep_GridSize()
+{
+	ContainerInventory.GridWidth = GridSize.X;
+	ContainerInventory.GridHeight = GridSize.Y;
+
+	OnRebuildAll.Broadcast(-1);
+}
+
+// 서버로직 
+void UATGContainerComponent::IncreaseGridSize(int32 W, int32 H)
+{
+	if (!(GetOwner() && GetOwner()->HasAuthority()))
+	{
+		return;
+	}
+
+	GridSize.X += W;
+	GridSize.Y += H;
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(UATGContainerComponent, GridSize, this);
+
+	OnRep_GridSize();
+}
+
+void UATGContainerComponent::DecreaseGridSize(int32 W, int32 H)
+{
+	if (!(GetOwner() && GetOwner()->HasAuthority()))
+	{
+		return;
+	}
+
+	GridSize.X -= W;
+	GridSize.Y -= H;
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(UATGContainerComponent, GridSize, this);
+
+	OnRep_GridSize();
+}
+
+void UATGContainerComponent::SetGridSize(int32 W, int32 H)
+{
+	if (!(GetOwner() && GetOwner()->HasAuthority()))
+	{
+		return;
+	}
+
+	GridSize.X = W;
+	GridSize.Y = H;
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(UATGContainerComponent, GridSize, this);
+
+	OnRep_GridSize();
+}
+
+FIntPoint UATGContainerComponent::GetGridSize()
+{
+	return (ContainerInventory.GridWidth, ContainerInventory.GridHeight);
 }
 
 void UATGContainerComponent::PlayerInteract(FInteractionData& InteractionData)

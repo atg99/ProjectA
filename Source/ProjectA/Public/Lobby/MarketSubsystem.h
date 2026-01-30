@@ -123,6 +123,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMyListingsUpdated, const TArray<F
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLookupItem, const FMarketListingItem&, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMarketMessaged, const FMarketMessageResponse&, MessageResponse);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSaveAndLoad, bool, bWasSuccessful);
+
 class APlayerController;
 
 UCLASS()
@@ -155,7 +157,22 @@ public:
     UFUNCTION(BlueprintCallable)
     void RequestCancelListing(int32 LisingID);
 
+    // 창고 인벤토리 저장 BP
+    UFUNCTION(BlueprintCallable)
+    void SaveStashData(AController* Controller);
+
+    // C++ Callback 내부 호출용
     void SaveStashData(AController* Controller, FOnNetworkResponse Callback);
+
+    // 창고 인벤토리 저장 BP
+    UFUNCTION(BlueprintCallable)
+    void LoadStashData(AController* Controller);
+
+    void LoadStashData(AController* Controller, FOnNetworkResponse Callback);
+
+    // 저장하고 끝나면 로드 
+    UFUNCTION(BlueprintCallable)
+    void SaveLoadStashData(AController* Controller);
 
     UPROPERTY(BlueprintAssignable)
     FOnMarketListingsUpdated OnMarketItemsUpdated;
@@ -174,5 +191,11 @@ public:
 
     UPROPERTY(BlueprintAssignable)
     FOnMarketMessaged OnItemCanceled;
+
+    UPROPERTY(BlueprintAssignable)
+    FOnSaveStashRequstResult OnStashSaveResult;
+
+    UPROPERTY(BlueprintAssignable)
+    FOnSaveAndLoad OnStashSaveAndLoad;
 
 };

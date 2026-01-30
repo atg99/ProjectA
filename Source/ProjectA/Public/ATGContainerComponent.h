@@ -55,11 +55,17 @@ protected:
 	UPROPERTY(EditAnywhere, meta=(ToolTip = "Init Container Value"))
 	TArray<FContainerItem> ContainerItems;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 GridWidth = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_GridSize)
+	FIntPoint GridSize = FIntPoint(10, 10);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 GridHeight = 10;
+	UFUNCTION()
+	void OnRep_GridSize();
+
+	//UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly)
+	//int32 GridSize = 10;
+
+	//UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly)
+	//int32 GridHeight = 10;
 
 public:
 
@@ -73,6 +79,19 @@ public:
 	const FInventoryEntry& GetById(int32 EntryId);
 
 public:
+
+	UFUNCTION(BlueprintCallable)
+	virtual void IncreaseGridSize(int32 W, int32 H) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void DecreaseGridSize(int32 W, int32 H) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SetGridSize(int32 W, int32 H) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual FIntPoint GetGridSize() override;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnContainerGridEvent OnContainerAdded;
 
@@ -156,6 +175,5 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
 	TSubclassOf<AATGItem> ItemBPClass;
-
 
 };

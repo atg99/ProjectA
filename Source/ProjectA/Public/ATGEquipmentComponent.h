@@ -93,6 +93,8 @@ public:
 	FOnEquipmentEvent OnEquipmentChanged;
 
 	//override
+	//UFUNCTION()
+	//virtual FIntPoint GetGridSize() override { return 0; }
 
 	virtual void ItemRemoved(int32 EntryId) override;
 

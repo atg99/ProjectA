@@ -42,6 +42,12 @@ protected:
 	UPROPERTY(EditAnywhere ,Replicated)
 	FInventoryGrid Inventory;
 
+	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_GridSize)
+	FIntPoint GridSize = FIntPoint(10,10);
+
+	UFUNCTION()
+	void OnRep_GridSize();
+
 public:
 	//Interface Override
 	virtual void ItemRemoved(int32 EntryId) override;
@@ -55,6 +61,18 @@ public:
 	virtual bool IsLocallyOwned() override;
 
 public:
+
+	UFUNCTION(BlueprintCallable)
+	virtual void IncreaseGridSize(int32 W, int32 H) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void DecreaseGridSize(int32 W, int32 H) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SetGridSize(int32 W, int32 H) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual FIntPoint GetGridSize() override;
 
 	//FORCEINLINE FInventoryGrid* GetInventory() { return &Inventory; }
 

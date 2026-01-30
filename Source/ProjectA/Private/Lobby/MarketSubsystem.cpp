@@ -39,7 +39,7 @@ void UMarketSubsystem::RequestMarketListings(int32 Page, int32 Limit, EMarketSor
 
     // NetworkSubsystem에게 통신 위임
     Network->SendRequest("GET", Endpoint, "", FOnNetworkResponse::CreateLambda(
-        [this](bool bSuccess, FString ResponseContent)
+        [this](bool bSuccess, FString ResponseContent, int32 Code)
         {
             if (!bSuccess)
             {
@@ -90,7 +90,7 @@ void UMarketSubsystem::RequestMyListings(EListingStatusType StatusType)
     FString EndPoint = FString::Printf(TEXT("/api/v1/market/my-listings?status=%s"), *Status);
 
     Network->SendRequest("GET", EndPoint, "", FOnNetworkResponse::CreateLambda(
-        [this](bool bSuccess, FString ResponseContent)
+        [this](bool bSuccess, FString ResponseContent, int32 Code)
         {
             if (!bSuccess)
             {
@@ -123,7 +123,7 @@ void UMarketSubsystem::RequestLookupListing(int32 LisingID)
     FString EndPoint = FString::Printf(TEXT("/api/v1/market/listings/%d"), LisingID);
 
     Network->SendRequest("GET", EndPoint, "", FOnNetworkResponse::CreateLambda(
-        [this](bool bSuccess, FString ResponseContent)
+        [this](bool bSuccess, FString ResponseContent, int32 Code)
         {
             if (!bSuccess)
             {
@@ -153,7 +153,7 @@ void UMarketSubsystem::RequestRegisterListing(int32 ItemDBID, APlayerController*
     
     // save stash 
     SaveStashData(PC, FOnNetworkResponse::CreateLambda(
-        [this, PC, ItemDBID, Price, Qty](bool bSuccess, FString ResponseContent)
+        [this, PC, ItemDBID, Price, Qty](bool bSuccess, FString ResponseContent, int32 Code)
         {
             if (!bSuccess)
             {
@@ -175,7 +175,7 @@ void UMarketSubsystem::RequestRegisterListing(int32 ItemDBID, APlayerController*
             FJsonSerializer::Serialize(JsonObj.ToSharedRef(), Writer);
 
             Network->SendRequest("POST", EndPoint, JsonBody, FOnNetworkResponse::CreateLambda(
-                [this, PC](bool bSuccess, FString ResponseContent)
+                [this, PC](bool bSuccess, FString ResponseContent, int32 Code)
                 {
                     if (!bSuccess)
                     {
@@ -218,7 +218,7 @@ void UMarketSubsystem::RequestPurchaseListing(int32 LisingID)
     FString EndPoint = FString::Printf(TEXT("/api/v1/market/listings/%d/purchase"), LisingID);
 
     Network->SendRequest("POST", EndPoint, "", FOnNetworkResponse::CreateLambda(
-        [this](bool bSuccess, FString ResponseContent)
+        [this](bool bSuccess, FString ResponseContent, int32 Code)
         {
             if (!bSuccess)
             {
@@ -251,7 +251,7 @@ void UMarketSubsystem::RequestCancelListing(int32 LisingID)
     FString EndPoint = FString::Printf(TEXT("/api/v1/market/listings/%d/cancel"), LisingID);
 
     Network->SendRequest("POST", EndPoint, "", FOnNetworkResponse::CreateLambda(
-        [this](bool bSuccess, FString ResponseContent)
+        [this](bool bSuccess, FString ResponseContent, int32 Code)
         {
             if (!bSuccess)
             {
@@ -276,12 +276,13 @@ void UMarketSubsystem::RequestCancelListing(int32 LisingID)
     ));
 }
 
-void UMarketSubsystem::SaveStashData(AController* Controller, FOnNetworkResponse Callback)
+void UMarketSubsystem::SaveStashData(AController* Controller)
 {
+    FBackendSaveStashResult SaveStashResult;
     UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
     if (!Network)
     {
-        Callback.ExecuteIfBound(false, TEXT("No UNetworkGameInstanceSubsystem"));
+        OnStashSaveResult.Broadcast(SaveStashResult, -1);
         return;
     }
 
@@ -299,15 +300,16 @@ void UMarketSubsystem::SaveStashData(AController* Controller, FOnNetworkResponse
                 FString EndPoint = FString::Printf(TEXT("/api/v1/stash/save"));
 
                 Network->SendRequest("POST", EndPoint, GridJson, FOnNetworkResponse::CreateLambda(
-                    [this, Callback](bool bSuccess, FString ResponseContent)
+                    [this](bool bSuccess, FString ResponseContent, int32 Code)
                     {
-                        FBackendSaveStashResult Message;
-                        if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendSaveStashResult>(ResponseContent, &Message, 0, 0))
+                        FBackendSaveStashResult SaveStashResult;
+
+                        if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendSaveStashResult>(ResponseContent, &SaveStashResult, 0, 0))
                         {
-                            NET_LOG2(FString::Printf(TEXT(" %d %s"), bSuccess, *Message.message));
+                            NET_LOG2(FString::Printf(TEXT(" %d %s"), bSuccess, *SaveStashResult.message));
                         }
 
-                        Callback.ExecuteIfBound(bSuccess, ResponseContent);
+                        OnStashSaveResult.Broadcast(SaveStashResult, Code);
 
                         if (!bSuccess)
                         {
@@ -320,5 +322,191 @@ void UMarketSubsystem::SaveStashData(AController* Controller, FOnNetworkResponse
         }
     }
     NET_LOG2(TEXT("Missing Component or PlayerState"));
-    Callback.ExecuteIfBound(false, TEXT("Inventory Component Not Found"));
+    OnStashSaveResult.Broadcast(SaveStashResult, -1);
+}
+
+void UMarketSubsystem::SaveStashData(AController* Controller, FOnNetworkResponse Callback)
+{
+    UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+    if (!Network)
+    {
+        Callback.ExecuteIfBound(false, TEXT("No UNetworkGameInstanceSubsystem"), -1);
+        return;
+    }
+
+    APlayerState* PlayerState = Controller->GetPlayerState<APlayerState>();
+    if (PlayerState)
+    {
+        UActorComponent* AC = PlayerState->GetComponentByClass(UATGContainerComponent::StaticClass());
+        if (AC)
+        {
+            UATGContainerComponent* StashComp = Cast<UATGContainerComponent>(AC);
+            if (StashComp)
+            {
+                FString GridJson = UATGSerializationLibrary::ConvertGridToJson(StashComp->GetContainerInventory());
+
+                FString EndPoint = FString::Printf(TEXT("/api/v1/stash/save"));
+
+                Network->SendRequest("POST", EndPoint, GridJson, FOnNetworkResponse::CreateLambda(
+                    [this, Callback](bool bSuccess, FString ResponseContent, int32 Code)
+                    {
+                        FBackendSaveStashResult Message;
+                        if (FJsonObjectConverter::JsonObjectStringToUStruct<FBackendSaveStashResult>(ResponseContent, &Message, 0, 0))
+                        {
+                            NET_LOG2(FString::Printf(TEXT(" %d %s"), bSuccess, *Message.message));
+                        }
+
+                        Callback.ExecuteIfBound(bSuccess, ResponseContent, Code);
+
+                        if (!bSuccess)
+                        {
+                            return;
+                        }
+                    }
+                ));
+                return;
+            }
+        }
+    }
+    NET_LOG2(TEXT("Missing Component or PlayerState"));
+    Callback.ExecuteIfBound(false, TEXT("Inventory Component Not Found"), -1);
+}
+
+void UMarketSubsystem::LoadStashData(AController* Controller)
+{
+    UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+    if (!Network)
+    {
+        return;
+    }
+    
+    APlayerState* PlayerState = Controller->GetPlayerState<APlayerState>();
+    if (PlayerState)
+    {
+        UActorComponent* AC = PlayerState->GetComponentByClass(UATGContainerComponent::StaticClass());
+        if (AC)
+        {
+            UATGContainerComponent* StashComp = Cast<UATGContainerComponent>(AC);
+            if (StashComp)
+            {
+                FString GridJson = UATGSerializationLibrary::ConvertGridToJson(StashComp->GetContainerInventory());
+
+                FString EndPoint = FString::Printf(TEXT("/api/v1/stash/load"));
+
+                Network->SendRequest("POST", EndPoint, GridJson, FOnNetworkResponse::CreateLambda(
+                    [this, StashComp](bool bSuccess, FString ResponseContent, int32 Code)
+                    {
+                        FInventorySaveData LoadData;
+
+                        if (FJsonObjectConverter::JsonObjectStringToUStruct<FInventorySaveData>(ResponseContent, &LoadData, 0, 0))
+                        {
+                            NET_LOG2(FString::Printf(TEXT(" %d %d"), bSuccess, Code));
+                        }
+
+                        if (!bSuccess)
+                        {
+                            return;
+                        }
+
+                        NET_LOG(FString::Printf(TEXT("Code : %d, entry num : %d"), Code, LoadData.saved_entries.Num()));
+                        for (const FInventoryEntrySaveData& entry : LoadData.saved_entries)
+                        {
+                            NET_LOG(FString::Printf(TEXT("asset id : %s, DBId : %d"), *entry.primary_asset_id, entry.item_entry_id));
+                        }
+                        if (IsValid(StashComp))
+                        {
+                            UATGSerializationLibrary::ConvertDataToGrid(LoadData, StashComp->GetContainerInventory());
+                            //StashComp->OnRebuildAll.Broadcast(-1);
+                        }
+                    }
+                ));
+                return;
+            }
+        }
+    }
+    NET_LOG2(TEXT("Missing Component or PlayerState"));
+}
+
+void UMarketSubsystem::LoadStashData(AController* Controller, FOnNetworkResponse Callback)
+{
+    UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+    if (!Network)
+    {
+        Callback.ExecuteIfBound(false, TEXT("Can't Find UNetworkGameInstanceSubsystem"), -1);
+        return;
+    }
+
+    APlayerState* PlayerState = Controller->GetPlayerState<APlayerState>();
+    if (PlayerState)
+    {
+        UActorComponent* AC = PlayerState->GetComponentByClass(UATGContainerComponent::StaticClass());
+        if (AC)
+        {
+            UATGContainerComponent* StashComp = Cast<UATGContainerComponent>(AC);
+            if (StashComp)
+            {
+                FString GridJson = UATGSerializationLibrary::ConvertGridToJson(StashComp->GetContainerInventory());
+
+                FString EndPoint = FString::Printf(TEXT("/api/v1/stash/load"));
+
+                Network->SendRequest("POST", EndPoint, GridJson, FOnNetworkResponse::CreateLambda(
+                    [this, StashComp, Callback](bool bSuccess, FString ResponseContent, int32 Code)
+                    {
+                        FInventorySaveData LoadData;
+
+                        if (FJsonObjectConverter::JsonObjectStringToUStruct<FInventorySaveData>(ResponseContent, &LoadData, 0, 0))
+                        {
+                            NET_LOG2(FString::Printf(TEXT(" %d %d"), bSuccess, Code));
+                        }
+
+                        if (!bSuccess)
+                        {
+                            Callback.ExecuteIfBound(false, ResponseContent, Code);
+                            return;
+                        }
+
+                        NET_LOG(FString::Printf(TEXT("Code : %d, entry num : %d"), Code, LoadData.saved_entries.Num()));
+                        for (const FInventoryEntrySaveData& entry : LoadData.saved_entries)
+                        {
+                            NET_LOG(FString::Printf(TEXT("asset id : %s, DBId : %d"), *entry.primary_asset_id, entry.item_entry_id));
+                        }
+                        if (IsValid(StashComp))
+                        {
+                            UATGSerializationLibrary::ConvertDataToGrid(LoadData, StashComp->GetContainerInventory());
+                            //StashComp->OnRebuildAll.Broadcast(-1);
+                            Callback.ExecuteIfBound(true, TEXT("Successful"), Code);
+                        }
+                        else
+                        {
+                            Callback.ExecuteIfBound(true, TEXT("StashComp Not Valid"), Code);
+                        }
+                    }
+                ));
+                return;
+            }
+        }
+    }
+    NET_LOG2(TEXT("Missing Component or PlayerState"));
+    Callback.ExecuteIfBound(false, TEXT("Missing Component or PlayerState"), -1);
+}
+
+void UMarketSubsystem::SaveLoadStashData(AController* Controller)
+{
+    SaveStashData(Controller, FOnNetworkResponse::CreateLambda(
+        [this, Controller](bool bSuccess, FString ResponseContent, int32 Code)
+        {
+            if (!bSuccess)
+            {
+                OnStashSaveAndLoad.Broadcast(false);
+                return;
+            }
+
+            LoadStashData(Controller, FOnNetworkResponse::CreateLambda(
+                [this](bool bSuccess, FString ResponseContent, int32 Code)
+                {
+                    OnStashSaveAndLoad.Broadcast(bSuccess);
+                }
+            ));
+        }
+    ));
 }

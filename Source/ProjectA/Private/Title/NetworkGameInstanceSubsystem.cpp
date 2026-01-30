@@ -801,17 +801,17 @@ void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, 
 			if (bConnected && Res.IsValid() && EHttpResponseCodes::IsOk(Res->GetResponseCode()))
 			{
 				NET_LOG2(TEXT("Success"));
-				Callback.ExecuteIfBound(true, Res->GetContentAsString());
+				Callback.ExecuteIfBound(true, Res->GetContentAsString(), Res->GetResponseCode());
 			}
 			else if (bConnected && Res.IsValid())
 			{
 				NET_LOG2(TEXT("Connect Success Respon Fail"));
-				Callback.ExecuteIfBound(false, Res->GetContentAsString());
+				Callback.ExecuteIfBound(false, Res->GetContentAsString(), Res->GetResponseCode());
 			}
 			else
 			{
 				NET_LOG2(TEXT("Connect Fail"));
-				Callback.ExecuteIfBound(false, TEXT("Error"));
+				Callback.ExecuteIfBound(false, TEXT("Error"), -1);
 			}
 		});
 

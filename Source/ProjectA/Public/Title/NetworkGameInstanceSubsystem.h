@@ -100,7 +100,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnLoadInvenRequstResult, const F
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSaveStashRequstResult, const FBackendSaveStashResult&, StashSaveResult, int32, Code);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnLoadStashRequstResult, const FInventorySaveData&, InventorySaveData, int32, Code, const APlayerController*, StashOwner);
 
-DECLARE_DELEGATE_TwoParams(FOnNetworkResponse, bool /*bSuccess*/, FString /*Content*/);
+DECLARE_DELEGATE_ThreeParams(FOnNetworkResponse, bool /*bSuccess*/, FString /*Content*/, int32 /*Code*/);
 
 class FTcpSocketWorker : public FRunnable
 {

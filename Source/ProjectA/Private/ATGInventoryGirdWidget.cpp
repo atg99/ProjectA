@@ -83,6 +83,11 @@ void UATGInventoryGirdWidget::RebuildAll()
 		UpdateItemSlot(W, E);
 		IdToWidget.Add(E.Id, W);
 	}
+	
+	if (OnGridRebuild.IsBound())
+	{
+		OnGridRebuild.Broadcast(IdToWidget.Num());
+	}
 }
 
 void UATGInventoryGirdWidget::BindInventoryComp()

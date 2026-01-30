@@ -57,9 +57,12 @@ void UATGInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 void UATGInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
 	FDoRepLifetimeParams RepParams;
 	RepParams.bIsPushBased = true;
-	//DOREPLIFETIME_WITH_PARAMS_FAST(UATGInventoryComponent, Inventory, RepParams);
+	RepParams.Condition = ELifetimeCondition::COND_OwnerOnly;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UATGInventoryComponent, GridSize, RepParams);
+
 	DOREPLIFETIME_CONDITION(UATGInventoryComponent, Inventory, COND_OwnerOnly);
 }
 
@@ -83,6 +86,14 @@ void UATGInventoryComponent::ItemChanged(int32 EntryId)
 void UATGInventoryComponent::InventoryForceNetUpdate()
 {
 	GetOwner()->ForceNetUpdate();
+}
+
+void UATGInventoryComponent::OnRep_GridSize()
+{
+	Inventory.GridWidth = GridSize.X;
+	Inventory.GridHeight = GridSize.Y;
+
+	OnRebuildAll.Broadcast(-1);
 }
 
 void UATGInventoryComponent::ItemRemoved(int32 EntryId)
@@ -118,7 +129,6 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 		}
 		return EntryIds;
 	}
-
 
 	int32 W = ClientAddRequest.ItemDef->Width;
 	int32 H = ClientAddRequest.ItemDef->Height;
@@ -519,14 +529,7 @@ void UATGInventoryComponent::HandleReplicatedAdd(int32 EntryId)
 
 bool UATGInventoryComponent::IsHasAuthority()
 {
-	if (const APlayerState* PS = Cast<APlayerState>(GetOwner()))
-	{
-		if (const APlayerController* PC = Cast<APlayerController>(PS->GetOwner()))
-		{
-			return PC->HasAuthority();
-		}
-	}
-	return false;
+	return (GetOwner() && GetOwner()->HasAuthority());
 }
 
 bool UATGInventoryComponent::IsLocallyOwned()
@@ -544,6 +547,57 @@ bool UATGInventoryComponent::IsLocallyOwned()
 		return PC->IsLocalController();
 
 	return false;
+}
+
+// 서버로직 
+void UATGInventoryComponent::IncreaseGridSize(int32 W, int32 H)
+{
+	if (!IsHasAuthority())
+	{
+		return;
+	}
+
+	GridSize.X += W;
+	GridSize.Y += H;
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(UATGInventoryComponent, GridSize, this);
+
+	OnRep_GridSize();
+}
+
+void UATGInventoryComponent::DecreaseGridSize(int32 W, int32 H)
+{
+	if (!IsHasAuthority())
+	{
+		return;
+	}
+
+	GridSize.X -= W;
+	GridSize.Y -= H;
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(UATGInventoryComponent, GridSize, this);
+
+	OnRep_GridSize();
+}
+
+void UATGInventoryComponent::SetGridSize(int32 W, int32 H)
+{
+	if (!IsHasAuthority())
+	{
+		return;
+	}
+
+	GridSize.X = W;
+	GridSize.Y = H;
+
+	MARK_PROPERTY_DIRTY_FROM_NAME(UATGInventoryComponent, GridSize, this);
+
+	OnRep_GridSize();
+}
+
+FIntPoint UATGInventoryComponent::GetGridSize()
+{
+	return GridSize;
 }
 
 UATGPickupComponent* UATGInventoryComponent::GetPickupComp(AActor* InteractedActor)

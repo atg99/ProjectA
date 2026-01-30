@@ -8,7 +8,7 @@
 #include "ATGInventoryOwnerInterface.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE(MinimalAPI)
+UINTERFACE(MinimalAPI, BlueprintType, NotBlueprintable)
 class UATGInventoryOwnerInterface : public UInterface
 {
 	GENERATED_BODY()
@@ -42,6 +42,18 @@ public:
 
 	virtual int32 GetGridHeight() const { return 0; }
 
+	UFUNCTION(BlueprintCallable)
+	virtual FIntPoint GetGridSize() { return 0; }
+
+	UFUNCTION(BlueprintCallable)
+	virtual void IncreaseGridSize(int32 W, int32 H) {}
+
+	UFUNCTION(BlueprintCallable)
+	virtual void DecreaseGridSize(int32 W, int32 H) {}
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SetGridSize(int32 W, int32 H) {}
+
 	virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) {}
 
 	virtual void TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate) {}
@@ -58,4 +70,5 @@ public:
 	virtual void TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<class UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, bool bRotate = false) {}
 
 	virtual void TryHandleTransItemResult(int32 EntryId, int32 RemoveQty = -1) {}
+
 };

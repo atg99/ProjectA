@@ -64,7 +64,7 @@ void ALobbyGameMode::OnBackendLoadInventoryComplete(const FInventorySaveData& In
 				if (InvenComp)
 				{
 					UATGSerializationLibrary::ConvertDataToGrid(InventoryLoadedData, InvenComp->GetInventory());
-					InvenComp->OnRebuildAll.Broadcast(-1);
+					//InvenComp->Client_RebuildGrid();
 				}
 			}
 		}
@@ -94,7 +94,7 @@ void ALobbyGameMode::OnBackendLoadStashComplete(const FInventorySaveData& StashL
 				if (ContainerComp)
 				{
 					UATGSerializationLibrary::ConvertDataToGrid(StashLoadedData, ContainerComp->GetContainerInventory());
-					ContainerComp->OnRebuildAll.Broadcast(-1);
+					//ContainerComp->Multi_RebuildGrid();
 				}
 			}
 		}

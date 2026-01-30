@@ -22,6 +22,8 @@ class UAatorComponent;
 /**
  * 
  */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridRebuild, int32, ItemNum);
+
 UCLASS()
 class PROJECTA_API UATGInventoryGirdWidget : public UUserWidget
 {
@@ -64,6 +66,9 @@ public:
 	// 인벤토리 소스
 	UPROPERTY(BlueprintReadWrite)
 	TScriptInterface<IATGInventoryOwnerInterface> Inven = nullptr;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridRebuild OnGridRebuild;
 
 	/*UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	UATGInventoryComponent* InventoryComp = nullptr;
