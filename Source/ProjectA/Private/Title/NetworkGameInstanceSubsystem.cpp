@@ -800,7 +800,7 @@ void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, 
 			// 200
 			if (bConnected && Res.IsValid() && EHttpResponseCodes::IsOk(Res->GetResponseCode()))
 			{
-				NET_LOG2(TEXT("Success"));
+				NET_LOG2(FString::Printf(TEXT("Success : \n %s"), *Res->GetContentAsString()));
 				Callback.ExecuteIfBound(true, Res->GetContentAsString(), Res->GetResponseCode());
 			}
 			else if (bConnected && Res.IsValid())

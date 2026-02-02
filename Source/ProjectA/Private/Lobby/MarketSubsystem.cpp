@@ -64,12 +64,12 @@ void UMarketSubsystem::RequestMarketListings(int32 Page, int32 Limit, EMarketSor
     ));
 }
 
-void UMarketSubsystem::RequestMyListings(EListingStatusType StatusType)
+void UMarketSubsystem::RequestMyListings(EListingStatusType StatusType, int32 Page, int32 Limit, FString Keyword)
 {
     UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
     if (!Network) return;
     
-    FString Status = "active";
+    FString Status = "";
     switch (StatusType)
     {
     case EListingStatusType::None:
@@ -87,7 +87,7 @@ void UMarketSubsystem::RequestMyListings(EListingStatusType StatusType)
         break;
     }
 
-    FString EndPoint = FString::Printf(TEXT("/api/v1/market/my-listings?status=%s"), *Status);
+    FString EndPoint = FString::Printf(TEXT("/api/v1/market/my-listings?status=%s&page=%d&limit=%d&keyword=%s"), *Status, Page, Limit, *Keyword);
 
     Network->SendRequest("GET", EndPoint, "", FOnNetworkResponse::CreateLambda(
         [this](bool bSuccess, FString ResponseContent, int32 Code)
@@ -102,10 +102,10 @@ void UMarketSubsystem::RequestMyListings(EListingStatusType StatusType)
                 return;
             }
             NET_LOG2(FString::Printf(TEXT("%s"), *ResponseContent));
-            TArray<FMarketListingItem> MyItems;
-            if (FJsonObjectConverter::JsonArrayStringToUStruct<FMarketListingItem>(ResponseContent, &MyItems, 0, 0))
+            FMarketListingsResponse MyListings;
+            if (FJsonObjectConverter::JsonObjectStringToUStruct<FMarketListingsResponse>(ResponseContent, &MyListings, 0, 0))
             {
-                OnMyItemsUpdated.Broadcast(MyItems);
+                OnMyItemsUpdated.Broadcast(MyListings.data, MyListings.pagination);
             }
             else
             {

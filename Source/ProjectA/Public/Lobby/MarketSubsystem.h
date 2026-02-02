@@ -119,7 +119,7 @@ enum class EListingStatusType : uint8
  * 
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMarketListingsUpdated, const TArray<FMarketListingItem>&, Items, const FMarketPagination&, Pagination);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMyListingsUpdated, const TArray<FMarketListingItem>&, Items);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMyListingsUpdated, const TArray<FMarketListingItem>&, Items, const FMarketPagination&, Pagination);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLookupItem, const FMarketListingItem&, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMarketMessaged, const FMarketMessageResponse&, MessageResponse);
 
@@ -139,7 +139,7 @@ public:
 
     // 자신이 등록한 매물 목록을 조회합니다.
     UFUNCTION(BlueprintCallable)
-    void RequestMyListings(EListingStatusType StatusType);
+    void RequestMyListings(EListingStatusType StatusType, int32 Page, int32 Limit, FString Keyword);
 
     // 특정 매물의 상세 정보를 조회합니다.
     UFUNCTION(BlueprintCallable)
