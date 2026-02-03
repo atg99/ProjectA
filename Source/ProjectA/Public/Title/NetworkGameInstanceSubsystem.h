@@ -177,8 +177,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void LoadStashData(FString AuthToken, APlayerController* Exiting);
 
+protected:
+	void SendRequest_Internal(FString Verb, FString Endpoint, FString JsonBody, FString AuthToken, FOnNetworkResponse Callback);
+public:
 	//¹ü¿ë
 	void SendRequest(FString Verb, FString Endpoint, FString JsonBody, FOnNetworkResponse Callback);
+	void SendRequest(FString Verb, FString Endpoint, FString JsonBody, FString AuthToken, FOnNetworkResponse Callback);
 
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnChatReceived OnChatReceived;
@@ -204,6 +208,7 @@ public:
 	FString BackendIP = TEXT("127.0.0.1");
 
 	FBackendLoginData LoginData;
+
 protected:
 
 	FHttpModule* HTTPModule;

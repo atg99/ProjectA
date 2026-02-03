@@ -29,7 +29,7 @@ public:
 	FString token;
 
 	UPROPERTY()
-	int32 code;
+	int32 code = -1;
 };
 
 UCLASS()

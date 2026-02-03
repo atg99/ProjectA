@@ -12,6 +12,89 @@
 #include "Utils/ATGSerializationLibrary.h"
 
 
+void UMarketSubsystem::RequestUserProfile()
+{
+    UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+    if (!Network) return;
+
+    FString Endpoint = FString::Printf(TEXT("/api/v1/auth/profile"));
+
+    Network->SendRequest("GET", Endpoint, "", FOnNetworkResponse::CreateLambda(
+        [this](bool bSuccess, FString ResponseContent, int32 Code)
+        {
+            if (!bSuccess)
+            {
+                FMarketMessageResponse Message;
+                if (FJsonObjectConverter::JsonObjectStringToUStruct<FMarketMessageResponse>(ResponseContent, &Message, 0, 0))
+                {
+                    NET_LOG2(FString::Printf(TEXT("%s"), *Message.message));
+                }
+                return;
+            }
+            FUserProfile ResponseData;
+            if (FJsonObjectConverter::JsonObjectStringToUStruct<FUserProfile>(ResponseContent, &ResponseData, 0, 0))
+            {
+                OnLoadUserProfile.Broadcast(ResponseData, Code);
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("JSON Parsing Failed: %s"), *ResponseContent);
+            }
+        }
+    ));
+}
+
+void UMarketSubsystem::RequestSellToSystem(EStorageSourceType SourceType, int32 ItemDBID, int32 Qty)
+{
+    UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+    if (!Network) return;
+
+    FString SType = "";
+    switch (SourceType)
+    {
+    case EStorageSourceType::None:
+        return;
+    case EStorageSourceType::Inventory:
+        SType = "inventory";
+        break;
+    case EStorageSourceType::Stash:
+        SType = "stash";
+        break;
+    default:
+        return;
+    }
+
+    FString Endpoint = FString::Printf(TEXT("/api/v1/shop/sell?source_type=%s&item_entry_id=%d&qty=%d"), *SType, ItemDBID, Qty);
+
+    Network->SendRequest("POST", Endpoint, "", FOnNetworkResponse::CreateLambda(
+        [this](bool bSuccess, FString ResponseContent, int32 Code)
+        {
+            if (!bSuccess)
+            {
+                FMarketMessageResponse Message;
+                if (FJsonObjectConverter::JsonObjectStringToUStruct<FMarketMessageResponse>(ResponseContent, &Message, 0, 0))
+                {
+                    NET_LOG2(FString::Printf(TEXT("%s"), *Message.message));
+                    FSellToSystemResult Result;
+                    Result.message = Message.message;
+                    OnSellToSystem.Broadcast(Result, Code);
+                }
+                return;
+            }
+
+            FSellToSystemResult SellToSystemResult;
+            if (FJsonObjectConverter::JsonObjectStringToUStruct<FSellToSystemResult>(ResponseContent, &SellToSystemResult, 0, 0))
+            {
+                OnSellToSystem.Broadcast(SellToSystemResult, Code);
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("JSON Parsing Failed: %s"), *ResponseContent);
+            }
+        }
+    ));
+}
+
 void UMarketSubsystem::RequestMarketListings(int32 Page, int32 Limit, EMarketSortType SortType, FString Keyword)
 {
     UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
@@ -72,7 +155,7 @@ void UMarketSubsystem::RequestMyListings(EListingStatusType StatusType, int32 Pa
     FString Status = "";
     switch (StatusType)
     {
-    case EListingStatusType::None:
+    case EListingStatusType::None: 
         break;
     case EListingStatusType::Active:
         Status = "active";
@@ -150,7 +233,6 @@ void UMarketSubsystem::RequestLookupListing(int32 LisingID)
 
 void UMarketSubsystem::RequestRegisterListing(int32 ItemDBID, APlayerController* PC, int32 Price, int32 Qty)
 {
-    
     // save stash 
     SaveStashData(PC, FOnNetworkResponse::CreateLambda(
         [this, PC, ItemDBID, Price, Qty](bool bSuccess, FString ResponseContent, int32 Code)
@@ -190,7 +272,7 @@ void UMarketSubsystem::RequestRegisterListing(int32 ItemDBID, APlayerController*
                     FMarketMessageResponse Message;
                     if (FJsonObjectConverter::JsonObjectStringToUStruct<FMarketMessageResponse>(ResponseContent, &Message, 0, 0))
                     {
-                        OnItemRegistered.Broadcast(Message);
+                        OnItemRegistered.Broadcast(Message, Code);
 
                         // reload stash 
                         ALobbyGameMode* LobbyGM = Cast<ALobbyGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
@@ -226,6 +308,11 @@ void UMarketSubsystem::RequestPurchaseListing(int32 LisingID)
                 if (FJsonObjectConverter::JsonObjectStringToUStruct<FMarketMessageResponse>(ResponseContent, &Message, 0, 0))
                 {
                     NET_LOG2(FString::Printf(TEXT("%s"), *Message.message));
+                    OnItemPurchased.Broadcast(Message, Code);
+                }
+                else
+                {
+                    UE_LOG(LogTemp, Error, TEXT("JSON Parsing Failed: %s"), *ResponseContent);
                 }
                 return;
             }
@@ -233,7 +320,7 @@ void UMarketSubsystem::RequestPurchaseListing(int32 LisingID)
             FMarketMessageResponse Message;
             if (FJsonObjectConverter::JsonObjectStringToUStruct<FMarketMessageResponse>(ResponseContent, &Message, 0, 0))
             {
-                OnItemPurchased.Broadcast(Message);
+                OnItemPurchased.Broadcast(Message, Code);
             }
             else
             {
@@ -266,7 +353,7 @@ void UMarketSubsystem::RequestCancelListing(int32 LisingID)
             FMarketMessageResponse Message;
             if (FJsonObjectConverter::JsonObjectStringToUStruct<FMarketMessageResponse>(ResponseContent, &Message, 0, 0))
             {
-                OnItemCanceled.Broadcast(Message);
+                OnItemCanceled.Broadcast(Message, Code);
             }
             else
             {

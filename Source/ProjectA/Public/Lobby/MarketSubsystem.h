@@ -9,6 +9,40 @@
 
 
 USTRUCT(BlueprintType)
+struct FUserProfile 
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly)
+    FString username;
+
+    UPROPERTY(BlueprintReadOnly)
+    int32 level;
+
+    UPROPERTY(BlueprintReadOnly)
+    int32 exp;
+
+    UPROPERTY(BlueprintReadOnly)
+    int32 gold;
+};
+
+USTRUCT(BlueprintType)
+struct FSellToSystemResult
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly)
+    FString message;
+
+    UPROPERTY(BlueprintReadOnly)
+    int32 earned_gold;
+
+    UPROPERTY(BlueprintReadOnly)
+    int32 current_gold;
+};
+
+
+USTRUCT(BlueprintType)
 struct FMarketItemMetadata
 {
     GENERATED_BODY()
@@ -72,28 +106,28 @@ struct FMarketPagination
     int32 total_pages = 0;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMarketListingsResponse
 {
     GENERATED_BODY()
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     TArray<FMarketListingItem> data;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     FMarketPagination pagination;
 };
 
 // 메시지
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMarketMessageResponse
 {
     GENERATED_BODY()
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     FString message;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     int32 listing_id = 0; // POST 성공 시
 };
 
@@ -115,13 +149,24 @@ enum class EListingStatusType : uint8
     History = 3 	UMETA(DisplayName = "History"),
 };
 
+
+UENUM(BlueprintType)
+enum class EStorageSourceType : uint8
+{
+    None = 0		UMETA(DisplayName = "None"),
+    Inventory = 1	UMETA(DisplayName = "Inventory"),
+    Stash = 2	    UMETA(DisplayName = "Stash"),
+};
+
 /**
  * 
  */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLoadUserProfile, const FUserProfile&, UserProfile, const int32, Code);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSellToSystem, const FSellToSystemResult&, SellToSystemResult, const int32, Code);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMarketListingsUpdated, const TArray<FMarketListingItem>&, Items, const FMarketPagination&, Pagination);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMyListingsUpdated, const TArray<FMarketListingItem>&, Items, const FMarketPagination&, Pagination);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLookupItem, const FMarketListingItem&, Item);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMarketMessaged, const FMarketMessageResponse&, MessageResponse);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMarketMessaged, const FMarketMessageResponse&, MessageResponse, int32, Code);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSaveAndLoad, bool, bWasSuccessful);
 
@@ -133,6 +178,13 @@ class PROJECTA_API UMarketSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
+
+    UFUNCTION(BlueprintCallable)
+    void RequestUserProfile();
+
+    UFUNCTION(BlueprintCallable)
+    void RequestSellToSystem(EStorageSourceType SourceType, int32 ItemDBID, int32 Qty);
+
     // 시장에 등록된 활성 매물(`status = 0`)들을 조회합니다.
     UFUNCTION(BlueprintCallable)
     void RequestMarketListings(int32 Page = 1, int32 Limit = 20, EMarketSortType SortType = EMarketSortType::CreatedAtDESC, FString Keyword = "");
@@ -173,6 +225,12 @@ public:
     // 저장하고 끝나면 로드 
     UFUNCTION(BlueprintCallable)
     void SaveLoadStashData(AController* Controller);
+
+    UPROPERTY(BlueprintAssignable)
+    FOnLoadUserProfile OnLoadUserProfile;
+
+    UPROPERTY(BlueprintAssignable)
+    FOnSellToSystem OnSellToSystem;
 
     UPROPERTY(BlueprintAssignable)
     FOnMarketListingsUpdated OnMarketItemsUpdated;

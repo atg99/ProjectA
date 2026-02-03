@@ -48,6 +48,10 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
     int32 MaxStack = 99;
 
+    // Sell
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+    int32 SellPrice = 100;
+
     // Widget size at inventory grid
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Grid")
     int32 Width = 1;
@@ -55,7 +59,7 @@ public:
     // Height size at inventory grid
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Grid")
     int32 Height = 1;
-	
+
     // GAS Tag
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
     FGameplayTagContainer OwnedTags;

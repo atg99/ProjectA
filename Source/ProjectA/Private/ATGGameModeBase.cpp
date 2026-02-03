@@ -14,7 +14,7 @@ void AATGGameModeBase::InitGame(const FString& MapName, const FString& Options, 
 {
     Super::InitGame(MapName, Options, ErrorMessage);
     NET_LOG(TEXT(""));
-
+    // UniqueId가 없는 시점 토큰값만 저장 후 Post에서 인증요청
     // 리슨 서버 호스트가 OpenLevel에 넣은 Token
     HostSessionToken = UGameplayStatics::ParseOption(Options, TEXT("Token"));
 }
@@ -94,6 +94,7 @@ void AATGGameModeBase::PostLogin(APlayerController* NewPlayer)
         }
         else
         {
+            // 실패
             ProcessValidationResult(NewPlayer, FBackendValidateResult());
             UE_LOG(LogTemp, Error, TEXT("Host joined but No Token found in InitGame Options!"));
         }
@@ -250,10 +251,17 @@ bool AATGGameModeBase::ProcessValidationResult(APlayerController* PC, const FBac
             return true;
         }
     }
+    else if (Data.code == -1)
+    {
+        // 초기값 -1이면 아직 백엔드 응답전 대기함
+        UE_LOG(LogTemp, Error, TEXT("Auth Waiting..."));
+        return false;
+
+    }
     else
     {
         // 실패: 킥
-        UE_LOG(LogTemp, Error, TEXT("Auth Failed! Kicking Player"));
+        UE_LOG(LogTemp, Error, TEXT("Auth Failed! Kicking Player Code : %d, Reason : %s"), Data.code, *Data.message);
         return false;
         //PC->ClientReturnToMainMenuWithTextReason(FText::FromString("Authentication Failed"));
     }

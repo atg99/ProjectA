@@ -775,7 +775,7 @@ void UNetworkGameInstanceSubsystem::LoadStashData(FString AuthToken, APlayerCont
 	Request->ProcessRequest();
 }
 
-void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, FString JsonBody, FOnNetworkResponse Callback)
+void UNetworkGameInstanceSubsystem::SendRequest_Internal(FString Verb, FString Endpoint, FString JsonBody, FString AuthToken, FOnNetworkResponse Callback)
 {
 	auto Request = FHttpModule::Get().CreateRequest();
 	// Base URL + Endpoint
@@ -785,9 +785,9 @@ void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, 
 	Request->SetVerb(Verb);
 	Request->SetHeader("Content-Type", "application/json");
 
-	if (!LoginData.token.IsEmpty())
+	if (!AuthToken.IsEmpty())
 	{
-		Request->SetHeader("Authorization", "Bearer " + LoginData.token);
+		Request->SetHeader("Authorization", "Bearer " + AuthToken);
 	}
 
 	if (!JsonBody.IsEmpty())
@@ -816,6 +816,16 @@ void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, 
 		});
 
 	Request->ProcessRequest();
+}
+
+void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, FString JsonBody, FOnNetworkResponse Callback)
+{
+	SendRequest_Internal(Verb, Endpoint, JsonBody, LoginData.token, Callback);
+}
+
+void UNetworkGameInstanceSubsystem::SendRequest(FString Verb, FString Endpoint, FString JsonBody, FString AuthToken, FOnNetworkResponse Callback)
+{
+	SendRequest_Internal(Verb, Endpoint, JsonBody, AuthToken, Callback);
 }
 
 //deprecated

@@ -1,0 +1,9 @@
+import export_import_assets
+import importlib
+importlib.reload(export_import_assets)
+export_import_assets.export_assets_to_csv("/Game/ATG/Data/ItemData", r"C:\C_dev\GameWeb\Server\src\data\ItemData.csv")
+
+import export_import_assets
+import importlib
+importlib.reload(export_import_assets)
+export_import_assets.import_csv_to_assets(r"C:\C_dev\GameWeb\Server\src\data\ItemData.csv")
