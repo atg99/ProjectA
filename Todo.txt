@@ -1,0 +1,30 @@
+
+  새로운 위젯 ATGShopWidget은 아래 3개의 UATGInventoryGirdWidget을 자식으로 가집니다.
+
+
+   1. UserInventoryGrid: 유저의 소지품 (기존 InventoryComponent 연결)
+   2. TransactionGrid (거래소): 판매할 아이템을 올려두는 임시 공간.
+       * 이 공간은 실제 백엔드 DB의 인벤토리가 아니라, 클라이언트 전용의 임시 `ATGContainerComponent`를 생성하여 연결하는 것이 좋습니다.
+       * 아이템이 여기 올라오면 판매 가격을 계산하여 합산합니다.
+   3. MerchantGrid (상점): 시스템이 판매하는 물품 목록 (Read Only 혹은 구매 가능).
+       * 서버(MarketSubsystem)에서 받아온 데이터를 표시하는 용도입니다.
+ 
+
+  1. `UATGInventoryGirdWidget` 재사용:
+       * ATGInventoryGirdWidget은 이미 Inven이라는 인터페이스(IATGInventoryOwnerInterface)를 통해 데이터를 받도록 잘 설계되어 있습니다.
+       * 따라서 ATGShopWidget에서도 단순히 Inven 변수에 적절한 컴포넌트(플레이어 인벤토리, 판매 대기용 임시 컨테이너)만 넣어주면 드래그 앤 드롭 로직(TryMoveOrSwap, TryAddItemAt)이 그대로
+         작동할 것입니다.
+
+
+   2. 판매 로직 (Transaction Grid):
+       * 유저 인벤토리 -> 거래 그리드로 드래그 시:
+           * 내부적으로는 InventoryComponent -> TransactionContainer로 아이템 이동(Move) 또는 분할(Split)이 일어납니다.
+           * 이때 실제로 서버에 "판매 요청"을 보내는 것이 아니라, 클라이언트 상에서만 아이템을 옮겨두는 것입니다. (아직 확정 전)
+       * 확인 버튼 클릭 시:
+           * TransactionContainer에 있는 아이템 목록(ID와 수량)을 모아서 MarketSubsystem의 판매 API (/api/v1/shop/sell)를 호출합니다.
+           * 성공 응답이 오면 TransactionContainer를 비우고 UI를 갱신합니다.
+
+
+   3. API 호출 최적화 (Bulk Sell):
+       * 현재 만드신 RequestSellToSystem은 단일 아이템 판매로 보입니다.
+       * 거래소 그리드에 여러 개를 올려두고 한 번에 팔려면, 백엔드 API가 배열(Array) 형태의 판매 요청을 처리할 수 있어야 효율적입니다. (한 번의 통신으로 여러 개 판매)
