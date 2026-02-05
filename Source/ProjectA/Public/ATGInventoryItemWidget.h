@@ -18,6 +18,9 @@ struct FATGItemInfo
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly)
+	UATGInventoryItemWidget* ItemWidget;
+
+	UPROPERTY(BlueprintReadOnly)
 	TSoftObjectPtr<UATGItemData> ItemDef;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -78,6 +81,9 @@ protected:
 	int32 CachedCellSize;
 
 	int32 CachedCellPadding;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor LockColor;
 
 public:
 	
@@ -87,8 +93,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void RefreshFromEntry(const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding);
 
+	UFUNCTION(BlueprintCallable)
+	void SetLockItem(bool bIsLock);
+
 	//UFUNCTION(BlueprintCallable, Category = "Inventory")
 	//void SetQuantityText(int32 Qty);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bCanDrag = true;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsLock = false;
 
 protected:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeo, const FPointerEvent& InMouseEvent) override;

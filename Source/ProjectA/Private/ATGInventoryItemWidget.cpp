@@ -78,11 +78,26 @@ void UATGInventoryItemWidget::RefreshFromEntry(const FInventoryEntry& InEntry, i
 	// 회전/크기 변경은 부모 Grid 위젯이 Slot 스팬을 갱신합니다.
 }
 
+void UATGInventoryItemWidget::SetLockItem(bool InbIsLock)
+{
+	bIsLock = InbIsLock;
+	//bCanDrag = !bIsLock;
+	if (bIsLock)
+	{
+		ItemIcon->SetBrushTintColor(LockColor);
+	}
+	else
+	{
+		ItemIcon->SetBrushTintColor(FLinearColor(1,1,1,1));
+	}
+}
+
 FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, const FPointerEvent& InMouseEvent)
 {
 	if (OnItemPressed.IsBound())
 	{
 		FATGItemInfo Info;
+		Info.ItemWidget = this;
 		Info.ItemDef = ItemDef;
 		Info.Quantity = Quantity;
 		Info.bIsRotated = bIsRotated;
@@ -91,7 +106,7 @@ FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, 
 		OnItemPressed.Broadcast(Info);
 	}
 
-	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && bCanDrag && !bIsLock)
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}

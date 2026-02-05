@@ -213,6 +213,7 @@ UATGInventoryItemWidget* UATGInventoryGirdWidget::CreateItemWidget(const FInvent
 	}
 	UATGInventoryItemWidget* W = CreateWidget<UATGInventoryItemWidget>(GetOwningPlayer(), InventoryItemWidgetClass);
 	W->SetupFromEntry(Inven, E, CellSize, CellPadding);
+	W->bCanDrag = bCanDrag;
 	return W;
 }
 
@@ -343,6 +344,11 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	//Super::NativeOnDrop(InGeo, InDragDropEvent, InOperation);
+	// !bCanDrag 일때 다른 그리드에서 아이템 받기 안됨
+	if (!bCanDrag)
+	{
+		return false;
+	}
 
 	UE_LOG(LogTemp, Display,TEXT("UATGInventoryGirdWidget::NativeOnDrop"));
 

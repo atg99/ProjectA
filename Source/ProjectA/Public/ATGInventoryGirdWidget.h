@@ -59,6 +59,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Skin")
 	UTexture2D* DefaultCellBg = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bCanDrag = true;
+
 	UATGStackSplitWidget* SplitUI;
 
 	FIntPoint PrevCell = FIntPoint(-1, -1);
