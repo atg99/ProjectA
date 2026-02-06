@@ -53,6 +53,9 @@ public:
 	int32 EntryId = -1;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	int32 DBId = -1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	int32 Quantity = -1;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")

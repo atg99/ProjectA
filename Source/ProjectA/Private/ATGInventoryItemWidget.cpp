@@ -16,6 +16,7 @@
 void UATGInventoryItemWidget::SetupFromEntry(const TScriptInterface<IATGInventoryOwnerInterface> InInven, const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding)
 {
 	EntryId = InEntry.Id;
+	DBId = InEntry.DBId;
 	ItemDef = InEntry.Item;
 	Inven = InInven;
 	CachedEntry = InEntry;
@@ -53,9 +54,19 @@ void UATGInventoryItemWidget::SetupFromEntry(const TScriptInterface<IATGInventor
 
 void UATGInventoryItemWidget::RefreshFromEntry(const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding)
 {
+	EntryId = InEntry.Id;
+	DBId = InEntry.DBId;
+	ItemDef = InEntry.Item;
 	CachedEntry = InEntry;
 	CachedCellSize = InCellSize;
 	CachedCellPadding = InCellPadding;
+	Quantity = InEntry.Quantity;
+	bIsRotated = InEntry.bRotated;
+	//CachedEntry = InEntry;
+	//CachedCellSize = InCellSize;
+	//CachedCellPadding = InCellPadding;
+	//Quantity = InEntry.Quantity;
+	//bIsRotated = InEntry.bRotated;
 
 	const float Pitch = float(InCellSize + 2 * InCellPadding);
 	const float WidthPx = InEntry.Width * Pitch - 2 * InCellPadding;
@@ -69,8 +80,6 @@ void UATGInventoryItemWidget::RefreshFromEntry(const FInventoryEntry& InEntry, i
 		RootSizeBox->SetHeightOverride(HeightPx);
 	}
 
-	Quantity = InEntry.Quantity;
-	bIsRotated = InEntry.bRotated;
 	if (QuantityText)
 	{
 		//QuantityText->SetText(FText::AsNumber(InEntry.Quantity));

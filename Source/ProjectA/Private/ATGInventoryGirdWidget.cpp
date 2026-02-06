@@ -137,6 +137,17 @@ void UATGInventoryGirdWidget::BindInventoryComp()
 	RebuildAll();
 }
 
+int32 UATGInventoryGirdWidget::GetDBIdByEntryId(int32 ItemEntryId)
+{
+	const FInventoryEntry* Entry = FindEntryById(ItemEntryId);
+	if (Entry)
+	{
+		return Entry->DBId;
+	}
+
+	return -1;
+}
+
 void UATGInventoryGirdWidget::BuildCellBackground()
 {
 	if (!GridPanel || !Inven) return;

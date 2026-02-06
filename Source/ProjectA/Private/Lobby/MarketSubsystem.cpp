@@ -95,6 +95,53 @@ void UMarketSubsystem::RequestSellToSystem(EStorageSourceType SourceType, int32 
     ));
 }
 
+void UMarketSubsystem::RequestTradeItems(const FTradeItemRequest& TradeItemRequest)
+{
+    UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+    if (!Network) return;
+
+    FString SType = "stash";
+
+    FString Endpoint = FString::Printf(TEXT("/api/v1/shop/trade"));
+
+    FString JsonBody;
+    if (!FJsonObjectConverter::UStructToJsonObjectString(TradeItemRequest, JsonBody))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to serialize Trade Request"));
+        return;
+    }
+
+    NET_LOG2(FString::Printf(TEXT("%s"), *JsonBody));
+
+    Network->SendRequest("POST", Endpoint, JsonBody, FOnNetworkResponse::CreateLambda(
+        [this](bool bSuccess, FString ResponseContent, int32 Code)
+        {
+            if (!bSuccess)
+            {
+                FMarketMessageResponse Message;
+                if (FJsonObjectConverter::JsonObjectStringToUStruct<FMarketMessageResponse>(ResponseContent, &Message, 0, 0))
+                {
+                    NET_LOG2(FString::Printf(TEXT("%s"), *Message.message));
+                    FTradeResult Result;
+                    Result.message = Message.message;
+                    OnTradeResult.Broadcast(Result, Code);
+                }
+                return;
+            }
+
+            FTradeResult TradeResult;
+            if (FJsonObjectConverter::JsonObjectStringToUStruct<FTradeResult>(ResponseContent, &TradeResult, 0, 0))
+            {
+                OnTradeResult.Broadcast(TradeResult, Code);
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("JSON Parsing Failed: %s"), *ResponseContent);
+            }
+        }
+    ));
+}
+
 void UMarketSubsystem::RequestMarketListings(int32 Page, int32 Limit, EMarketSortType SortType, FString Keyword)
 {
     UNetworkGameInstanceSubsystem* Network = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();

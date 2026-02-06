@@ -107,6 +107,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	virtual void BindInventoryComp();
 
+	UFUNCTION(BlueprintCallable)
+	int32 GetDBIdByEntryId(int32 ItemEntryId);
+
 	virtual bool NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 protected:
 

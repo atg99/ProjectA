@@ -49,7 +49,7 @@ struct FMarketItemMetadata
 
 };
 
-// ¸Å¹° ¾ÆÀÌÅÛ
+// ï¿½Å¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 USTRUCT(BlueprintType)
 struct FMarketListingItem
 {
@@ -82,12 +82,12 @@ struct FMarketListingItem
     UPROPERTY(BlueprintReadOnly)
     FString created_at;
 
-    // my-listings¿ë (nullable ´ëÀÀ FString)
+    // my-listingsï¿½ï¿½ (nullable ï¿½ï¿½ï¿½ï¿½ FString)
     UPROPERTY(BlueprintReadOnly)
     FString sold_at;
 };
 
-// ÆäÀÌÁö³×ÀÌ¼Ç Á¤º¸
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½
 USTRUCT(BlueprintType)
 struct FMarketPagination
 {
@@ -118,7 +118,79 @@ struct FMarketListingsResponse
     FMarketPagination pagination;
 };
 
-// ¸Þ½ÃÁö
+USTRUCT(BlueprintType)
+struct FTradeSellItemRequest
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite)
+    FString source_type = "stash";
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 item_entry_id = 0;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 qty = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FTradeBuyItemRequest
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite)
+    FString primary_asset_id;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 qty = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FTradeItemRequest
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite)
+    TArray<FTradeSellItemRequest> sell_items;
+
+    UPROPERTY(BlueprintReadWrite)
+    TArray<FTradeBuyItemRequest> buy_items;
+};
+
+USTRUCT(BlueprintType)
+struct FTradeBuyItemResult
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly)
+    FString primary_asset_id;
+
+    UPROPERTY(BlueprintReadOnly)
+    int32 qty = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FTradeResult
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly)
+    FString message;
+
+    UPROPERTY(BlueprintReadOnly)
+    int32 earned_gold = 0;
+
+    UPROPERTY(BlueprintReadOnly)
+    int32 spent_gold = 0;
+
+    UPROPERTY(BlueprintReadOnly)
+    int32 current_gold = 0;
+
+    UPROPERTY(BlueprintReadOnly)
+    TArray<FTradeBuyItemResult> bought_items;
+};
+
+// ï¿½Þ½ï¿½ï¿½ï¿½
 USTRUCT(BlueprintType)
 struct FMarketMessageResponse
 {
@@ -128,7 +200,7 @@ struct FMarketMessageResponse
     FString message;
 
     UPROPERTY(BlueprintReadOnly)
-    int32 listing_id = 0; // POST ¼º°ø ½Ã
+    int32 listing_id = 0; // POST ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
 };
 
 UENUM(BlueprintType)
@@ -167,6 +239,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMarketListingsUpdated, const TAr
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMyListingsUpdated, const TArray<FMarketListingItem>&, Items, const FMarketPagination&, Pagination);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLookupItem, const FMarketListingItem&, Item);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMarketMessaged, const FMarketMessageResponse&, MessageResponse, int32, Code);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTradeResult, const FTradeResult&, TradeResult, int32, Code);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSaveAndLoad, bool, bWasSuccessful);
 
@@ -185,44 +258,47 @@ public:
     UFUNCTION(BlueprintCallable)
     void RequestSellToSystem(EStorageSourceType SourceType, int32 ItemDBID, int32 Qty);
 
-    // ½ÃÀå¿¡ µî·ÏµÈ È°¼º ¸Å¹°(`status = 0`)µéÀ» Á¶È¸ÇÕ´Ï´Ù.
+    UFUNCTION(BlueprintCallable)
+    void RequestTradeItems(const FTradeItemRequest& TradeItemRequest);
+
+    // ï¿½ï¿½ï¿½å¿¡ ï¿½ï¿½Ïµï¿½ È°ï¿½ï¿½ ï¿½Å¹ï¿½(`status = 0`)ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¸ï¿½Õ´Ï´ï¿½.
     UFUNCTION(BlueprintCallable)
     void RequestMarketListings(int32 Page = 1, int32 Limit = 20, EMarketSortType SortType = EMarketSortType::CreatedAtDESC, FString Keyword = "");
 
-    // ÀÚ½ÅÀÌ µî·ÏÇÑ ¸Å¹° ¸ñ·ÏÀ» Á¶È¸ÇÕ´Ï´Ù.
+    // ï¿½Ú½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Å¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¸ï¿½Õ´Ï´ï¿½.
     UFUNCTION(BlueprintCallable)
     void RequestMyListings(EListingStatusType StatusType, int32 Page, int32 Limit, FString Keyword);
 
-    // Æ¯Á¤ ¸Å¹°ÀÇ »ó¼¼ Á¤º¸¸¦ Á¶È¸ÇÕ´Ï´Ù.
+    // Æ¯ï¿½ï¿½ ï¿½Å¹ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¸ï¿½Õ´Ï´ï¿½.
     UFUNCTION(BlueprintCallable)
     void RequestLookupListing(int32 LisingID);
 
-    // ÀÎº¥Åä¸®ÀÇ ¾ÆÀÌÅÛÀ» ½ÃÀå¿¡ µî·ÏÇÕ´Ï´Ù. ¾ÆÀÌÅÛÀº ÀÎº¥Åä¸®¿¡¼­ Á¦°ÅµË´Ï´Ù.
+    // ï¿½Îºï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½å¿¡ ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îºï¿½ï¿½ä¸®ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ÅµË´Ï´ï¿½.
     UFUNCTION(BlueprintCallable)
     void RequestRegisterListing(int32 ItemDBID, APlayerController* PC, int32 Price = 100, int32 Qty = 1);
 
-    // µî·ÏµÈ ¸Å¹°À» ±¸¸ÅÇÕ´Ï´Ù. ±¸¸ÅÀÚÀÇ °ñµå°¡ Â÷°¨µÇ°í ¾ÆÀÌÅÛÀº ±¸¸ÅÀÚÀÇ Ã¢°í(Stash)·Î Áö±ÞµË´Ï´Ù.
+    // ï¿½ï¿½Ïµï¿½ ï¿½Å¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½å°¡ ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ã¢ï¿½ï¿½(Stash)ï¿½ï¿½ ï¿½ï¿½ï¿½ÞµË´Ï´ï¿½.
     UFUNCTION(BlueprintCallable)
     void RequestPurchaseListing(int32 LisingID);
 
-    // ÆÇ¸Å ÁßÀÎ ¸Å¹°À» Ãë¼ÒÇÕ´Ï´Ù. ¾ÆÀÌÅÛÀº ÆÇ¸ÅÀÚÀÇ Ã¢°í(Stash)·Î È¸¼öµË´Ï´Ù.
+    // ï¿½Ç¸ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Å¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ç¸ï¿½ï¿½ï¿½ï¿½ï¿½ Ã¢ï¿½ï¿½(Stash)ï¿½ï¿½ È¸ï¿½ï¿½ï¿½Ë´Ï´ï¿½.
     UFUNCTION(BlueprintCallable)
     void RequestCancelListing(int32 LisingID);
 
-    // Ã¢°í ÀÎº¥Åä¸® ÀúÀå BP
+    // Ã¢ï¿½ï¿½ ï¿½Îºï¿½ï¿½ä¸® ï¿½ï¿½ï¿½ï¿½ BP
     UFUNCTION(BlueprintCallable)
     void SaveStashData(AController* Controller);
 
-    // C++ Callback ³»ºÎ È£Ãâ¿ë
+    // C++ Callback ï¿½ï¿½ï¿½ï¿½ È£ï¿½ï¿½ï¿½
     void SaveStashData(AController* Controller, FOnNetworkResponse Callback);
 
-    // Ã¢°í ÀÎº¥Åä¸® ÀúÀå BP
+    // Ã¢ï¿½ï¿½ ï¿½Îºï¿½ï¿½ä¸® ï¿½ï¿½ï¿½ï¿½ BP
     UFUNCTION(BlueprintCallable)
     void LoadStashData(AController* Controller);
 
     void LoadStashData(AController* Controller, FOnNetworkResponse Callback);
 
-    // ÀúÀåÇÏ°í ³¡³ª¸é ·Îµå 
+    // ï¿½ï¿½ï¿½ï¿½ï¿½Ï°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ 
     UFUNCTION(BlueprintCallable)
     void SaveLoadStashData(AController* Controller);
 
@@ -255,5 +331,8 @@ public:
 
     UPROPERTY(BlueprintAssignable)
     FOnSaveAndLoad OnStashSaveAndLoad;
+
+    UPROPERTY(BlueprintAssignable)
+    FOnTradeResult OnTradeResult;
 
 };
