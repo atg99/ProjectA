@@ -1,3 +1,0 @@
-# Server 폴더에서
-rm -rf node_modules  # (윈도우라면 폴더 삭제)
-npm install

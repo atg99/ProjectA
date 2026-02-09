@@ -5,11 +5,15 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "InventoryTypes.h"
+#include "NativeGameplayTags.h"
 #include "ATGInventoryOwnerInterface.h"
 #include "ATGInventoryComponent.generated.h"
 
 class AATGItem;
 class UATGPickupComponent;
+class UATGConsumableItemData;
+
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Item_Use);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridEvent, int32, EntryId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridPreEvent, FInventoryEntry, PreE);
@@ -208,5 +212,10 @@ protected:
 
 	//UFUNCTION(BlueprintCallable, Category = "Inventory")
 	//const TArray<FInventoryEntry>& GetEntries() const { return Inventory.Entries; }
+
+public:
+
+	UFUNCTION(BlueprintCallable)
+	void UseItem(const UATGConsumableItemData* ItemData);
 
 };

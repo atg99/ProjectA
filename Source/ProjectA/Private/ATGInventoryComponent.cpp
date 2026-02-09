@@ -5,6 +5,7 @@
 #include "Net/UnrealNetwork.h"
 #include "InventoryTypes.h"
 #include "Data/ATGItemData.h"
+#include "Data/ATGConsumableItemData.h"
 #include "ATGItem.h"
 #include "GameFramework/PlayerState.h"
 #include "ATGPickupComponent.h"
@@ -14,7 +15,9 @@
 #include "Net/Core/PushModel/PushModel.h"
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Utils/ATGSerializationLibrary.h"
+#include "AbilitySystemBlueprintLibrary.h"
 
+UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Event_Item_Use, "Event.Item.Use", "event when use consumableitem");
 
 // Sets default values for this component's properties
 UATGInventoryComponent::UATGInventoryComponent()
@@ -107,7 +110,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 	NET_LOG(TEXT(""));
 	TArray<int32> EntryIds;
 	EntryIds.Empty();
-	if (!ClientAddRequest.ItemDef.Get()) // ·Îµå
+	if (!ClientAddRequest.ItemDef.Get()) // ï¿½Îµï¿½
 	{
 		NET_LOG(TEXT("!ItemDef.Get()"));
 		if (!ClientAddRequest.ItemDef.LoadSynchronous())
@@ -136,7 +139,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 	int32 OriginQty = ClientAddRequest.Quantity;
 	int32 Qty = ClientAddRequest.Quantity;
 
-	if (!Inventory.FindFirstFit(ClientAddRequest.ItemDef, W, H, OutX, OutY, Qty)) //¿©±â¼­ Á¸ÀçÇÏ´Â ½ºÅÃ¿¡ ÀúÀå ³²Àº °ª Qty ÂüÁ¶·Î ¹İÈ¯
+	if (!Inventory.FindFirstFit(ClientAddRequest.ItemDef, W, H, OutX, OutY, Qty)) //ï¿½ï¿½ï¿½â¼­ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½Ã¿ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Qty ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯
 	{
 		if (IsHasAuthority()) // Decrease WorldItem Qty
 		{
@@ -148,10 +151,10 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 			ClientAddRequest.Quantity = Qty;
 		}
 		NET_LOG(TEXT("!FindFirstFit"));
-		return EntryIds; // »õ·Î¿î ÀÚ¸® ¾øÀ½ 
+		return EntryIds; // ï¿½ï¿½ï¿½Î¿ï¿½ ï¿½Ú¸ï¿½ ï¿½ï¿½ï¿½ï¿½ 
 	}
 
-	if (Qty <= 0) //¼ö·®ÀÌ 0ÀÌ µÈ°æ¿ì 
+	if (Qty <= 0) //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 0ï¿½ï¿½ ï¿½È°ï¿½ï¿½ 
 	{
 		if (IsHasAuthority()) // Decrease WorldItem Qty
 		{
@@ -167,12 +170,12 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 
 	int32 Id = Inventory.AddItemAt(ClientAddRequest.ItemDef, Qty, OutX, OutY, W, H, false, ClientAddRequest.PredictionKey);
 	EntryIds.Add(Id);
-	//Qty ÂüÁ¶ ¹İÈ¯
-	while (Qty >= 1) //¼ö·®ÀÌ 0ÀÌ µÉ¶§ ±îÁö ¹İº¹
+	//Qty ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯
+	while (Qty >= 1) //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 0ï¿½ï¿½ ï¿½É¶ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½İºï¿½
 	{
 		OutX = -1;
 		OutY = -1;
-		if (!Inventory.FindFirstFit(W, H, OutX, OutY)) //´Ù½Ã ÀÚ¸® °Ë»ö, Á¸ÀçÇÏ´Â ½ºÅÃ ÀúÀå X 
+		if (!Inventory.FindFirstFit(W, H, OutX, OutY)) //ï¿½Ù½ï¿½ ï¿½Ú¸ï¿½ ï¿½Ë»ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ X 
 		{
 			break;
 		}
@@ -199,7 +202,7 @@ TArray<int32> UATGInventoryComponent::AddItemAuto(FClientAddRequest& ClientAddRe
 void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
 {
 	NET_LOG(TEXT(""));
-	//¾ÆÀÌÅÛ ÀÌÀü µ¥ÀÌÅÍ º¹Á¦ ÈÄ ¿øº»¿¡¼­ »èÁ¦
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	int32 OriginQty = ClientAddRequest.Quantity;
 	int32 Qty = ClientAddRequest.Quantity;
 
@@ -229,7 +232,7 @@ void UATGInventoryComponent::ServerAddItemAt_Implementation(FClientAddRequest Cl
 	}
 
 	int32 DecreasedQty = OriginQty - Qty;
-	//¿©±â¼­ ¹ŞÀº interface·Î ¾ÆÀÌÅÛ ¼ö·®°¨¼Ò
+	//ï¿½ï¿½ï¿½â¼­ ï¿½ï¿½ï¿½ï¿½ interfaceï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (Inven)
 	{
 		Inven->TryHandleTransItemResult(OtherGridId, DecreasedQty);
@@ -270,7 +273,7 @@ void UATGInventoryComponent::TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDe
 
 	TArray<int32> EntryIds = AddItemAuto(ClientAddRequest, InteractActor);
 
-	//È£½ºÆ®¿¡¼­ Áßº¹½ÇÇà ¹æÁö
+	//È£ï¿½ï¿½Æ®ï¿½ï¿½ï¿½ï¿½ ï¿½ßºï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	if (!IsHasAuthority())
 	{
 		ServerAddItemAuto(ClientAddRequest, InteractActor);
@@ -292,7 +295,7 @@ void UATGInventoryComponent::ServerAddItemAuto_Implementation(FClientAddRequest 
 		InventoryChangeResult.Reason = EInventoryRejectReason::Unknown;
 	}
 
-	InventoryChangeResult.PredictionKey = ClientAddRequest.PredictionKey; //¼­¹ö Å¬¶óÀÌ¾ğÆ® ¸ÅÄª Å°
+	InventoryChangeResult.PredictionKey = ClientAddRequest.PredictionKey; //ï¿½ï¿½ï¿½ï¿½ Å¬ï¿½ï¿½ï¿½Ì¾ï¿½Æ® ï¿½ï¿½Äª Å°
 
 	InventoryChangeResult.NewEntryIds = EntryIds;
 	
@@ -307,11 +310,11 @@ void UATGInventoryComponent::ClientAddItemResult_Implementation(FInventoryChange
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Emerald, TEXT("ClientCallBackAddItem"));
 	if (Result.Status == EInventoryChangeStatus::Success)
 	{
-		// ¼º°øÀÌ¸é º¹Á¦ µµÂø ½ÃÁ¡(HandleReplicatedAdd)¿¡¼­ Áö¿ì¹Ç·Î »ı·«
+		// ï¿½ï¿½ï¿½ï¿½ï¿½Ì¸ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½(HandleReplicatedAdd)ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ ï¿½ï¿½ï¿½ï¿½
 	}
 	else
 	{
-		// ½ÇÆĞ ¡æ ÇÁ¸®ºä Áï½Ã Á¦°Å
+		// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 		if (Result.PredictionKey != 0)
 		{
 			//Inventory.PreviewRemoveById(Result.PredictionKey);
@@ -329,7 +332,7 @@ void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int3
 
 	//if (!Inventory.PreviewMoveOrSwap(EntryId, NewX, NewY, bIsRotate))
 	//{
-	//	return; // ³õÀ» ¼ö ¾øÀ¸¸é ¼­¹ö È£Ãâ ¾ÈÇÔ
+	//	return; // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ È£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	//}
 	
 	ServerMoveOrSwap(EntryId, NewX, NewY, bIsRotate);
@@ -355,16 +358,16 @@ void UATGInventoryComponent::ServerSplitStack_Implementation(int32 EntryId, int3
 		return;
 	}
 
-	//ÇØ´ç ¼¿¿¡ »õ ¾ÆÀÌÅÛ Ãß°¡ ½Ãµµ
+	//ï¿½Ø´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½ ï¿½Ãµï¿½
 	if (Inventory.AddItemAt(E->Item, Qty, NewX, NewY, E->Width, E->Height, bIsRotate, -1))
 	{
-		//¼º°ø½Ã ¼º°øÇÑ ¼ö·®¸¸Å­ ¿øº» ½ºÅØ °¨¼Ò
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å­ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 		Inventory.DecreaseQtyAndRemoveById(EntryId, SplitNum-Qty);
 	}
 	else
 	{
-		//½ÇÆĞ½Ã ÇØ´ç ¼¿ÀÇ ¾ÆÀÌÅÛ°ú º´ÇÕ ½Ãµµ
-		//MergeStackAt¿¡¼­ ¼ö·®°¨¼ÒÃ³¸® Æ÷ÇÔµÊ
+		//ï¿½ï¿½ï¿½Ğ½ï¿½ ï¿½Ø´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Û°ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ãµï¿½
+		//MergeStackAtï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã³ï¿½ï¿½ ï¿½ï¿½ï¿½Ôµï¿½
 		Inventory.MergeStackAtAndDecrease(*E, SplitNum, NewX, NewY, bIsRotate);
 	}
 }
@@ -400,7 +403,7 @@ void UATGInventoryComponent::ServerSortByItemId_Implementation()
 
 void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId, int32 SplitNum)
 {
-	// ItemBPClass°¡ ¼³Á¤µÇÀÖÁö ¾Ê´Ù¸é Lobby Drop X
+	// ItemBPClassï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê´Ù¸ï¿½ Lobby Drop X
 	if (!ItemBPClass)
 	{
 		return;
@@ -409,7 +412,7 @@ void UATGInventoryComponent::ServerDropItem_Implementation(int32 EntryId, int32 
 	ServerSpawnItem(EntryId, SplitNum);
 	if (SplitNum > 0)
 	{
-		//¾ÆÀÌÅÛ ¼ö·®°¨¼Ò
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		Inventory.DecreaseQtyAndRemoveById(EntryId, SplitNum);
 		return;
 	}
@@ -453,7 +456,7 @@ void UATGInventoryComponent::ServerRemoveItem_Implementation(int32 EntryId)
 
 void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId, int32 SplitNum)
 {
-	// ItemBPClass°¡ ¼³Á¤µÇÀÖÁö ¾Ê´Ù¸é Lobby Spawn X
+	// ItemBPClassï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê´Ù¸ï¿½ Lobby Spawn X
 	if (!ItemBPClass)
 	{
 		return;
@@ -515,11 +518,40 @@ void UATGInventoryComponent::HandleReplicatedAdd(int32 EntryId)
 	const FInventoryEntry* E = Inventory.GetById(EntryId);
 	if (E && E->PredictionKey != 0)
 	{
-		//Inventory.PreviewRemoveById(E->PredictionKey); // PredKey·Î Á÷Á¢ Á¦°Å
-		//OnItemPreRemoved.Broadcast(E->PredictionKey);  // À§Á¬¿¡°Ôµµ ¾Ë·Á Á¦°Å
+		//Inventory.PreviewRemoveById(E->PredictionKey); // PredKeyï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+		//OnItemPreRemoved.Broadcast(E->PredictionKey);  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôµï¿½ ï¿½Ë·ï¿½ ï¿½ï¿½ï¿½ï¿½
 	}
 	if (GEngine)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! InventComp HandleReplicatedAddp"));
+}
+
+void UATGInventoryComponent::UseItem(const UATGConsumableItemData* ItemData)
+{
+	AActor* OwnerActor = GetOwner();
+	APawn* AvatarPawn = nullptr;
+
+	if (APlayerState* PS = Cast<APlayerState>(OwnerActor))
+	{
+		AvatarPawn = PS->GetPawn();
+	}
+	else
+	{
+		return;
+	}
+
+	if (!AvatarPawn)
+	{
+		return;
+	}
+
+
+	FGameplayEventData Payload;
+	Payload.Instigator = AvatarPawn; // Instigatorë¥¼ Pawnìœ¼ë¡œ ì„¤ì •
+	Payload.Target = AvatarPawn;     // Targetë„ Pawn
+	Payload.OptionalObject = ItemData;
+	Payload.EventTag = TAG_Event_Item_Use;
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AvatarPawn, Payload.EventTag, Payload);
 }
 
 //void UATGInventoryComponent::HandleReplicatedChange(int32 EntryId)
@@ -549,7 +581,7 @@ bool UATGInventoryComponent::IsLocallyOwned()
 	return false;
 }
 
-// ¼­¹ö·ÎÁ÷ 
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
 void UATGInventoryComponent::IncreaseGridSize(int32 W, int32 H)
 {
 	if (!IsHasAuthority())
@@ -612,3 +644,4 @@ UATGPickupComponent* UATGInventoryComponent::GetPickupComp(AActor* InteractedAct
 
 	return nullptr;
 }
+

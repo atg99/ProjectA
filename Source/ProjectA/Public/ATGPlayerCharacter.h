@@ -23,6 +23,7 @@ class UCharacterAttributeSet;
 class UAbilitySystemComponent;
 class AATGWeaponBase;
 class USkeletalMeshComponent;
+class UGameplayAbility;
 
 UCLASS()
 class PROJECTA_API AATGPlayerCharacter : public ACharacter, public IGenericTeamAgentInterface, public IAbilitySystemInterface
@@ -54,9 +55,14 @@ public:
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
 	//TSubclassOf<class UGameplayAbility> DefaultAbility;
 
+	UPROPERTY(EditDefaultsOnly, Category = "GAS")
+	TSubclassOf<UGameplayAbility> DefaultItemUseAbility;
+
+	void GiveAbility(TSubclassOf<UGameplayAbility> GameplayAbility);
+
 	void EquipWeapon(AATGWeaponBase* Weapon);
 
-	void GiveAbilities(TArray<struct FWeaponAbilityBind> Abilities, AATGWeaponBase* Weapon);
+	void GiveWeaponAbilities(TArray<struct FWeaponAbilityBind> Abilities, AATGWeaponBase* Weapon);
 
 public:
 	/** Camera boom positioning the camera behind the character */

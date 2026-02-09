@@ -115,9 +115,22 @@ void AATGPlayerCharacter::PossessedBy(AController* NewController)
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
-		//GiveDefaultAbilities(); 
+		GiveAbility(DefaultItemUseAbility);
 	}
 
+}
+
+void AATGPlayerCharacter::GiveAbility(TSubclassOf<UGameplayAbility> GameplayAbility)
+{
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		if (GameplayAbility)
+		{
+			FGameplayAbilitySpec ItemAbilitySpec(GameplayAbility, 1);
+
+			ASC->GiveAbility(ItemAbilitySpec);
+		}
+	}
 }
 
 void AATGPlayerCharacter::OnRep_Controller()
@@ -133,11 +146,11 @@ void AATGPlayerCharacter::EquipWeapon(AATGWeaponBase* Weapon)
 {
 	if (ensure(Weapon) && ensure(Weapon->WeaponData))
 	{
-		GiveAbilities(Weapon->WeaponData->WeaponAbilitys, Weapon);
+		GiveWeaponAbilities(Weapon->WeaponData->WeaponAbilitys, Weapon);
 	}
 }
 
-void AATGPlayerCharacter::GiveAbilities(TArray<FWeaponAbilityBind> Abilities, AATGWeaponBase* Weapon)
+void AATGPlayerCharacter::GiveWeaponAbilities(TArray<FWeaponAbilityBind> Abilities, AATGWeaponBase* Weapon)
 {
 	// 방어 코드: 서버가 아니거나 ASC가 없으면 리턴
 	if (!HasAuthority() || !AbilitySystemComponent || Abilities.IsEmpty())
