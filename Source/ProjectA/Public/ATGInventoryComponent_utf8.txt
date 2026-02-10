@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+Ôªø// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -190,7 +190,7 @@ public:
 
 	UATGPickupComponent* GetPickupComp(AActor* InteractedActor);
 
-	// ∑Œ∫Ò∂Û∏È None¿∏∑Œ 
+	// Î°úÎπÑÎùºÎ©¥ NoneÏúºÎ°ú 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
 	TSubclassOf<AATGItem> ItemBPClass;
 
@@ -218,7 +218,10 @@ protected:
 public:
 
 	UFUNCTION(BlueprintCallable)
-	void UseItem(const UATGConsumableItemData* ItemData);
+	void UseItem(int32 EntryId, const UATGConsumableItemData* ItemData);
+
+	UFUNCTION(Server, Reliable)
+	void ServerConsumeItem(int32 EntryId, int32 Quantity);
 
 	UFUNCTION(BlueprintCallable)
 	virtual void OpenContextMenu(FATGItemInfo& ItemInfo, FVector2D ScreenPosition) override;

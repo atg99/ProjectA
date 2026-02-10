@@ -5,13 +5,14 @@
 #include "ATGDragDropOperation.h"
 #include "ATGInventoryComponent.h"
 #include "Data/ATGItemData.h"
-
+#include "InventoryTypes.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Components/SizeBox.h"
 #include "Blueprint/DragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h" // DetectDragIfPressed
 #include "InputCoreTypes.h" // EKeys
+#include "ATGEnum.h"
 
 void UATGInventoryItemWidget::SetupFromEntry(const TScriptInterface<IATGInventoryOwnerInterface> InInven, const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding)
 {
@@ -103,7 +104,8 @@ void UATGInventoryItemWidget::SetLockItem(bool InbIsLock)
 
 FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, const FPointerEvent& InMouseEvent)
 {
-	if (OnItemPressed.IsBound())
+
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 	{
 		FATGItemInfo Info;
 		Info.ItemWidget = this;
@@ -112,11 +114,24 @@ FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, 
 		Info.bIsRotated = bIsRotated;
 		Info.EntryId = EntryId;
 
-		OnItemPressed.Broadcast(Info);
+		FVector2D MousePosition = InMouseEvent.GetScreenSpacePosition();
+		Inven->OpenContextMenu(Info, MousePosition);
+		return FReply::Handled();
 	}
 
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && bCanDrag && !bIsLock)
 	{
+		if (OnItemPressed.IsBound())
+		{
+			FATGItemInfo Info;
+			Info.ItemWidget = this;
+			Info.ItemDef = ItemDef;
+			Info.Quantity = Quantity;
+			Info.bIsRotated = bIsRotated;
+			Info.EntryId = EntryId;
+
+			OnItemPressed.Broadcast(Info);
+		}
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
 	return Super::NativeOnMouseButtonDown(InGeo, InMouseEvent);

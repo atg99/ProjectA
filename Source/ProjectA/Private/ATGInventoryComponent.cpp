@@ -16,6 +16,9 @@
 #include "Iris/ReplicationSystem/ReplicationFragmentUtil.h"
 #include "Utils/ATGSerializationLibrary.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Widget/ATGItemContextMenuWidget.h"
+#include "ATGInventoryItemWidget.h"
+#include "ATGEnum.h"
 
 UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Event_Item_Use, "Event.Item.Use", "event when use consumableitem");
 
@@ -43,9 +46,25 @@ void UATGInventoryComponent::BeginPlay()
 	Inventory.Owner = TScriptInterface<IATGInventoryOwnerInterface>(this);
 
 	OnItemAdded.AddDynamic(this, &UATGInventoryComponent::HandleReplicatedAdd);
-	//OnItemChanged.AddDynamic(this, &UATGInventoryComponent::HandleReplicatedChange);
+	// OnItemChanged.AddDynamic(this, &UATGInventoryComponent::HandleReplicatedChange);
 	// ...
-	
+
+	if (IsLocallyOwned())
+	{
+		if (ContextMenuClass)
+		{
+			if (APlayerState* PS = Cast<APlayerState>(GetOwner()))
+			{
+				ContextMenuWidget = CreateWidget<UATGItemContextMenuWidget>(PS->GetPlayerController(), ContextMenuClass);
+				if (ContextMenuWidget)
+				{
+					ContextMenuWidget->InvenComp = this;
+					ContextMenuWidget->AddToViewport(100); // Z-Order를 높게 설정하여 최상단 노출
+					ContextMenuWidget->SetVisibility(ESlateVisibility::Collapsed); // 일단 숨김
+				}
+			}
+		}
+	}
 }
 
 
@@ -544,7 +563,6 @@ void UATGInventoryComponent::UseItem(const UATGConsumableItemData* ItemData)
 		return;
 	}
 
-
 	FGameplayEventData Payload;
 	Payload.Instigator = AvatarPawn; // Instigator를 Pawn으로 설정
 	Payload.Target = AvatarPawn;     // Target도 Pawn
@@ -552,6 +570,31 @@ void UATGInventoryComponent::UseItem(const UATGConsumableItemData* ItemData)
 	Payload.EventTag = TAG_Event_Item_Use;
 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AvatarPawn, Payload.EventTag, Payload);
+}
+
+void UATGInventoryComponent::OpenContextMenu(FATGItemInfo& ItemInfo, FVector2D ScreenPosition)
+{
+	if (!ContextMenuWidget)
+	{
+		return;
+	}
+
+	UATGItemData* ItemData = ItemInfo.ItemDef.Get();
+	if (!ItemData)
+	{
+		ItemData = ItemInfo.ItemDef.LoadSynchronous();
+		ensure(ItemData);
+	}
+
+	// 1. 데이터 세팅
+	ContextMenuWidget->InitMenu(ItemData);
+
+	// 2. 위치 설정 (마우스 위치로 이동)
+	ContextMenuWidget->SetPositionInViewport(ScreenPosition);
+
+	// 3. 보이게 설정
+	ContextMenuWidget->SetVisibility(ESlateVisibility::Visible);
+
 }
 
 //void UATGInventoryComponent::HandleReplicatedChange(int32 EntryId)

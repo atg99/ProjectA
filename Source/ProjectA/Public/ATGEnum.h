@@ -226,3 +226,24 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	bool WantsToAim;
 };
+
+USTRUCT(BlueprintType)
+struct FATGItemInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	class UATGInventoryItemWidget* ItemWidget;
+
+	UPROPERTY(BlueprintReadOnly)
+	TSoftObjectPtr<class UATGItemData> ItemDef;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 EntryId = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Quantity = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsRotated = false;
+};

@@ -7,6 +7,7 @@
 #include "Algo/Sort.h"
 #include "Utils/NetworkUtil.h"
 
+
 int32 FInventoryGrid::GlobalEntryIdCounter = 0;
 
 void FInventoryEntry::PreReplicatedRemove(const FInventoryGrid& InArraySerializer)

@@ -7,6 +7,9 @@
 #include "ATGEnum.h"
 #include "ATGInventoryOwnerInterface.generated.h"
 
+class UATGItemData;
+struct FATGItemInfo;
+
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI, BlueprintType, NotBlueprintable)
 class UATGInventoryOwnerInterface : public UInterface
@@ -54,6 +57,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void SetGridSize(int32 W, int32 H) {}
 
+	UFUNCTION(BlueprintCallable)
+	virtual void OpenContextMenu(FATGItemInfo& ItemInfo, FVector2D ScreenPosition) {}
+
 	virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) {}
 
 	virtual void TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate) {}
@@ -67,7 +73,7 @@ public:
 	virtual void TrySortByItemId() {}
 
 	//when Incoming from other grid
-	virtual void TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<class UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, bool bRotate = false) {}
+	virtual void TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<UATGItemData> ItemDef, int32 Qty, int32 X, int32 Y, bool bRotate = false) {}
 
 	virtual void TryHandleTransItemResult(int32 EntryId, int32 RemoveQty = -1) {}
 

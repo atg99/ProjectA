@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Net/Serialization/FastArraySerializer.h"
-#include "ATGInventoryOwnerInterface.h"
+//#include "ATGInventoryOwnerInterface.h"
 
 #include "Iris/ReplicationSystem/FastArrayReplicationFragment.h"
 
@@ -179,6 +179,8 @@ struct FInventorySaveData
 /**
  * 
  */
+
+class IATGInventoryOwnerInterface;
 
 USTRUCT(BlueprintType)
 struct FInventoryEntry : public FFastArraySerializerItem

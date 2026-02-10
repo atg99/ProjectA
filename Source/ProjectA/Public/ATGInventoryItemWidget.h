@@ -11,27 +11,8 @@ class UImage;
 class UTextBlock;
 class UATGInventoryComponent;
 class USizeBox;
-
-USTRUCT(BlueprintType)
-struct FATGItemInfo
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly)
-	UATGInventoryItemWidget* ItemWidget;
-
-	UPROPERTY(BlueprintReadOnly)
-	TSoftObjectPtr<UATGItemData> ItemDef;
-
-	UPROPERTY(BlueprintReadOnly)
-	int32 EntryId = -1;
-
-	UPROPERTY(BlueprintReadOnly)
-	int32 Quantity = -1;
-
-	UPROPERTY(BlueprintReadOnly)
-	bool bIsRotated = false;
-};
+struct FATGItemInfo;
+class UATGItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemPressed, const FATGItemInfo&, ItemInfo);
 

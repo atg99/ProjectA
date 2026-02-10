@@ -39,6 +39,9 @@ class PROJECTA_API UATGConsumableItemData : public UATGItemData
 public:
 	UATGConsumableItemData();
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+    int32 ConsumeAmount = 0;
+
     // 아이템을 "사용"하는 행동
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
     TSubclassOf<UGameplayAbility> ActiveAbility;
