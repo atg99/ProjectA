@@ -6,6 +6,7 @@
 #include "Data/ATGItemData.h"
 #include "Data/ATGConsumableItemData.h"
 #include "ATGInventoryComponent.h"
+#include "ATGItemObject.h"
 
 void UATGItemContextMenuWidget::NativeConstruct()
 {
@@ -21,9 +22,18 @@ void UATGItemContextMenuWidget::NativeConstruct()
     }
 }
 
-void UATGItemContextMenuWidget::InitMenu(UATGItemData* InItemData)
+void UATGItemContextMenuWidget::InitMenu(FATGItemInfo& ItemInfo)
 {
-    UATGConsumableItemData* ConsumableItemData = Cast<UATGConsumableItemData>(InItemData);
+    CurrentItemInfo = ItemInfo;
+
+    UATGItemData* ItemData = ItemInfo.ItemDef.Get();
+    if (!ItemData)
+    {
+        ItemData = ItemInfo.ItemDef.LoadSynchronous();
+        ensure(ItemData);
+    }
+
+    UATGConsumableItemData* ConsumableItemData = Cast<UATGConsumableItemData>(ItemData);
 
     if (ConsumableItemData)
     {
@@ -33,26 +43,23 @@ void UATGItemContextMenuWidget::InitMenu(UATGItemData* InItemData)
     {
         Btn_Use->SetVisibility(ESlateVisibility::Collapsed);
     }
-
-    CurrentItemData = InItemData;
 }
 
 void UATGItemContextMenuWidget::OnUseClicked()
 {
-    if (CurrentItemData)
+    if (CurrentItemInfo.ItemWidget.IsValid())
     {
         // 아이템 사용 로직 호출
-        UATGConsumableItemData* ConsumableItemData = Cast<UATGConsumableItemData>(CurrentItemData);
-        InvenComp->UseItem(ConsumableItemData);
+        InvenComp->UseItem(CurrentItemInfo);
 
-        // 메뉴 닫기 (부모에게 요청하거나 스스로 숨김)
+        // 메뉴 닫기
         SetVisibility(ESlateVisibility::Collapsed);
     }
 }
 
 void UATGItemContextMenuWidget::OnDropClicked()
 {
-    if (CurrentItemData)
+    if (CurrentItemInfo.ItemWidget.IsValid())
     {
         // 아이템 버리기 로직 호출
         // CurrentItemData->Drop();

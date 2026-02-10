@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "ATGEnum.h"
 #include "ATGItemContextMenuWidget.generated.h"
 
 /**
@@ -23,7 +24,7 @@ public:
     virtual void NativeConstruct() override;
 
     // 메뉴를 열 때 호출하여 어떤 아이템인지 설정
-    void InitMenu(UATGItemData* InItemData);
+    void InitMenu(FATGItemInfo& ItemInfo);
 
     UATGInventoryComponent* InvenComp;
 
@@ -43,5 +44,5 @@ private:
     void OnDropClicked();
 
     UPROPERTY()
-    UATGItemData* CurrentItemData; // 현재 선택된 아이템
+    FATGItemInfo CurrentItemInfo; // 현재 선택된 아이템
 };

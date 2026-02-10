@@ -125,6 +125,9 @@ public:
 	void ServerRemoveItem(int32 EntryId);
 
 	UFUNCTION(Server, Reliable)
+	void ServerDecreaseItem(int32 EntryId, int32 Qty);
+
+	UFUNCTION(Server, Reliable)
 	void ServerSpawnItem(int32 EntryId, int32 SplitNum = -1);
 
 	//Client CallBack
@@ -218,7 +221,7 @@ protected:
 public:
 
 	UFUNCTION(BlueprintCallable)
-	void UseItem(const UATGConsumableItemData* ItemData);
+	void UseItem(const FATGItemInfo& ItemInfo);
 
 	UFUNCTION(BlueprintCallable)
 	virtual void OpenContextMenu(FATGItemInfo& ItemInfo, FVector2D ScreenPosition) override;

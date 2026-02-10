@@ -115,9 +115,11 @@ void AATGPlayerCharacter::PossessedBy(AController* NewController)
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
-		GiveAbility(DefaultItemUseAbility);
+		for (const auto& Ability : ItemUseAbilities)
+		{
+			GiveAbility(Ability);
+		}
 	}
-
 }
 
 void AATGPlayerCharacter::GiveAbility(TSubclassOf<UGameplayAbility> GameplayAbility)

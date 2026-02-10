@@ -2,10 +2,12 @@
 
 
 #include "GAS/GA_UseItem.h"
-
 #include "Data/ATGConsumableItemData.h"                                                                                          
 #include "AbilitySystemComponent.h"                                                                                              
-#include "AbilitySystemBlueprintLibrary.h"                                                                                       
+#include "AbilitySystemBlueprintLibrary.h"      
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerState.h"
+#include "ATGInventoryComponent.h"
 
 UGA_UseItem::UGA_UseItem()
 {
@@ -14,13 +16,45 @@ UGA_UseItem::UGA_UseItem()
     NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
 
-const UATGConsumableItemData* UGA_UseItem::GetItemDataFromEvent(const FGameplayEventData& EventData) const
+const UATGItemObject* UGA_UseItem::GetItemDataFromEvent(const FGameplayEventData& EventData) const
 {    
-    return Cast<const UATGConsumableItemData>(EventData.OptionalObject);
+    return nullptr;
 }
 
-TArray<FActiveGameplayEffectHandle> UGA_UseItem::ApplyItemEffects(const UATGConsumableItemData* ItemData)
+// Decrease Item Amounts
+void UGA_UseItem::ConsumeItem(const FGameplayEventData& EventData)
 {
+
+    // Check Authority
+    if (!GetOwningActorFromActorInfo()->HasAuthority())
+    {
+        return;
+    }
+
+    const AActor* AvatarActor = GetAvatarActorFromActorInfo();
+    const APlayerController* PC = Cast<APlayerController>(AvatarActor->GetOwner());
+    if (PC)
+    {
+        const APlayerState* PS = PC->GetPlayerState<APlayerState>();
+        UATGInventoryComponent* InvenComp = PS->GetComponentByClass<UATGInventoryComponent>();
+        if (InvenComp)
+        {
+            int32 DecreaseAmount = 0;
+            const UATGConsumableItemData* ConsumableItemData = Cast<const UATGConsumableItemData>(EventData.OptionalObject);
+            if (ConsumableItemData)
+            {
+                DecreaseAmount = ConsumableItemData->ConsumeAmount;
+            }
+            // call InvenComp decrease Item Qty
+            int32 ItemID = FMath::RoundToInt(EventData.EventMagnitude);
+            InvenComp->ServerDecreaseItem(ItemID, DecreaseAmount);
+        }
+    }
+}
+
+TArray<FActiveGameplayEffectHandle> UGA_UseItem::ApplyItemEffectsToSelf(const UATGConsumableItemData* ItemData)
+{
+
     TArray<FActiveGameplayEffectHandle> ActiveHandles;
 
     if (!ItemData)

@@ -10,6 +10,8 @@
 /**
  * 
  */
+class UATGItemObject;
+
 UCLASS()
 class PROJECTA_API UGA_UseItem : public UGameplayAbility
 {
@@ -23,12 +25,15 @@ public:
      * Expects the ItemData to be passed in OptionalObject.
      */
     UFUNCTION(BlueprintCallable, Category = "Item")
-    const UATGConsumableItemData* GetItemDataFromEvent(const FGameplayEventData& EventData) const;
+    const UATGItemObject* GetItemDataFromEvent(const FGameplayEventData& EventData) const;
 
     /**
      * Applies the effects defined in the ItemData to the owner.
      * Typically called from Blueprint after animation/delay.
      */
     UFUNCTION(BlueprintCallable, Category = "Item")
-    TArray<FActiveGameplayEffectHandle> ApplyItemEffects(const UATGConsumableItemData* ItemData);
+    TArray<FActiveGameplayEffectHandle> ApplyItemEffectsToSelf(const UATGConsumableItemData* ItemData);
+
+    UFUNCTION(BlueprintCallable, Category = "Item")
+    void ConsumeItem(const FGameplayEventData& EventData);
 };

@@ -56,7 +56,7 @@ public:
 	//TSubclassOf<class UGameplayAbility> DefaultAbility;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GAS")
-	TSubclassOf<UGameplayAbility> DefaultItemUseAbility;
+	TArray<TSubclassOf<UGameplayAbility>> ItemUseAbilities;
 
 	void GiveAbility(TSubclassOf<UGameplayAbility> GameplayAbility);
 

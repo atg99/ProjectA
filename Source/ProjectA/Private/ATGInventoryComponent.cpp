@@ -19,6 +19,7 @@
 #include "Widget/ATGItemContextMenuWidget.h"
 #include "ATGInventoryItemWidget.h"
 #include "ATGEnum.h"
+#include "ATGItemObject.h"
 
 UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Event_Item_Use, "Event.Item.Use", "event when use consumableitem");
 
@@ -473,6 +474,12 @@ void UATGInventoryComponent::ServerRemoveItem_Implementation(int32 EntryId)
 		//OnItemRemoved.Broadcast(EntryId);
 }
 
+void UATGInventoryComponent::ServerDecreaseItem_Implementation(int32 EntryId, int32 Qty)
+{
+	Inventory.DecreaseQtyAndRemoveById(EntryId, Qty);
+		//OnItemRemoved.Broadcast(EntryId);
+}
+
 void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId, int32 SplitNum)
 {
 	// ItemBPClass�� ���������� �ʴٸ� Lobby Spawn X
@@ -544,7 +551,7 @@ void UATGInventoryComponent::HandleReplicatedAdd(int32 EntryId)
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! InventComp HandleReplicatedAddp"));
 }
 
-void UATGInventoryComponent::UseItem(const UATGConsumableItemData* ItemData)
+void UATGInventoryComponent::UseItem(const FATGItemInfo& ItemInfo)
 {
 	AActor* OwnerActor = GetOwner();
 	APawn* AvatarPawn = nullptr;
@@ -563,11 +570,20 @@ void UATGInventoryComponent::UseItem(const UATGConsumableItemData* ItemData)
 		return;
 	}
 
+	UATGItemData* ItemData = ItemInfo.ItemDef.Get();
+	if (!ItemData)
+	{
+		ItemData = ItemInfo.ItemDef.LoadSynchronous();
+		ensure(ItemData);
+	}
+	UATGConsumableItemData* ConsumableItemData = Cast<UATGConsumableItemData>(ItemData);
+
 	FGameplayEventData Payload;
+	Payload.EventMagnitude = ItemInfo.EntryId;
 	Payload.Instigator = AvatarPawn; // Instigator를 Pawn으로 설정
 	Payload.Target = AvatarPawn;     // Target도 Pawn
-	Payload.OptionalObject = ItemData;
-	Payload.EventTag = TAG_Event_Item_Use;
+	Payload.EventTag = ConsumableItemData->AbilityTriggerTag;
+	Payload.OptionalObject = ConsumableItemData;
 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(AvatarPawn, Payload.EventTag, Payload);
 }
@@ -579,20 +595,14 @@ void UATGInventoryComponent::OpenContextMenu(FATGItemInfo& ItemInfo, FVector2D S
 		return;
 	}
 
-	UATGItemData* ItemData = ItemInfo.ItemDef.Get();
-	if (!ItemData)
-	{
-		ItemData = ItemInfo.ItemDef.LoadSynchronous();
-		ensure(ItemData);
-	}
+	// 데이터 세팅
 
-	// 1. 데이터 세팅
-	ContextMenuWidget->InitMenu(ItemData);
+	ContextMenuWidget->InitMenu(ItemInfo);
 
-	// 2. 위치 설정 (마우스 위치로 이동)
+	// 위치 설정 (마우스 위치로 이동)
 	ContextMenuWidget->SetPositionInViewport(ScreenPosition);
 
-	// 3. 보이게 설정
+	// 보이게 설정
 	ContextMenuWidget->SetVisibility(ESlateVisibility::Visible);
 
 }

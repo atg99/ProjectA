@@ -42,15 +42,23 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
     int32 ConsumeAmount = 0;
 
-    // 아이템을 "사용"하는 행동
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-    TSubclassOf<UGameplayAbility> ActiveAbility;
+    //어떤 능력을 실행할지 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Use")
+    FGameplayTag AbilityTriggerTag;
 
     // 사용했을 때 적용될 효과
     // 어빌리티가 실행될 때 이 Effect 클래스를 가져다 캐릭터에게 적용
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Use")
     TArray<FItemEffectInfo> ItemEffects;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-    UAnimMontage* ConsumMontage;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Use")
+    UAnimMontage* UseMontage;
+
+    // 던질 투사체 클래스 (예: BP_Grenade_Fire, BP_Grenade_Ice)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Use | Throw")
+    TSubclassOf<AActor> ProjectileClass;
+
+    // 던지는 힘 (속도)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Use | Throw")
+    float ThrowSpeed = 1000.f;
 };
