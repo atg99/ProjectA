@@ -323,12 +323,14 @@ void UATGPlayerEquipComponent::ChangePlayerUsingSlot(EEquipmentSlotType DesiredS
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
 {
     //NET_LOG("");
+    
     if(CurrentUsingSlot == EEquipmentSlotType::None)
     {
         if (AATGPlayerController* APC = Cast<AATGPlayerController>(GetOwningPlayerCharacter()->GetController()))
         {
             APC->WeaponInputMapping(EWeaponCategory::None);
         }
+        OnEquipWeapon.Broadcast(EWeaponCategory::None);
 		return;
 	}
 
@@ -341,6 +343,7 @@ void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
         {
             APC->WeaponInputMapping(Weapon->WeaponData->WeaponCategory);
         }
+        OnEquipWeapon.Broadcast(Weapon->WeaponData->WeaponCategory);
     }
 
     //√—±‚ ¿Œ«≤ ∏ «Œ

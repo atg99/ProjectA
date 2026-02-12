@@ -13,6 +13,8 @@ class AATGWeaponBase;
 class UATGRangeWeaponData;
 class UATGMeleeWeaponData;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEquipWeapon, EWeaponCategory, WeaponCategory);
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTA_API UATGPlayerEquipComponent : public UActorComponent
 {
@@ -42,6 +44,9 @@ public:
 	//현재 사용중인 슬롯
 	UPROPERTY(ReplicatedUsing = "OnRep_CurrentUsingSlot", BlueprintReadOnly, Category = "Equipment")
 	EEquipmentSlotType CurrentUsingSlot = EEquipmentSlotType::None;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnEquipWeapon OnEquipWeapon;
 
 	UFUNCTION()
 	void OnRep_CurrentUsingSlot();
@@ -134,6 +139,7 @@ protected:
 public:
 	FEquipmentSlot* GetSlotByType(EEquipmentSlotType SlotType);
 
+	UFUNCTION(BlueprintCallable)
 	EWeaponCategory GetCurrentEquippedWeaponCategory();
 
 };
