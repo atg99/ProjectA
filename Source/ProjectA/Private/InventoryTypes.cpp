@@ -1070,6 +1070,11 @@ void FInventoryGrid::SortEntryByItemId()
     //id기반 삭제
     Owner.GetObject()->GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this, DeleteIds, WeakOwner]() {
         
+        if (!WeakOwner.IsValid())
+        {
+            return;
+        }
+
         if (DeleteIds.Num() > 0)
         {
             Entries.RemoveAll([&](const FInventoryEntry& Val) {
@@ -1080,6 +1085,10 @@ void FInventoryGrid::SortEntryByItemId()
 
             if (Owner)
             {
+                for (const int32 DId : DeleteIds)
+                {
+                    Owner->ItemRemoved(DId);
+                }
                 Owner->InventoryForceNetUpdate();
             }
         }

@@ -451,6 +451,7 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
     FTransform CutPlaneInDMCRefPoseSpace = PlaneRelativeToBone * BoneRefPoseCompSpace;
 
 	TSet<int32> TargetBoneIndices;
+    //TargetBoneIndices.Add(BoneIndex);
 	USliceUtils::FindPlaneCutBones(Mesh->GetSkeletalMeshAsset(), CutPlaneInDMCRefPoseSpace, TargetBoneIndices);
     if (!CutableBones.IsEmpty())
     {
@@ -478,7 +479,6 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
         TargetBoneIndices.Empty();
         TargetBoneIndices.Add(FixedBoneIndex);
     }
-    
 
     FGeometryScriptMeshPlaneCutOptions PlaneCutOptions;
     PlaneCutOptions.bFillHoles = true;
@@ -617,116 +617,232 @@ void USliceSystemComponent::RefineSkinWeights(FSlicePMC& InSlicePMC, const TSet<
 
     if (CutBoneIndices.Num() == 0) return;
 
-    // ---------------------------------------------------------
-    // 1. "Debris에 속하는 본" 전체 목록 작성 (Pre-calculation)
-    // ---------------------------------------------------------
+    int32 PrimaryCutBone = -1;
+    for (int32 idx : CutBoneIndices) { PrimaryCutBone = idx; break; }
+
+    // 1. Debris(잘려나간 부위) 마스크 생성
     TArray<bool> IsDebrisBone;
     IsDebrisBone.Init(false, NumBones);
-
-    // (1) 절단면 본들(Root of Debris)을 먼저 마킹
-    for (int32 CutBoneIdx : CutBoneIndices)
-    {
-        if (IsDebrisBone.IsValidIndex(CutBoneIdx))
-        {
-            IsDebrisBone[CutBoneIdx] = true;
-        }
-    }
-
-    // (2) 계층 구조를 순회하며 Debris의 자식들도 모두 Debris로 마킹
-    // * 중요: 본 인덱스는 부모 < 자식 순서가 보장되므로 1회 순회로 충분함
     for (int32 i = 1; i < NumBones; ++i)
     {
-        int32 ParentIndex = RefSkeleton.GetParentIndex(i);
-        if (ParentIndex != INDEX_NONE && IsDebrisBone[ParentIndex])
+        // 자신이 잘린 뼈이거나, 부모가 잘린 뼈라면 Debris로 판정 (계층구조 순회 보장)
+        if (CutBoneIndices.Contains(i) || (RefSkeleton.GetParentIndex(i) != INDEX_NONE && IsDebrisBone[RefSkeleton.GetParentIndex(i)]))
         {
             IsDebrisBone[i] = true;
         }
     }
 
-    // ---------------------------------------------------------
-    // 2. 고아 버텍스 처리를 위한 Fallback 본 인덱스 결정
-    // ---------------------------------------------------------
-    // 여러 개의 뼈가 잘렸을 때, 대표로 사용할 뼈 하나를 정합니다. (보통 첫 번째 것)
-    int32 PrimaryCutBone = -1;
-    for (int32 idx : CutBoneIndices) { PrimaryCutBone = idx; break; }
-
-    int32 FallbackBoneIndex = 0; // Default Root
+    // 2. 웨이트 이전 맵(Bone Remap) 구성 ★핵심★
+    TArray<int32> BoneMap;
+    BoneMap.Init(0, NumBones);
 
     if (bIsStump)
     {
-        // Stump인데 웨이트가 다 사라졌다 -> 잘린 뼈의 부모(몸통 쪽)에 붙임
-        int32 ParentIdx = RefSkeleton.GetParentIndex(PrimaryCutBone);
-        FallbackBoneIndex = (ParentIdx != INDEX_NONE) ? ParentIdx : 0;
-    }
-    else
-    {
-        // Debris인데 웨이트가 다 사라졌다 -> 잘린 뼈(파편 쪽)에 붙임
-        FallbackBoneIndex = PrimaryCutBone;
-    }
+        // [Stump 로직]: 잘려나간 뼈들의 웨이트를 그 부모 뼈(살아남은 뼈)에게 넘겨줌
+        for (int32 i = 0; i < NumBones; ++i) BoneMap[i] = i; // 기본은 자기 자신
 
-
-    // ---------------------------------------------------------
-    // 3. 버텍스 웨이트 정제 (Single Pass)
-    // ---------------------------------------------------------
-    for (FCachedSkinVertex& V : InSlicePMC.SkinCache)
-    {
-        float NewWeights[4] = { 0.f, 0.f, 0.f, 0.f };
-        float TotalWeight = 0.0f;
-
-        for (int32 w = 0; w < 4; ++w)
+        for (int32 i = 1; i < NumBones; ++i)
         {
-            int32 BoneIdx = V.BoneIndices[w];
-            float OrigWeight = V.BoneWeights[w];
-
-            if (OrigWeight <= 0.001f) continue;
-
-            bool bBoneIsDebris = IsDebrisBone.IsValidIndex(BoneIdx) ? IsDebrisBone[BoneIdx] : false;
-
-            // [로직] 필터링
-            if (bIsStump && bBoneIsDebris)
+            if (CutBoneIndices.Contains(i))
             {
-                // Stump(몸통)인데 Debris(잘린 뼈) 웨이트를 가짐 -> 제거 대상
-                NewWeights[w] = 0.0f;
-            }
-            else if (!bIsStump && !bBoneIsDebris)
-            {
-                // Debris(파편)인데 Stump(몸통) 웨이트를 가짐 -> 제거 대상
-                NewWeights[w] = 0.0f;
+                int32 ParentIdx = RefSkeleton.GetParentIndex(i);
+                BoneMap[i] = (ParentIdx != INDEX_NONE) ? ParentIdx : 0;
             }
             else
             {
-                // 유지
-                NewWeights[w] = OrigWeight;
+                int32 ParentIdx = RefSkeleton.GetParentIndex(i);
+                if (ParentIdx != INDEX_NONE && BoneMap[ParentIdx] != ParentIdx)
+                {
+                    // 부모가 매핑되었다면 나도 부모를 따라감
+                    BoneMap[i] = BoneMap[ParentIdx];
+                }
             }
-
-            TotalWeight += NewWeights[w];
         }
-
-        if (TotalWeight > 0.001f)
+    }
+    else
+    {
+        // [Debris 로직]: 몸통에 남은 뼈들의 웨이트를 잘려나간 가장 최상위 뼈에게 넘겨줌
+        for (int32 i = 0; i < NumBones; ++i)
         {
-            // [정상 케이스] 남은 웨이트가 있으면 정규화해서 적용
-            float Scale = 1.0f / TotalWeight;
-            for (int32 w = 0; w < 4; ++w)
+            BoneMap[i] = IsDebrisBone[i] ? i : PrimaryCutBone;
+        }
+    }
+
+    // 3. 버텍스 웨이트 재분배 (정규화 불필요, 총합은 알아서 1.0 유지됨)
+    for (FCachedSkinVertex& V : InSlicePMC.SkinCache)
+    {
+        int32 TempIndices[4] = { 0, 0, 0, 0 };
+        float TempWeights[4] = { 0.f, 0.f, 0.f, 0.f };
+        int32 UniqueCount = 0;
+
+        for (int32 w = 0; w < 4; ++w)
+        {
+            if (V.BoneWeights[w] <= 0.001f) continue;
+
+            // 웨이트를 이전받을 뼈 확인
+            int32 MappedBone = BoneMap[V.BoneIndices[w]];
+
+            // 이미 해당 뼈가 배열에 있다면 웨이트 합치기
+            bool bFound = false;
+            for (int32 k = 0; k < UniqueCount; ++k)
             {
-                V.BoneWeights[w] = NewWeights[w] * Scale;
+                if (TempIndices[k] == MappedBone)
+                {
+                    TempWeights[k] += V.BoneWeights[w];
+                    bFound = true;
+                    break;
+                }
+            }
+
+            // 배열에 없다면 새로 추가
+            if (!bFound && UniqueCount < 4)
+            {
+                TempIndices[UniqueCount] = MappedBone;
+                TempWeights[UniqueCount] = V.BoneWeights[w];
+                UniqueCount++;
             }
         }
-        else
+
+        // 결과 덮어쓰기
+        FMemory::Memzero(V.BoneIndices, sizeof(V.BoneIndices));
+        FMemory::Memzero(V.BoneWeights, sizeof(V.BoneWeights));
+        for (int32 k = 0; k < UniqueCount; ++k)
         {
-            // [문제 해결] 웨이트가 다 사라진 고아 버텍스 발생! (표면 경계면)
-
-            // Stump(몸통)라면 -> 잘린 뼈의 부모(어깨/몸통)에 강제로 붙임
-            // Debris(파편)라면 -> 잘린 뼈(상박)에 강제로 붙임
-
-            // PrimaryCutBone: 아까 밖에서 구해둔 잘린 뼈 인덱스
-            // FallbackBoneIndex: Stump면 부모본, Debris면 자기자신 (함수 도입부에서 계산 필요)
-
-            FMemory::Memzero(V.BoneWeights, sizeof(V.BoneWeights)); // 0으로 초기화
-            V.BoneIndices[0] = FallbackBoneIndex; // 강제 할당
-            V.BoneWeights[0] = 1.0f;
+            V.BoneIndices[k] = TempIndices[k];
+            V.BoneWeights[k] = TempWeights[k];
         }
     }
 }
+
+//void USliceSystemComponent::RefineSkinWeights(FSlicePMC& InSlicePMC, const TSet<int32>& CutBoneIndices, bool bIsStump)
+//{
+//    ACharacter* Character = Cast<ACharacter>(GetOwner());
+//    if (!Character || !Character->GetMesh()) return;
+//
+//    const FReferenceSkeleton& RefSkeleton = Character->GetMesh()->GetSkeletalMeshAsset()->GetRefSkeleton();
+//    int32 NumBones = RefSkeleton.GetNum();
+//
+//    if (CutBoneIndices.Num() == 0) return;
+//
+//    // ---------------------------------------------------------
+//    // 1. "Debris에 속하는 본" 전체 목록 작성 (Pre-calculation)
+//    // ---------------------------------------------------------
+//    TArray<bool> IsDebrisBone;
+//    IsDebrisBone.Init(false, NumBones);
+//
+//    // (1) 절단면 본들(Root of Debris)을 먼저 마킹
+//    for (int32 CutBoneIdx : CutBoneIndices)
+//    {
+//        if (IsDebrisBone.IsValidIndex(CutBoneIdx))
+//        {
+//            IsDebrisBone[CutBoneIdx] = true;
+//        }
+//    }
+//
+//    // (2) 계층 구조를 순회하며 Debris의 자식들도 모두 Debris로 마킹
+//    // * 중요: 본 인덱스는 부모 < 자식 순서가 보장되므로 1회 순회로 충분함
+//    for (int32 i = 1; i < NumBones; ++i)
+//    {
+//        int32 ParentIndex = RefSkeleton.GetParentIndex(i);
+//        if (ParentIndex != INDEX_NONE && IsDebrisBone[ParentIndex])
+//        {
+//            IsDebrisBone[i] = true;
+//        }
+//    }
+//
+//    // ---------------------------------------------------------
+//    // 2. 고아 버텍스 처리를 위한 Fallback 본 인덱스 결정
+//    // ---------------------------------------------------------
+//    // 여러 개의 뼈가 잘렸을 때, 대표로 사용할 뼈 하나를 정합니다. (보통 첫 번째 것)
+//    int32 PrimaryCutBone = -1;
+//    for (int32 idx : CutBoneIndices) { PrimaryCutBone = idx; break; }
+//
+//    int32 FallbackBoneIndex = 0; // Default Root
+//
+//    if (bIsStump)
+//    {
+//        // Stump인데 웨이트가 다 사라졌다 -> 잘린 뼈의 부모(몸통 쪽)에 붙임
+//        int32 ParentIdx = RefSkeleton.GetParentIndex(PrimaryCutBone);
+//        FallbackBoneIndex = (ParentIdx != INDEX_NONE) ? ParentIdx : 0;
+//    }
+//    else
+//    {
+//        // Debris인데 웨이트가 다 사라졌다 -> 잘린 뼈(파편 쪽)에 붙임
+//        FallbackBoneIndex = PrimaryCutBone;
+//    }
+//
+//
+//    // ---------------------------------------------------------
+//    // 3. 버텍스 웨이트 정제 (Single Pass)
+//    // ---------------------------------------------------------
+//    for (FCachedSkinVertex& V : InSlicePMC.SkinCache)
+//    {
+//        //// [핵심 추가] 단면(Cap) 버텍스라면 무조건 단일 뼈에 100% 웨이트 할당 (계단 현상 방지)
+//        //if (V.SectionIndex == 10)
+//        //{
+//        //    FMemory::Memzero(V.BoneWeights, sizeof(V.BoneWeights)); // 웨이트 초기화
+//        //    V.BoneIndices[0] = FallbackBoneIndex; // Stump면 부모 뼈, Debris면 잘린 뼈
+//        //    V.BoneWeights[0] = 1.0f;              // 100% 강제 할당
+//        //    continue; // 보간 웨이트 필터링 로직 건너뜀
+//        //}
+//
+//        float NewWeights[4] = { 0.f, 0.f, 0.f, 0.f };
+//        float TotalWeight = 0.0f;
+//
+//        for (int32 w = 0; w < 4; ++w)
+//        {
+//            int32 BoneIdx = V.BoneIndices[w];
+//            float OrigWeight = V.BoneWeights[w];
+//
+//            if (OrigWeight <= 0.001f) continue;
+//
+//            bool bBoneIsDebris = IsDebrisBone.IsValidIndex(BoneIdx) ? IsDebrisBone[BoneIdx] : false;
+//
+//            // [로직] 필터링
+//            if (bIsStump && bBoneIsDebris)
+//            {
+//                // Stump(몸통)인데 Debris(잘린 뼈) 웨이트를 가짐 -> 제거 대상
+//                NewWeights[w] = 0.0f;
+//            }
+//            else if (!bIsStump && !bBoneIsDebris)
+//            {
+//                // Debris(파편)인데 Stump(몸통) 웨이트를 가짐 -> 제거 대상
+//                NewWeights[w] = 0.0f;
+//            }
+//            else
+//            {
+//                // 유지
+//                NewWeights[w] = OrigWeight;
+//            }
+//
+//            TotalWeight += NewWeights[w];
+//        }
+//
+//        if (TotalWeight > 0.001f)
+//        {
+//            // [정상 케이스] 남은 웨이트가 있으면 정규화해서 적용
+//            float Scale = 1.0f / TotalWeight;
+//            for (int32 w = 0; w < 4; ++w)
+//            {
+//                V.BoneWeights[w] = NewWeights[w] * Scale;
+//            }
+//        }
+//        else
+//        {
+//            // [문제 해결] 웨이트가 다 사라진 고아 버텍스 발생! (표면 경계면)
+//
+//            // Stump(몸통)라면 -> 잘린 뼈의 부모(어깨/몸통)에 강제로 붙임
+//            // Debris(파편)라면 -> 잘린 뼈(상박)에 강제로 붙임
+//
+//            // PrimaryCutBone: 아까 밖에서 구해둔 잘린 뼈 인덱스
+//            // FallbackBoneIndex: Stump면 부모본, Debris면 자기자신 (함수 도입부에서 계산 필요)
+//
+//            FMemory::Memzero(V.BoneWeights, sizeof(V.BoneWeights)); // 0으로 초기화
+//            V.BoneIndices[0] = FallbackBoneIndex; // 강제 할당
+//            V.BoneWeights[0] = 1.0f;
+//        }
+//    }
+//}
 
 void USliceSystemComponent::InitializePMCBuffers(FSlicePMC& InSlicePMC)
 {

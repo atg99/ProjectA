@@ -147,6 +147,12 @@ protected:
 
 	virtual void TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<class UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotate = false) override;
 
+	UFUNCTION()
+	virtual void TrySortByItemId() override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerSortByItemId();
+
 	TArray<int32> AddItemAuto(FClientAddRequest& ClientAddRequest);
 
 	UFUNCTION(Server, Reliable)

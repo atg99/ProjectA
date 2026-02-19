@@ -7,6 +7,7 @@
 #include "Data/ATGConsumableItemData.h"
 #include "ATGInventoryComponent.h"
 #include "ATGItemObject.h"
+#include "ATGInventoryItemWidget.h"
 
 void UATGItemContextMenuWidget::NativeConstruct()
 {
@@ -47,7 +48,7 @@ void UATGItemContextMenuWidget::InitMenu(FATGItemInfo& ItemInfo)
 
 void UATGItemContextMenuWidget::OnUseClicked()
 {
-    if (CurrentItemInfo.ItemWidget.IsValid())
+    if (IsValid(CurrentItemInfo.ItemWidget))
     {
         // 아이템 사용 로직 호출
         InvenComp->UseItem(CurrentItemInfo);
@@ -59,7 +60,7 @@ void UATGItemContextMenuWidget::OnUseClicked()
 
 void UATGItemContextMenuWidget::OnDropClicked()
 {
-    if (CurrentItemInfo.ItemWidget.IsValid())
+    if (IsValid(CurrentItemInfo.ItemWidget))
     {
         // 아이템 버리기 로직 호출
         // CurrentItemData->Drop();

@@ -271,6 +271,16 @@ void UATGContainerComponent::TryAddItemAt(TScriptInterface<IATGInventoryOwnerInt
 	ServerAddItemAt(ClientAddRequest, OtherGridId, Inven);
 }
 
+void UATGContainerComponent::TrySortByItemId()
+{
+	ServerSortByItemId();
+}
+
+void UATGContainerComponent::ServerSortByItemId_Implementation()
+{
+	ContainerInventory.SortEntryByItemId();
+}
+
 void UATGContainerComponent::ServerAddItemAt_Implementation(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven)
 {
 	if (ClientAddRequest.ItemDef.IsNull())

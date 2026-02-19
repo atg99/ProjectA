@@ -233,7 +233,7 @@ struct FATGItemInfo
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly)
-	TWeakObjectPtr<class UATGInventoryItemWidget> ItemWidget;
+	class UATGInventoryItemWidget* ItemWidget;
 
 	UPROPERTY(BlueprintReadOnly)
 	TSoftObjectPtr<class UATGItemData> ItemDef;

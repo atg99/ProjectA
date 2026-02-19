@@ -13,6 +13,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h" // DetectDragIfPressed
 #include "InputCoreTypes.h" // EKeys
 #include "ATGEnum.h"
+#include "Utils/NetworkUtil.h"
 
 void UATGInventoryItemWidget::SetupFromEntry(const TScriptInterface<IATGInventoryOwnerInterface> InInven, const FInventoryEntry& InEntry, int32 InCellSize, int32 InCellPadding)
 {
@@ -104,7 +105,7 @@ void UATGInventoryItemWidget::SetLockItem(bool InbIsLock)
 
 FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, const FPointerEvent& InMouseEvent)
 {
-
+	NET_LOG(FString::Printf(TEXT("bCanDrag: %d bIsLock: %d"), bCanDrag, bIsLock));
 	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 	{
 		FATGItemInfo Info;
@@ -119,7 +120,7 @@ FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, 
 		return FReply::Handled();
 	}
 
-	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && bCanDrag && !bIsLock)
+	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
 		if (OnItemPressed.IsBound())
 		{
@@ -132,7 +133,10 @@ FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, 
 
 			OnItemPressed.Broadcast(Info);
 		}
-		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
+		if (bCanDrag)
+		{
+			return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
+		}
 	}
 	return Super::NativeOnMouseButtonDown(InGeo, InMouseEvent);
 }
