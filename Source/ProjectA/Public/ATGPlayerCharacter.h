@@ -26,6 +26,8 @@ class AATGWeaponBase;
 class USkeletalMeshComponent;
 class UGameplayAbility;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedSignature, float, OldValue, float, NewValue);
+
 UCLASS()
 class PROJECTA_API AATGPlayerCharacter : public ACharacter, public IGenericTeamAgentInterface, public IAbilitySystemInterface
 {
@@ -52,12 +54,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	UCharacterAttributeSet* AttributeSet;
 
-	// 블루프린트에서 스킬 할당할 변수
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
-	//TSubclassOf<class UGameplayAbility> DefaultAbility;
+	// 스텟 초기화용
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	TSubclassOf<class UGameplayEffect> DefaultAttributesEffectClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GAS")
 	TArray<TSubclassOf<UGameplayAbility>> ItemUseAbilities;
+  
+	UPROPERTY(BlueprintAssignable, Category = "GAS|Attributes")
+	FOnHealthChangedSignature OnHealthChanged;
 
 	void GiveAbility(TSubclassOf<UGameplayAbility> GameplayAbility);
 

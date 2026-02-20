@@ -9,6 +9,7 @@
 #include "Engine/HitResult.h"
 #include "Interface/DamageableInterface.h"
 #include "AbilitySystemInterface.h" 
+#include "Interface/MeleeWeaponInterface.h"
 #include "ZombieEnemy.generated.h"
 
 struct FLastDamageCapture
@@ -26,7 +27,7 @@ class UNiagaraSystem;
 class USliceSystemComponent;
 
 UCLASS()
-class PROJECTA_API AZombieEnemy : public ACharacter, public IATGBTInterface, public IDamageableInterface, public IAbilitySystemInterface
+class PROJECTA_API AZombieEnemy : public ACharacter, public IATGBTInterface, public IDamageableInterface, public IAbilitySystemInterface, public IMeleeWeaponInterface
 {
 	GENERATED_BODY()
 
@@ -38,6 +39,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	virtual void PossessedBy(AController* NewController) override;
 public:
 
 	//-----------IAbilitySystemInterface
@@ -55,9 +57,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Damageable")
 	virtual void ApplyHealing(float Healing, AActor* Healer) override;
 	//------------------------------------
+
+	//-----------IMeleeWeaponInterface
+	virtual void StartHitCheck() override;
+	virtual void TickHitCheck() override;
+	virtual void EndHitCheck() override;
+	//------------------------------------
 protected:
 
-	UFUNCTION(NetMulticast, Reliable) //º¹»ç·Î Àü¼Û
+	UFUNCTION(NetMulticast, Reliable) //ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	void Multi_HandleDeath(const FHitResult& InHitResult);
 
 protected:
@@ -67,9 +75,26 @@ protected:
 	UPROPERTY()
 	class UCharacterAttributeSet* AttributeSet;
 
-	// µ¥¹ÌÁö Àû¿ë¿ë GE (ºí·çÇÁ¸°Æ®¿¡¼­ ¼³Á¤: Instant, Modifier: Damage + SetByCaller)
+	// ìŠ¤í…Ÿ ì´ˆê¸°í™”ìš©
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	TSubclassOf<class UGameplayEffect> DefaultAttributesEffectClass;
+
+	//   GE (Æ®	// ë§ì•˜ì„ ë•Œ ì ìš©í•  GE (ì¸ìŠ¤í„´íŠ¸, ë°ë¯¸ì§€ ë“± ê¸°ë³¸ íƒ€ê²© ì²˜ë¦¬)
 	UPROPERTY(EditDefaultsOnly, Category = "GAS")
 	TSubclassOf<class UGameplayEffect> DefaultDamageEffectClass;
+
+	// ê·¼ì ‘ ê³µê²© ì„±ê³µ ì‹œ ì ì¤‘í•œ ëŒ€ìƒì—ê²Œ ì ìš©í•  ë°ë¯¸ì§€ GE
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Melee")
+	TSubclassOf<class UGameplayEffect> DefaultMeleeDamageEffectClass;
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Melee")
+	FName MeleeSocketName = TEXT("hand_r");
+
+	UPROPERTY(EditAnywhere, Category = "Combat|Melee")
+	float MeleeAttackRadius = 30.f;
+
+	TArray<AActor*> HitActors;
+	bool bIsMeleeAttacking = false;
 
 public:
 

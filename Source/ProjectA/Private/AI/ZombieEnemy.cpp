@@ -5,6 +5,7 @@
 #include "Data/CustomDamageEvents.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Utils/NetworkUtil.h"
 #include "NiagaraFunctionLibrary.h"
@@ -29,7 +30,7 @@ AZombieEnemy::AZombieEnemy()
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal); // AI´Â Minimal
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal); // AIï¿½ï¿½ Minimal
 
 	AttributeSet = CreateDefaultSubobject<UCharacterAttributeSet>(TEXT("AttributeSet"));
 }
@@ -39,9 +40,25 @@ void AZombieEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 
+}
+
+void AZombieEnemy::PossessedBy(AController* NewController)
+{
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
+
+	if (AbilitySystemComponent && DefaultAttributesEffectClass)
+	{
+		// ìê¸° ìì‹ ì—ê²Œ ì´ˆê¸°í™” GEë¥¼ ì ìš©í•˜ì—¬ ë°ë¯¸ì§€, ì²´ë ¥ ë“±ì˜ ê¸°ë³¸ê°’ ì„¸íŒ…
+		FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
+		Context.AddInstigator(this, this);
+		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributesEffectClass, 1.0f, Context);
+		if (SpecHandle.IsValid())
+		{
+			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
 	}
 }
 
@@ -86,7 +103,7 @@ void AZombieEnemy::Tick(float DeltaTime)
 float AZombieEnemy::TryPlayMontage(UAnimMontage* Montage, float PlayRate, FName StartSessionName)
 {
 	float Duration = PlayAnimMontage(Montage, PlayRate, StartSessionName);
-	//¼­¹ö¿¡¼­ °Ë»ç
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ë»ï¿½
 	if (Duration > 0.f)
 	{
 		MultiPlayMontage(Montage, PlayRate, StartSessionName);
@@ -96,7 +113,7 @@ float AZombieEnemy::TryPlayMontage(UAnimMontage* Montage, float PlayRate, FName 
 
 void AZombieEnemy::MultiPlayMontage_Implementation(UAnimMontage* Montage, float PlayRate, FName StartSessionName)
 {
-	//Áßº¹½ÇÇà¹æÁö
+	//ï¿½ßºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (HasAuthority())
 	{
 		return;
@@ -116,7 +133,7 @@ void AZombieEnemy::MultiStopMontage_Implementation(UAnimMontage* Montage)
 	return;
 }
 
-//±âÁ¸ TakeDamage¿Í GAS È£È¯ (ÀÓ½Ã)
+//ï¿½ï¿½ï¿½ï¿½ TakeDamageï¿½ï¿½ GAS È£È¯ (ï¿½Ó½ï¿½)
 float AZombieEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (!AbilitySystemComponent || !DefaultDamageEffectClass)
@@ -168,12 +185,12 @@ float AZombieEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 
 	if (SpecHandle.IsValid())
 	{
-		//µ¥¹ÌÁö ¼öÄ¡¸¦ SetByCaller·Î Àü´Ş (GE_Damage ºí·çÇÁ¸°Æ®¿¡¼­ SetByCaller "Data.Damage"·Î ¼³Á¤µÇ¾î ÀÖ¾î¾ß ÇÔ)
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ SetByCallerï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (GE_Damage ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ï¿½ï¿½ SetByCaller "Data.Damage"ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ç¾ï¿½ ï¿½Ö¾ï¿½ï¿½ ï¿½ï¿½)
 		SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Damage.Amount")), Damage);
 
 		SpecHandle.Data.Get()->AppendDynamicAssetTags(OwnedTags);
 
-		//³ª ÀÚ½Å¿¡°Ô Àû¿ë (ÀÌ ¼ø°£ AttributeSet::PostGameplayEffectExecute°¡ ½ÇÇàµÊ)
+		//ï¿½ï¿½ ï¿½Ú½Å¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ AttributeSet::PostGameplayEffectExecuteï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½)
 		AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
 
@@ -284,11 +301,11 @@ void AZombieEnemy::MultiPlayEffectHitReact_Implementation(const class UATGDamage
 
 void AZombieEnemy::StartSlice(const FHitResult& InHitResult)
 {
-	//bp¿¡¼­ È£Ãâ Á×À½ÀÌº¥Æ®
-	//Àı´Ü
+	//bpï¿½ï¿½ï¿½ï¿½ È£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ìºï¿½Æ®
+	//ï¿½ï¿½ï¿½ï¿½
 	NET_LOG(FString::Printf(TEXT("HitLocation: %s ,CutNormal : %s"), *InHitResult.ImpactPoint.ToString(), *InHitResult.Normal.ToString()));
 	if (SliceSystemComponent)
-	{	//Normal¿¡ CutNormalÀúÀåÇÔ
+	{	//Normalï¿½ï¿½ CutNormalï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		SliceSystemComponent->CopyWeightAndSlice_DMC(InHitResult.BoneName, InHitResult.ImpactPoint, InHitResult.ImpactNormal, InHitResult.Normal, DefaultImpulsePower);
 	}
 }
@@ -296,4 +313,82 @@ void AZombieEnemy::StartSlice(const FHitResult& InHitResult)
 void AZombieEnemy::MultiStartDeath_Implementation()
 {
 
+}
+
+void AZombieEnemy::StartHitCheck()
+{
+	HitActors.Empty();
+	bIsMeleeAttacking = true;
+}
+
+void AZombieEnemy::TickHitCheck()
+{
+	if (!bIsMeleeAttacking) return;
+
+	FVector SocketLocation = GetMesh()->GetSocketLocation(MeleeSocketName);
+	
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(this);
+
+	TArray<FHitResult> HitResults;
+	bool bHit = UKismetSystemLibrary::SphereTraceMulti(
+		GetWorld(),
+		SocketLocation,
+		SocketLocation,
+		MeleeAttackRadius,
+		UEngineTypes::ConvertToTraceType(ECC_Pawn),
+		false,
+		ActorsToIgnore,
+		EDrawDebugTrace::ForOneFrame,
+		HitResults,
+		true
+	);
+
+	if (bHit)
+	{
+		for (const FHitResult& Hit : HitResults)
+		{
+			AActor* HitActor = Hit.GetActor();
+			if (HitActor && HitActor != this && !HitActors.Contains(HitActor))
+			{
+				HitActors.Add(HitActor);
+
+				if (AbilitySystemComponent && DefaultMeleeDamageEffectClass)
+				{
+					UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor);
+					if (TargetASC)
+					{
+						FGameplayEffectContextHandle ContextHandle = AbilitySystemComponent->MakeEffectContext();
+						ContextHandle.AddInstigator(this, this);
+						ContextHandle.AddHitResult(Hit);
+
+						FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultMeleeDamageEffectClass, 1.0f, ContextHandle);
+						if (SpecHandle.IsValid())
+						{
+							float CurrentDamage = 10.0f; // Default Value
+							if (AttributeSet)
+							{
+								CurrentDamage = AbilitySystemComponent->GetNumericAttribute(UCharacterAttributeSet::GetDamageAttribute());
+							}
+							SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Damage.Amount")), CurrentDamage);
+
+							TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+						}
+					}
+					
+					// ê²Œì„í”Œë ˆì´ ì´ë²¤íŠ¸ ì „ë‹¬ (ì˜µì…˜)
+					FGameplayEventData Payload;
+					Payload.Instigator = this;
+					Payload.Target = HitActor;
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, FGameplayTag::RequestGameplayTag(TEXT("Event.Montage.Hit")), Payload);
+				}
+			}
+		}
+	}
+}
+
+void AZombieEnemy::EndHitCheck()
+{
+	bIsMeleeAttacking = false;
+	HitActors.Empty();
 }

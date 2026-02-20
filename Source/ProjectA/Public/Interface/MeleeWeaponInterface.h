@@ -23,13 +23,13 @@ class PROJECTA_API IMeleeWeaponInterface
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 
-	// °ø°Ý ½ÃÀÛ 
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ 
 	virtual void StartHitCheck() = 0;
 
-	// ¸Å ÇÁ·¹ÀÓ ÆÇÁ¤ ¼öÇà
+	// ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	virtual void TickHitCheck() = 0;
 
-	// °ø°Ý Á¾·á
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	virtual void EndHitCheck() = 0;
 
 

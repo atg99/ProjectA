@@ -41,6 +41,11 @@ void UNotifyState_MeleeAttack::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnim
 
 IMeleeWeaponInterface* UNotifyState_MeleeAttack::GetWeaponInterface(USkeletalMeshComponent* MeshComp)
 {
+	if (IMeleeWeaponInterface* OwnerInterface = Cast<IMeleeWeaponInterface>(MeshComp->GetOwner()))
+	{
+		return OwnerInterface;
+	}
+
 	if (UATGPlayerEquipComponent* EquipComp = Cast<UATGPlayerEquipComponent>(MeshComp->GetOwner()->GetComponentByClass(UATGPlayerEquipComponent::StaticClass())))
 	{
 		if (FEquipmentSlot* Slot = EquipComp->GetSlotByType(EquipComp->CurrentUsingSlot))

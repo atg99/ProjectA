@@ -107,6 +107,7 @@ UAbilitySystemComponent* AATGPlayerCharacter::GetAbilitySystemComponent() const
 void AATGPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
 }
 
 void AATGPlayerCharacter::PossessedBy(AController* NewController)
@@ -118,6 +119,27 @@ void AATGPlayerCharacter::PossessedBy(AController* NewController)
 		for (const auto& Ability : ItemUseAbilities)
 		{
 			GiveAbility(Ability);
+		}
+
+		if (IsLocallyControlled())
+		{
+			AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCharacterAttributeSet::GetHealthAttribute()).AddWeakLambda(this, [this](const FOnAttributeChangeData& Data)
+				{
+					// 블루프린트로 변경된 값을 쏴줌
+					OnHealthChanged.Broadcast(Data.OldValue, Data.NewValue);
+				});
+		}
+	}
+
+	if (AbilitySystemComponent && DefaultAttributesEffectClass)
+	{
+		// 자기 자신에게 초기화 GE를 적용하여 데미지, 체력 등의 기본값 세팅
+		FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
+		Context.AddInstigator(this, this);
+		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributesEffectClass, 1.0f, Context);
+		if (SpecHandle.IsValid())
+		{
+			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
 }
@@ -141,6 +163,15 @@ void AATGPlayerCharacter::OnRep_Controller()
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+
+		if (IsLocallyControlled())
+		{
+			AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCharacterAttributeSet::GetHealthAttribute()).AddWeakLambda(this, [this](const FOnAttributeChangeData& Data)
+				{
+					// 블루프린트로 변경된 값을 쏴줌
+					OnHealthChanged.Broadcast(Data.OldValue, Data.NewValue);
+				});
+		}
 	}
 }
 
