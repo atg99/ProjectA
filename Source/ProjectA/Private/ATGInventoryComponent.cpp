@@ -600,7 +600,7 @@ void UATGInventoryComponent::OpenContextMenu(FATGItemInfo& ItemInfo, FVector2D S
 	ContextMenuWidget->InitMenu(ItemInfo);
 
 	// 위치 설정 (마우스 위치로 이동)
-	ContextMenuWidget->SetPositionInViewport(ScreenPosition);
+	ContextMenuWidget->SetPositionInViewport(ScreenPosition, true);
 
 	// 보이게 설정
 	ContextMenuWidget->SetVisibility(ESlateVisibility::Visible);
