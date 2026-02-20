@@ -168,7 +168,6 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
 
     UATGItemData* ItemData = InFirstMainWeapon.Item.Get();
 
-
     UATGWeaponData* WeaponData = ItemData ? Cast<UATGWeaponData>(ItemData) : nullptr;
     if (!WeaponData || !WeaponData->GetWeaponClass())
     {
@@ -254,8 +253,13 @@ void UATGPlayerEquipComponent::ClearSlot(FEquipmentSlot& Slot)
         Slot.EquippedActor->Destroy();
         Slot.EquippedActor = nullptr;
     }
-    //NET_LOG("");
-    ServerChangePlayerUsingSlot(EEquipmentSlotType::None);
+
+
+    
+    if (CurrentUsingSlot == Slot.SlotType)
+    {
+        ServerChangePlayerUsingSlot(EEquipmentSlotType::None);
+    }
 }
 
 // Called every frame

@@ -9,6 +9,7 @@
 #include "GAS/AbilityTask_WaitMeleeTargetData.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Data/ATGMeleeWeaponData.h"
+#include "Gas/CharacterAttributeSet.h"
 
 UGA_MeleeCombo::UGA_MeleeCombo()
 {
@@ -25,8 +26,18 @@ void UGA_MeleeCombo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, co
     ////NET_LOG(TEXT(""));
 	FName StartSection = ComboSections.IsValidIndex(CurrentComboIndex) ? ComboSections[CurrentComboIndex] : NAME_None;
 
-    //CreatePlayMontageAndWaitProxy °°Àº ÇÔ¼ö·Î ÅÂ½ºÅ©¸¦ ¸¸µé¸é ÅÂ½ºÅ©´Â »ı¼º¸¸ µÈ »óÅÂÀÌ°í ÀÏ½ÃÁ¤Áö µ¨¸®°ÔÀÌÆ®¸¦ ´Ù ¿¬°áÇÑ µÚ¿¡ ¸¶Áö¸·¿¡ ¹İµå½Ã ReadyForActivationÀ» È£Ãâ
-	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, MeleeMontage, 1.0f, StartSection, false);
+	// ìºë¦­í„° AttributeSetì—ì„œ AttackSpeed ê°€ì ¸ì˜¤ê¸°
+	float AttackSpeedRate = 1.0f;
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (ASC)
+	{
+		bool bFound = false;
+		float FoundValue = ASC->GetNumericAttribute(UCharacterAttributeSet::GetAttackSpeedAttribute());
+		AttackSpeedRate = FMath::Max(0.1f, FoundValue); // ìµœì†Œê°’ ì•ˆì „ì¥ì¹˜
+	}
+
+    // CreatePlayMontageAndWaitProxy ê°™ì€ í•¨ìˆ˜ë¡œ íƒœìŠ¤í¬ë¥¼ ë§Œë“¤ë©´ íƒœìŠ¤í¬ëŠ” ìƒì„±ë§Œ ëœ ìƒíƒœì´ê³  ì¼ì‹œì •ì§€ ë¸ë¦¬ê²Œì´íŠ¸ë¥¼ ë‹¤ ì—°ê²°í•œ ë’¤ì— ë§ˆì§€ë§‰ì— ë°˜ë“œì‹œ ReadyForActivationì„ í˜¸ì¶œ
+	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, MeleeMontage, AttackSpeedRate, StartSection, false);
 
     MontageTask->OnBlendOut.AddDynamic(this, &UGA_MeleeCombo::OnMontageEnded);
 	MontageTask->OnCompleted.AddDynamic(this, &UGA_MeleeCombo::OnMontageEnded);
@@ -44,7 +55,7 @@ void UGA_MeleeCombo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, co
 
 void UGA_MeleeCombo::WaitForNextInput()
 {
-    // »ç¿ëÀÚ°¡ Å°¸¦ ´©¸£´Â °ÍÀ» ±â´Ù¸®´Â ÅÂ½ºÅ© »ı¼º
+    // ì‚¬ìš©ìê°€ í‚¤ë¥¼ ëˆ„ë¥´ëŠ” ê²ƒì„ ê¸°ë‹¤ë¦¬ëŠ” íƒœìŠ¤í¬ ìƒì„±
     UAbilityTask_WaitInputPress* InputTask = UAbilityTask_WaitInputPress::WaitInputPress(this, false);
     InputTask->OnPress.AddDynamic(this, &UGA_MeleeCombo::OnInputPressed);
     InputTask->ReadyForActivation();
@@ -52,7 +63,7 @@ void UGA_MeleeCombo::WaitForNextInput()
 
 void UGA_MeleeCombo::WaitForHitTask()
 {
-    // HitCheck ÅÂ½ºÅ© ½ÇÇà
+    // HitCheck íƒœìŠ¤í¬ ì‹¤í–‰
     UAbilityTask_WaitMeleeTargetData* HitTask = UAbilityTask_WaitMeleeTargetData::WaitMeleeTargetData(this, HitEventTag);
     HitTask->ValidData.AddDynamic(this, &UGA_MeleeCombo::OnHitReceived);
     HitTask->ReadyForActivation();
@@ -60,7 +71,7 @@ void UGA_MeleeCombo::WaitForHitTask()
 
 void UGA_MeleeCombo::OnInputPressed(float TimeWaited)
 {
-   // ¸ùÅ¸ÁÖ NotifyState¿¡¼­ ºÙ¿©ÁØ ÅÂ±×°¡ ÀÖ´ÂÁö È®ÀÎ
+   // ëª½íƒ€ì£¼ NotifyStateì—ì„œ ë¶™ì—¬ì¤€ íƒœê·¸ê°€ ìˆëŠ”ì§€ í™•ì¸
     bool bCanCombo = GetAbilitySystemComponentFromActorInfo()->HasMatchingGameplayTag(ComboTag);
 
     if (bCanCombo && ComboSections.IsValidIndex(CurrentComboIndex))
@@ -81,7 +92,7 @@ void UGA_MeleeCombo::OnInputPressed(float TimeWaited)
     }
     else
     {
-        // ÄŞº¸ Å¸ÀÌ¹ÖÀÌ ¾Æ´Ï¸é ÀÔ·Â ¹«½ÃÇÏ°Å³ª ¼±ÀÔ·Â Queue Ã³¸®
+        // ì½¤ë³´ íƒ€ì´ë°ì´ ì•„ë‹ˆë©´ ì…ë ¥ ë¬´ì‹œí•˜ê±°ë‚˜ ì„ ì…ë ¥ Queue ì²˜ë¦¬
         WaitForNextInput();
     }
 }
@@ -93,26 +104,34 @@ void UGA_MeleeCombo::OnMontageEnded()
 
 void UGA_MeleeCombo::OnHitReceived(const FGameplayAbilityTargetDataHandle& Data)
 {
-    // Client: ¿©±â¼­ Áï½Ã ½ÇÇàµÊ (¿¹Ãø)
-    // Server: Å¬¶óÀÌ¾ğÆ® µ¥ÀÌÅÍ°¡ µµÂøÇÏ¸é ½ÇÇàµÊ
+    // Client: ì—¬ê¸°ì„œ ì¦‰ì‹œ ì‹¤í–‰ë¨ (ì˜ˆì¸¡)
+    // Server: í´ë¼ì´ì–¸íŠ¸ ë°ì´í„°ê°€ ë„ì°©í•˜ë©´ ì‹¤í–‰ë¨
     ////NET_LOG(TEXT(""));
 
-    //GameplayEffect Spec »ı¼º
+    //GameplayEffect Spec ìƒì„±
     FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(MeleeGameplayEffectClass, 1.0f);
     //SpecHandle.Data.Co
     if (SpecHandle.IsValid())
     {
-        // µ¥¹ÌÁö ¼öÄ¡ µ¿Àû º¯°æ (SetByCaller)
-        // SpecHandle.Data°¡ TSharedPtrÀÌ¹Ç·Î .Get()À¸·Î Á¢±Ù
-        SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.Amount"), 40.0f);
+        // ìºë¦­í„° AttributeSetì—ì„œ Damage ê°€ì ¸ì˜¤ê¸°
+        float CurrentDamage = 0.0f;
+        UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+        if (ASC)
+        {
+            CurrentDamage = ASC->GetNumericAttribute(UCharacterAttributeSet::GetDamageAttribute());
+        }
 
-        //¹«±â TagÃß°¡ //character¿¡¼­ ¾îºô¸®Æ¼ µî·ÏÇÒ¶§ SourceObject 
+        // ë°ë¯¸ì§€ ìˆ˜ì¹˜ ë™ì  ë³€ê²½ (SetByCaller)
+        // SpecHandle.Dataê°€ TSharedPtrì´ë¯€ë¡œ .Get()ìœ¼ë¡œ ì ‘ê·¼
+        SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.Amount"), CurrentDamage);
+
+        //ë¬´ê¸° Tagì¶”ê°€ //characterì—ì„œ ì–´ë¹Œë¦¬í‹° ë“±ë¡í• ë•Œ SourceObject 
         if (UATGMeleeWeaponData* MeleeWeaponData = Cast<UATGMeleeWeaponData>(GetCurrentSourceObject()))
         {
             SpecHandle.Data.Get()->AppendDynamicAssetTags(MeleeWeaponData->OwnedTags);
         }
 
-        //Å¬¶ó HitResult º¹»ç
+        //í´ë¼ HitResult ë³µì‚¬
         /* const FHitResult* HitResultPtr = Data.Get(0)->GetHitResult();
         if (HitResultPtr)
         {

@@ -89,7 +89,7 @@ AATGPlayerCharacter::AATGPlayerCharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
-	//GAS ÄÄÆ÷³ÍÆ®
+	//GAS ì»´í¬ë„ŒíŠ¸
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
@@ -146,28 +146,60 @@ void AATGPlayerCharacter::OnRep_Controller()
 
 void AATGPlayerCharacter::EquipWeapon(AATGWeaponBase* Weapon)
 {
-	if (ensure(Weapon) && ensure(Weapon->WeaponData))
+	if (!HasAuthority() || !AbilitySystemComponent)
 	{
+		return;
+	}
+
+	// 1. ê¸°ì¡´ ì¥ì°© ë¬´ê¸°ì˜ GE í•´ì œ
+	if (EquippedWeaponGEHandle.IsValid())
+	{
+		AbilitySystemComponent->RemoveActiveGameplayEffect(EquippedWeaponGEHandle, 1);
+		EquippedWeaponGEHandle.Invalidate();
+	}
+
+	// 2. ìƒˆ ë¬´ê¸° ì²´í¬ í›„ ì–´ë¹Œë¦¬í‹° ë° GE ì ìš©
+	if (Weapon && Weapon->WeaponData)
+	{
+		// ì–´ë¹Œë¦¬í‹° ë¶€ì—¬ (GiveWeaponAbilities ë‚´ë¶€ì—ì„œ ì´ì „ ë¬´ê¸° ì–´ë¹Œë¦¬í‹° ì§€ìš°ëŠ” ë¡œì§ í¬í•¨)
 		GiveWeaponAbilities(Weapon->WeaponData->WeaponAbilitys, Weapon);
+
+		// EffectClassê°€ ìˆë‹¤ë©´ GE ì ìš©
+		if (Weapon->WeaponData->EffectClass)
+		{
+			FGameplayEffectContextHandle ContextHandle = AbilitySystemComponent->MakeEffectContext();
+			ContextHandle.AddSourceObject(Weapon);
+
+			FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(Weapon->WeaponData->EffectClass, 1.0f, ContextHandle);
+			if (SpecHandle.IsValid())
+			{
+				EquippedWeaponGEHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+			}
+		}
+	}
+	else
+	{
+		// Weaponì´ nullptrì¼ ë•Œ(ë§¨ì† ë“±) ì´ì „ ì–´ë¹Œë¦¬í‹° ì´ˆê¸°í™”ë§Œ í˜¸ì¶œ
+		GiveWeaponAbilities(TArray<FWeaponAbilityBind>(), nullptr);
 	}
 }
 
 void AATGPlayerCharacter::GiveWeaponAbilities(TArray<FWeaponAbilityBind> Abilities, AATGWeaponBase* Weapon)
 {
-	// ¹æ¾î ÄÚµå: ¼­¹ö°¡ ¾Æ´Ï°Å³ª ASC°¡ ¾øÀ¸¸é ¸®ÅÏ
-	if (!HasAuthority() || !AbilitySystemComponent || Abilities.IsEmpty())
+	// ë°©ì–´ ì½”ë“œ: ì„œë²„ê°€ ì•„ë‹ˆê±°ë‚˜ ASCê°€ ì—†ìœ¼ë©´ ë¦¬í„´
+	if (!HasAuthority() || !AbilitySystemComponent)
 	{
 		return;
 	}
 
 	TArray<FGameplayAbilitySpecHandle> AbilitiesToRemove;
 
-	// ¸ğµç ¾îºô¸®Æ¼ ¼øÈ¸
+	// ëª¨ë“  ì–´ë¹Œë¦¬í‹° ìˆœíšŒ
 	for (const FGameplayAbilitySpec& Spec : AbilitySystemComponent->GetActivatableAbilities())
 	{
 		// if (Spec.Ability->IsA(UBaseGameplayAbility::StaticClass())) continue;
 
-		// SourceObject°¡ AATGWeaponBase¶ó¸é »èÁ¦ ´ë»ó¿¡ Ãß°¡
+		// SourceObjectê°€ AATGWeaponBaseë¼ë©´ ì‚­ì œ ëŒ€ìƒì— ì¶”ê°€
 		if (Cast<AATGWeaponBase>(Spec.SourceObject))
 		{
 			AbilitiesToRemove.Add(Spec.Handle);
@@ -196,7 +228,7 @@ void AATGPlayerCharacter::GiveWeaponAbilities(TArray<FWeaponAbilityBind> Abiliti
 
 			if (AbilitySystemComponent->FindAbilitySpecFromClass(AbilityBind.AbilityClass))
 			{
-				// ÀÌ¹Ì Á¸ÀçÇÏ´ÂÁö È®ÀÎ
+				// ì´ë¯¸ ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸
 				continue;
 			}
 
@@ -328,10 +360,10 @@ void AATGPlayerCharacter::TryFire(const FInputActionValue& Value)
 {
 	if (PlayerEquipComp)
 	{
-		//Bullet Manager ¿¡¼­ Parallel Simulation
+		//Bullet Manager ì—ì„œ Parallel Simulation
 		PlayerEquipComp->TryFire();
 
-		//ºí·çÇÁ¸°Æ®¿¡¼­ ¾Ö´Ï¸ŞÀÌ¼Ç Á¦¾î¿ë 
+		//ë¸”ë£¨í”„ë¦°íŠ¸ì—ì„œ ì• ë‹ˆë©”ì´ì…˜ ì œì–´ìš© 
 		OnCharacterFire();
 	}
 }
@@ -369,7 +401,7 @@ void AATGPlayerCharacter::Interact(const FInputActionValue& Value)
 	const FVector Center = GetMesh()->GetComponentLocation();
 
 	FCollisionObjectQueryParams ObjParams;
-	ObjParams.AddObjectTypesToQuery(ECC_WorldDynamic);  // µîµî
+	ObjParams.AddObjectTypesToQuery(ECC_WorldDynamic);  // ë“±ë“±
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(OverlapSphere), false);
 	QueryParams.AddIgnoredActor(GetOwner());
@@ -505,16 +537,16 @@ void AATGPlayerCharacter::TryMeleeAttack(const FInputActionValue& Value)
 
 	//if (AbilitySystemComponent && DefaultAbility)
 	//{
-	//	// Å¬·¡½º ±â¹İÀ¸·Î ½ºÅ³ ¹ßµ¿ ½Ãµµ
+	//	// í´ë˜ìŠ¤ ê¸°ë°˜ìœ¼ë¡œ ìŠ¤í‚¬ ë°œë™ ì‹œë„
 	//	AbilitySystemComponent->TryActivateAbilityByClass(DefaultAbility);
 	//}
 	
 	// Enum::MeleeAttack : 3
 	int32 InputID = static_cast<int32>(EPlayerAbilityInputID::MeleeAttack);
 
-	// GAS¿¡ InputID ¾Ë¸²
-	// ½ºÅ³ÀÌ ²¨Á® ÀÖÀ¸¸é -> TryActivate ½ºÅ³ ¹ßµ¿ ½Ãµµ
-	// ½ºÅ³ÀÌ ÄÑÁ® ÀÖ°í WaitInputPress ÁßÀÌ¸é -> ÄŞº¸ ÀÛµ¿
+	// GASì— InputID ì•Œë¦¼
+	// ìŠ¤í‚¬ì´ êº¼ì ¸ ìˆìœ¼ë©´ -> TryActivate ìŠ¤í‚¬ ë°œë™ ì‹œë„
+	// ìŠ¤í‚¬ì´ ì¼œì ¸ ìˆê³  WaitInputPress ì¤‘ì´ë©´ -> ì½¤ë³´ ì‘ë™
 	AbilitySystemComponent->AbilityLocalInputPressed(InputID);
 }
 

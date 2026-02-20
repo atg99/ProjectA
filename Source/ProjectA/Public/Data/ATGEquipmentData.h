@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Data/ATGItemData.h"
+#include "GameplayEffect.h"
 #include "ATGEquipmentData.generated.h"
 
 /**
@@ -25,4 +26,8 @@ public:
 	//내구도 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float Durability = 1;
+
+	// 장착한 캐릭터에 적용할 GE 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> EffectClass;
 };

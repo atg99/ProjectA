@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "GenericTeamAgentInterface.h"
 #include "AbilitySystemInterface.h" // gas
+#include "GameplayEffectTypes.h"
 #include "ATGPlayerCharacter.generated.h"
 
 class USpringArmComponent;
@@ -40,8 +41,8 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	virtual void PossessedBy(AController* NewController) override; // ¼­¹ö¿ë ÃÊ±âÈ­
-	virtual void OnRep_Controller() override; // Å¬¶óÀÌ¾ğÆ®¿ë ÃÊ±âÈ­
+	virtual void PossessedBy(AController* NewController) override; // ì„œë²„ìš© ì´ˆê¸°í™”
+	virtual void OnRep_Controller() override; // í´ë¼ì´ì–¸íŠ¸ìš© ì´ˆê¸°í™”
 
 public:
 	//GAS
@@ -51,7 +52,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	UCharacterAttributeSet* AttributeSet;
 
-	// ºí·çÇÁ¸°Æ®¿¡¼­ ½ºÅ³ ÇÒ´çÇÒ º¯¼ö
+	// ë¸”ë£¨í”„ë¦°íŠ¸ì—ì„œ ìŠ¤í‚¬ í• ë‹¹í•  ë³€ìˆ˜
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
 	//TSubclassOf<class UGameplayAbility> DefaultAbility;
 
@@ -63,6 +64,9 @@ public:
 	void EquipWeapon(AATGWeaponBase* Weapon);
 
 	void GiveWeaponAbilities(TArray<struct FWeaponAbilityBind> Abilities, AATGWeaponBase* Weapon);
+
+	// í˜„ì¬ ì¥ì°©ì¤‘ì¸ ë¬´ê¸°ì˜ GE í•¸ë“¤ ë³´ê´€ìš©
+	FActiveGameplayEffectHandle EquippedWeaponGEHandle;
 
 public:
 	/** Camera boom positioning the camera behind the character */
@@ -211,7 +215,7 @@ protected:
 	UATGInventoryComponent* GetInventoryComponent();
 
 	//----------------------------------------------------------------------//
-	// IGenericTeamAgentInterface ÀÎÅÍÆäÀÌ½º »ó¼Ó ¹Ş¾Æ¾ß AIPerception¿¡¼­ ÀûÀÌ³ª ¾Æ±ºÀ¸·Î °¨Áö
+	// IGenericTeamAgentInterface ì¸í„°í˜ì´ìŠ¤ ìƒì† ë°›ì•„ì•¼ AIPerceptionì—ì„œ ì ì´ë‚˜ ì•„êµ°ìœ¼ë¡œ ê°ì§€
 	//----------------------------------------------------------------------//
 	FGenericTeamId TeamID;
 	/** Assigns Team Agent to given TeamID */
