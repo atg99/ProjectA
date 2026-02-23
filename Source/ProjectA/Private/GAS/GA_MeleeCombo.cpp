@@ -113,17 +113,17 @@ void UGA_MeleeCombo::OnHitReceived(const FGameplayAbilityTargetDataHandle& Data)
     //SpecHandle.Data.Co
     if (SpecHandle.IsValid())
     {
-        // 캐릭터 AttributeSet에서 Damage 가져오기
-        float CurrentDamage = 0.0f;
+        // 캐릭터 AttributeSet에서 AttackPower 가져오기
+        float CurrentAttackPower = 0.0f;
         UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
         if (ASC)
         {
-            CurrentDamage = ASC->GetNumericAttribute(UCharacterAttributeSet::GetDamageAttribute());
+            CurrentAttackPower = ASC->GetNumericAttribute(UCharacterAttributeSet::GetAttackPowerAttribute());
         }
 
         // 데미지 수치 동적 변경 (SetByCaller)
         // SpecHandle.Data가 TSharedPtr이므로 .Get()으로 접근
-        SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.Amount"), CurrentDamage);
+        SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.Amount"), CurrentAttackPower);
 
         //무기 Tag추가 //character에서 어빌리티 등록할때 SourceObject 
         if (UATGMeleeWeaponData* MeleeWeaponData = Cast<UATGMeleeWeaponData>(GetCurrentSourceObject()))

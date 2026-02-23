@@ -200,14 +200,7 @@ void UATGInventoryGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation
 	UATGDragDropOperation* Op = Cast<UATGDragDropOperation>(InOperation);
 	if (ensure(Op))
 	{
-		if (Op->bIsRotated)
-		{
-			bIsR = !InDragged->bIsRotated;
-		}
-		else
-		{
-			bIsR = InDragged->bIsRotated;
-		}
+		bIsR = Op->bIsRotated;
 	}
 
 	Inven->TryAddItemAt(InDragged->Inven, InDragged->EntryId, InDragged->ItemDef, InDragged->Quantity, Cell.X, Cell.Y, bIsR);

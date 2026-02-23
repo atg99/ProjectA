@@ -182,6 +182,7 @@ void AATGPlayerCharacter::EquipWeapon(AATGWeaponBase* Weapon)
 		return;
 	}
 
+	NET_LOG(FString::Printf(TEXT("%s"), *GetName()));
 	// 1. 기존 장착 무기의 GE 해제
 	if (EquippedWeaponGEHandle.IsValid())
 	{
@@ -245,7 +246,7 @@ void AATGPlayerCharacter::GiveWeaponAbilities(TArray<FWeaponAbilityBind> Abiliti
 	UObject* SourceObj = this; 
 	if (Weapon)
 	{
-		SourceObj = Weapon->WeaponData;
+		SourceObj = Weapon;
 	}
 
 	if (HasAuthority() && AbilitySystemComponent && !Abilities.IsEmpty())

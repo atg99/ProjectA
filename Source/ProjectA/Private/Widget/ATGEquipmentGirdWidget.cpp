@@ -60,6 +60,7 @@ void UATGEquipmentGirdWidget::HandleEquipmentChanged(FInventoryEntry EquipmentEn
 		if (EquipmentWidget)
 		{
 			EquipmentWidget->RemoveFromParent();
+			EquipmentWidget = nullptr;
 		}
 		return;
 	}

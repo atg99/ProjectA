@@ -36,7 +36,7 @@ public:
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, Health); // 게터/세터 자동 생성 매크로
 
 	//최대 체력 MaxHP
-	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MaxHealth, Category = "Attributes")
 	FGameplayAttributeData MaxHealth;
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, MaxHealth)
 
@@ -45,17 +45,25 @@ public:
 	FGameplayAttributeData AttackSpeed;
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, AttackSpeed)
 
-	//데미지 Meta Attribute
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Damage, Category = "Attributes")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_AttackPower, Category = "Attributes")
+	FGameplayAttributeData AttackPower;
+	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, AttackPower)
+
+	// 데미지 Meta Attribute 받은 데미지 계산할때 잠시동안만 쓰는 변수
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes")
 	FGameplayAttributeData Damage;
 	ATTRIBUTE_ACCESSORS(UCharacterAttributeSet, Damage)
+
 
 	UFUNCTION()
 	void OnRep_Health(const FGameplayAttributeData& OldHealth);
 
 	UFUNCTION()
+	void OnRep_MaxHealth(const FGameplayAttributeData& OldMaxHealth);
+
+	UFUNCTION()
 	void OnRep_AttackSpeed(const FGameplayAttributeData& OldAttackSpeed);
 
 	UFUNCTION()
-	void OnRep_Damage(const FGameplayAttributeData& OldDamage);
+	void OnRep_AttackPower(const FGameplayAttributeData& OldAttackPower);
 };

@@ -26,6 +26,8 @@ struct FLastDamageCapture
 class UNiagaraSystem;
 class USliceSystemComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAIHealthChangedSignature, float, OldValue, float, NewValue);
+
 UCLASS()
 class PROJECTA_API AZombieEnemy : public ACharacter, public IATGBTInterface, public IDamageableInterface, public IAbilitySystemInterface, public IMeleeWeaponInterface
 {
@@ -56,6 +58,10 @@ public:
 	/** Handles healing events */
 	UFUNCTION(BlueprintCallable, Category = "Damageable")
 	virtual void ApplyHealing(float Healing, AActor* Healer) override;
+
+	UPROPERTY(BlueprintAssignable, Category = "GAS")
+	FOnAIHealthChangedSignature OnHealthChanged;
+
 	//------------------------------------
 
 	//-----------IMeleeWeaponInterface

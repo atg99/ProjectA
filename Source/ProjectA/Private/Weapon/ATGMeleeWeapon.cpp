@@ -76,57 +76,6 @@ void AATGMeleeWeapon::TickHitCheck()
 
     TrajectoryInterpolationbySubFrame();
     return;
-
-    ////소유자 확인
-    //AActor* OwnerActor = GetOwner();
-    //if (!OwnerActor) 
-    //{
-    //    return;
-    //}
-    //APawn* OwnerPawn = Cast<APawn>(Owner);
-    //if (!OwnerPawn || !OwnerPawn->IsLocallyControlled())
-    //{
-    //    return;
-    //}
-
-    ////현재 소켓 위치 가져오기
-    //FVector CurrentStart = Mesh->GetSocketLocation(StartSocketName);
-    //FVector CurrentEnd = Mesh->GetSocketLocation(EndSocketName);
-
-    ////트레이스 수행
-    //TArray<FHitResult> OutHits;
-    //FVector Center = (CurrentStart + CurrentEnd) * 0.5f;
-    //FRotator Rotation = Mesh->GetSocketRotation(StartSocketName);
-    //FVector HalfSize = FVector((CurrentStart - CurrentEnd).Size() * 0.5f, TraceRadius, TraceRadius);
-
-    ////Start와 End 파라미터를 사용하지 않고 Box의 위치와 회전을 직접 계산하는 방식이
-    ////무기 회전에 따른 정확한 판정에 더 유리할 수 있습니다.
-
-    ////무기 끝부분(타격점)의 궤적을 따라 SphereTrace
-    //bool bHit = UKismetSystemLibrary::SphereTraceMulti(
-    //    this,
-    //    PreviousEndLocation, //지난 프레임의 칼끝
-    //    CurrentEnd,          //현재 프레임의 칼끝
-    //    TraceRadius,
-    //    UEngineTypes::ConvertToTraceType(ECC_Pawn),
-    //    false,
-    //    IgnoreActors.Array(),
-    //    EDrawDebugTrace::ForDuration,
-    //    OutHits,
-    //    true, FLinearColor::Red, FLinearColor::Green, 5.f
-    //);
-
-    //if (bHit)
-    //{
-    //    for (const FHitResult& Hit : OutHits)
-    //    {
-    //        ProcessHit(Hit);
-    //    }
-    //}
-
-    ////현재 위치를 다음 프레임의 이전 위치로 저장
-    //PreviousStartLocation = CurrentStart;
-    //PreviousEndLocation = CurrentEnd;
 }
 
 void AATGMeleeWeapon::EndHitCheck()
@@ -177,9 +126,14 @@ void AATGMeleeWeapon::TrajectoryInterpolationbySubFrame()
 
     FVector SocketStart = Mesh->GetSocketLocation(StartSocketName);
     FVector SocketEnd = Mesh->GetSocketLocation(EndSocketName);
-    DrawDebugPoint(GetWorld(), SocketStart, 10.f, FColor::Magenta, false, 5.f);
-    DrawDebugPoint(GetWorld(), SocketEnd, 10.f, FColor::Magenta, false, 5.f);
-    DrawDebugLine(GetWorld(), SocketStart, SocketEnd, FColor::Cyan, false, 5.f);
+
+    if (ShowFrameDubug)
+    {
+        DrawDebugPoint(GetWorld(), SocketStart, 10.f, FColor::Magenta, false, 5.f);
+        DrawDebugPoint(GetWorld(), SocketEnd, 10.f, FColor::Magenta, false, 5.f);
+        DrawDebugLine(GetWorld(), SocketStart, SocketEnd, FColor::Cyan, false, 5.f);
+        DrawDebugLine(GetWorld(), PrevBladeState.End, SocketStart, FColor::Cyan, false, 5.f);
+    }
 
     // 시간이 튀거나 0이면 초기화
     if (FMath::IsNearlyZero(DeltaTime) || DeltaTime < 0.f)
@@ -225,9 +179,12 @@ void AATGMeleeWeapon::TrajectoryInterpolationbySubFrame()
         CurrBladeState.Start = MeshTrans.TransformPosition(LocalStart);
         CurrBladeState.End = MeshTrans.TransformPosition(LocalEnd);
 
-        DrawDebugPoint(GetWorld(), CurrBladeState.Start, 10.f, FColor::Yellow, false, 5.f);
-        DrawDebugPoint(GetWorld(), CurrBladeState.End, 10.f, FColor::Yellow, false, 5.f);
-
+        if (ShowSubFrameDubug)
+        {
+            DrawDebugPoint(GetWorld(), CurrBladeState.Start, 10.f, FColor::Yellow, false, 5.f);
+            DrawDebugPoint(GetWorld(), CurrBladeState.End, 10.f, FColor::Yellow, false, 5.f);
+        }
+        
         //삼각형
         TArray<FBladeState> StartEndLocs;
         if (IsFirstFrame)
@@ -254,7 +211,10 @@ void AATGMeleeWeapon::TrajectoryInterpolationbySubFrame()
             //Params.bReturnFaceIndex;
             bool bHit = false;
 
-            DrawDebugLine(GetWorld(), Locs.Start, Locs.End, FColor::Red, false, 5.f);
+            if (ShowSubFrameDubug)
+            {
+                DrawDebugLine(GetWorld(), Locs.Start, Locs.End, FColor::Red, false, 5.f);
+            }
             
             bHit = GetWorld()->LineTraceSingleByChannel(Hit, Locs.Start, Locs.End, ECC_GameTraceChannel2, Params);
             if (bHit)

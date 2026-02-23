@@ -86,4 +86,10 @@ protected:
     const UAnimSequence* GetCurrentAnimSequenceWithTime(UAnimInstance* AnimInst, UAnimMontage* Montage, float& OutLocalTime);
 
     bool IsFirstFrame = false;
+
+    UPROPERTY(EditAnywhere)
+    bool ShowSubFrameDubug = false;
+
+    UPROPERTY(EditAnywhere)
+    bool ShowFrameDubug = false;
 };

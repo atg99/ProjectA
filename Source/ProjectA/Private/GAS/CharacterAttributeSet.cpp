@@ -12,7 +12,7 @@ UCharacterAttributeSet::UCharacterAttributeSet()
 	InitHealth(100.0f);
 	InitMaxHealth(100.0f);
 	InitAttackSpeed(1.f);
-	InitDamage(10.f);
+	InitAttackPower(10.f);
 }
 
 //값이 반영되기전 강제
@@ -117,8 +117,9 @@ void UCharacterAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	//클라에서 예측해서 서버와 값이 같아지면 OnRep이 실행되지 않기 때문에 REPNOTIFY_Always 옵션을 줘서 항상 실행되도록 설정
 	DOREPLIFETIME_CONDITION_NOTIFY(UCharacterAttributeSet, Health, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UCharacterAttributeSet, MaxHealth, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UCharacterAttributeSet, AttackSpeed, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UCharacterAttributeSet, Damage, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UCharacterAttributeSet, AttackPower, COND_None, REPNOTIFY_Always);
 }
 
 void UCharacterAttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealth)
@@ -127,12 +128,17 @@ void UCharacterAttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealt
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UCharacterAttributeSet, Health, OldHealth);
 }
 
+void UCharacterAttributeSet::OnRep_MaxHealth(const FGameplayAttributeData& OldMaxHealth)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UCharacterAttributeSet, MaxHealth, OldMaxHealth);
+}
+
 void UCharacterAttributeSet::OnRep_AttackSpeed(const FGameplayAttributeData& OldAttackSpeed)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UCharacterAttributeSet, AttackSpeed, OldAttackSpeed);
 }
 
-void UCharacterAttributeSet::OnRep_Damage(const FGameplayAttributeData& OldDamage)
+void UCharacterAttributeSet::OnRep_AttackPower(const FGameplayAttributeData& OldAttackPower)
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(UCharacterAttributeSet, Damage, OldDamage);
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UCharacterAttributeSet, AttackPower, OldAttackPower);
 }

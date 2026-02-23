@@ -40,10 +40,21 @@ void AZombieEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCharacterAttributeSet::GetHealthAttribute()).AddWeakLambda(this, [this](const FOnAttributeChangeData& Data)
+			{
+				// 블루프린트로 변경된 값을 쏴줌
+				OnHealthChanged.Broadcast(Data.OldValue, Data.NewValue);
+			});
+	}
+
 }
 
 void AZombieEnemy::PossessedBy(AController* NewController)
 {
+	Super::PossessedBy(NewController);
+
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
@@ -57,6 +68,7 @@ void AZombieEnemy::PossessedBy(AController* NewController)
 		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributesEffectClass, 1.0f, Context);
 		if (SpecHandle.IsValid())
 		{
+			NET_LOG(FString::Printf(TEXT("%s"), *GetName()));
 			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
@@ -365,12 +377,12 @@ void AZombieEnemy::TickHitCheck()
 						FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultMeleeDamageEffectClass, 1.0f, ContextHandle);
 						if (SpecHandle.IsValid())
 						{
-							float CurrentDamage = 10.0f; // Default Value
+							float CurrentAttackPower = 10.0f; // Default Value
 							if (AttributeSet)
 							{
-								CurrentDamage = AbilitySystemComponent->GetNumericAttribute(UCharacterAttributeSet::GetDamageAttribute());
+								CurrentAttackPower = AbilitySystemComponent->GetNumericAttribute(UCharacterAttributeSet::GetAttackPowerAttribute());
 							}
-							SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Damage.Amount")), CurrentDamage);
+							SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Damage.Amount")), CurrentAttackPower);
 
 							TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 						}
