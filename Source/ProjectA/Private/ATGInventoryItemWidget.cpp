@@ -19,22 +19,40 @@ void UATGInventoryItemWidget::SetupFromEntry(const TScriptInterface<IATGInventor
 {
 	EntryId = InEntry.Id;
 	DBId = InEntry.DBId;
-	ItemDef = InEntry.Item;
 	Inven = InInven;
 	CachedEntry = InEntry;
 	CachedCellSize = InCellSize;
 	CachedCellPadding = InCellPadding;
 	Quantity = InEntry.Quantity;
 	bIsRotated = InEntry.bRotated;
+	ItemDef = InEntry.Item;
+	ItemData = InEntry.Item.Get();
+	if (ItemData)
+	{
+		ItemData = InEntry.Item.LoadSynchronous();
+	}
 
 	// 거래소 : 재화, 물건, 판매,구매 
 
 	// 아이콘 & 수량 갱신
 	if (ItemIcon)
 	{
-		if (InEntry.Item && InEntry.Item->Icon)
+		if (ItemData && ItemData->Icon)
 		{
-			ItemIcon->SetBrushFromTexture(InEntry.Item->Icon);
+			ItemIcon->SetBrushFromTexture(ItemData->Icon);
+		}
+		else
+		{
+			if (!ItemData)
+			{
+				NET_LOG(FString::Printf(TEXT("!ItemData")));
+			}
+
+			if (!ItemData->Icon)
+			{
+				NET_LOG(FString::Printf(TEXT("!ItemData->Icon")));
+			}
+			
 		}
 	}
 
@@ -58,12 +76,17 @@ void UATGInventoryItemWidget::RefreshFromEntry(const FInventoryEntry& InEntry, i
 {
 	EntryId = InEntry.Id;
 	DBId = InEntry.DBId;
-	ItemDef = InEntry.Item;
 	CachedEntry = InEntry;
 	CachedCellSize = InCellSize;
 	CachedCellPadding = InCellPadding;
 	Quantity = InEntry.Quantity;
 	bIsRotated = InEntry.bRotated;
+	ItemDef = InEntry.Item;
+	ItemData = InEntry.Item.Get();
+	if (ItemData)
+	{
+		ItemData = InEntry.Item.LoadSynchronous();
+	}
 	//CachedEntry = InEntry;
 	//CachedCellSize = InCellSize;
 	//CachedCellPadding = InCellPadding;

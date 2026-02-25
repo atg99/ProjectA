@@ -45,6 +45,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Item")
 	TSoftObjectPtr<UATGItemData> ItemDef;
 
+	// GC방지용 하드 레퍼런스
+	UPROPERTY(BlueprintReadOnly, Category = "Item")
+	UATGItemData* ItemData;
+
 	//UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	//UATGInventoryComponent* InventoryComp = nullptr;
 
