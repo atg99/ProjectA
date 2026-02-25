@@ -20,6 +20,9 @@
 #include "ATGContainerComponent.h"
 #include "ATGDragDropOperation.h"
 
+#include "Utils/NetworkUtil.h"
+#include "Data/ATGItemData.h"
+
 
 void UATGInventoryGirdWidget::NativeConstruct()
 {
@@ -291,7 +294,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 	}
 
 	FIntPoint Cell = CellFromLocal(Local);
-	
+
 	//if (GEngine)
 	//	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, TEXT("Cell")+ Cell.ToString());
 	//if (GEngine)
@@ -301,6 +304,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 	Cell.X = FMath::Clamp(Cell.X, 0, Inven->GetGridWidth() - 1);
 	Cell.Y = FMath::Clamp(Cell.Y, 0, Inven->GetGridHeight() - 1);
 
+	bool bShouldRotate = false;
 	bool bIsR = false;
 	UATGDragDropOperation* Op = Cast<UATGDragDropOperation>(InOperation);
 	if (ensure(Op))
@@ -308,9 +312,16 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 		bIsR = Op->bIsRotated;
 	}
 
+	const FInventoryEntry* E = Inven->GetInventory().GetById(Dragged->EntryId);
+	if (E)
+	{
+		
+		bShouldRotate = E->bRotated ? !bIsR : bIsR;
+	}
+
 	//UE_LOG(LogTemp, Warning, TEXT("bIsR : %d"), bIsR);
 	//InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRKeyPressed);
-	Inven->TryMoveOrSwapClient(Dragged->EntryId, Cell.X, Cell.Y, bIsR);
+	Inven->TryMoveOrSwapClient(Dragged->EntryId, Cell.X, Cell.Y, bShouldRotate);
 
 	return;
 }
@@ -333,6 +344,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 	Cell.X = FMath::Clamp(Cell.X, 0, Inven->GetGridWidth() - 1);
 	Cell.Y = FMath::Clamp(Cell.Y, 0, Inven->GetGridHeight() - 1);
 
+	bool bShouldRotate = false;
 	bool bIsR = false;
 	UATGDragDropOperation* Op = Cast<UATGDragDropOperation>(InOperation);
 	if (ensure(Op))
@@ -340,7 +352,14 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 		bIsR = Op->bIsRotated;
 	}
 
-	Inven->TrySplitStack(Dragged->EntryId, Cell.X, Cell.Y, bIsR, SplitNum);
+	const FInventoryEntry* E = Inven->GetInventory().GetById(Dragged->EntryId);
+	if (E)
+	{
+
+		bShouldRotate = E->bRotated ? !bIsR : bIsR;
+	}
+
+	Inven->TrySplitStack(Dragged->EntryId, Cell.X, Cell.Y, bShouldRotate, SplitNum);
 
 	return;
 }
@@ -451,6 +470,7 @@ void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDrop
 
 bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
+	//NET_LOG(TEXT(""));
 	if (!Inven || !GridPanel) return false;
 
 	if (UATGInventoryItemWidget* Dragged = InOperation ? Cast<UATGInventoryItemWidget>(InOperation->Payload) : nullptr)
@@ -486,30 +506,57 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 		}
 		PrevCell = Cell;
 
+		UATGDragDropOperation* Op = Cast<UATGDragDropOperation>(InOperation);
+		ensure(Op);
+
+		int32 W = 0;
+		int32 H = 0;
+		int32 IgnoreId = -1;
+
 		const FInventoryEntry* E = Inven->GetInventory().GetById(Dragged->EntryId);
 		if (!E)
 		{
 			UE_LOG(LogTemp, Error, TEXT("Dragged->Entry is invalid!"));
-			return false;
+
+			if (CheckIsFromOther(Dragged))
+			{
+				UATGItemData* ItemData = Dragged->ItemDef.Get();
+				if (!ItemData)
+				{
+					ItemData = Dragged->ItemDef.LoadSynchronous();
+				}
+
+				W = Op->bIsRotated ? ItemData->Height : ItemData->Width;
+				H = Op->bIsRotated ? ItemData->Width : ItemData->Height;
+			}
+			else
+			{
+				return false;
+			}
 		}
-		//InventoryComp->ServerMoveOrSwap(Dragged->EntryId, Cell.X, Cell.Y, bIsRKeyPressed);
-	
-		bool bIsR = false;
-		UATGDragDropOperation* Op = Cast<UATGDragDropOperation>(InOperation);
-		if (ensure(Op))
+		else
 		{
-			bIsR = Op->bIsRotated;
+			IgnoreId = E->Id;
+
+			if (E->bRotated)
+			{
+				W = Op->bIsRotated ? E->Width : E->Height;
+				H = Op->bIsRotated ? E->Height : E->Width;
+			}
+			else
+			{
+				W = Op->bIsRotated ? E->Height : E->Width;
+				H = Op->bIsRotated ? E->Width : E->Height;
+			}
 		}
-		
-		int32 W = bIsR ? E->Height : E->Width;
-		int32 H = bIsR ? E->Width : E->Height;
-		
-		bool bCanMove = Inven->CheckCanMove(Cell.X, Cell.Y, W, H, E->Id);
-		//FString s = bCanMove ? TEXT("True") : TEXT("False");
-		//if (GEngine)
-		//{
-		//	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, FString::Printf(TEXT("W : %d H : %d ID : %d"), W, H, E->Id));
-		//}
+
+		bool bCanMove = Inven->CheckCanMove(Cell.X, Cell.Y, W, H, IgnoreId);
+		FString s = bCanMove ? TEXT("True") : TEXT("False");
+		NET_LOG(FString::Printf(TEXT("%s %d %d %d %d"), *s, Cell.X, Cell.Y, W, H));
+		/*if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, FString::Printf(TEXT("W : %d H : %d ID : %d"), W, H, E->Id));
+		}*/
 
 		for (auto Child : GridPanel->GetAllChildren())
 		{

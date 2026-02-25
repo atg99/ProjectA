@@ -81,13 +81,13 @@ void FInventoryEntry::PostReplicatedChange(const FInventoryGrid& InArraySerializ
 //    Entry.Quantity -= Quantity;
 //    if (Entry.Quantity <= 0)
 //    {
-//        //¹è¿­ ÀüÃ¼ ±¸Á¶ º¯°æ¾Ë¸²
+//        //ë°°ì—´ ì „ì²´ êµ¬ì¡° ë³€ê²½ì•Œë¦¼
 //        Entries.RemoveAt(Index);
 //        MarkArrayDirty();
 //    }
 //    else
 //    {
-//        //¹è¿­ ¿ä¼Ò º¯°æ ¾Ë¸²
+//        //ë°°ì—´ ìš”ì†Œ ë³€ê²½ ì•Œë¦¼
 //        MarkItemDirty(Entry);
 //    }
 //    return true;
@@ -107,13 +107,13 @@ bool FInventoryGrid::CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, 
         const int32 NX2 = StartX + W - 1;
         const int32 NY2 = StartY + H - 1;
 
-        //Á¶°ÇÁß ÇÏ³ª¶óµµ ¸¸Á·ÇÏ¸é °ãÄ¡Áö ¾ÊÀ½
+        //ì¡°ê±´ì¤‘ í•˜ë‚˜ë¼ë„ ë§Œì¡±í•˜ë©´ ê²¹ì¹˜ì§€ ì•ŠìŒ
         const bool bOverlap = !(NX2 < E.X || EX2 < StartX || NY2 < E.Y || EY2 < StartY);
 
         if (bOverlap) return false;
     }
 
-    //if (Owner->IsLocallyOwned()) //Local ÆÇÁ¤ÀÏ ¶§ ÇÁ¸®ºä¾ÆÀÌÅÛµµ °í·Á
+    //if (Owner->IsLocallyOwned()) //Local íŒì •ì¼ ë•Œ í”„ë¦¬ë·°ì•„ì´í…œë„ ê³ ë ¤
     //{
     //    for (const auto& E : PreviewEntries)
     //    {
@@ -124,7 +124,7 @@ bool FInventoryGrid::CanPlaceRect(int32 StartX, int32 StartY, int32 W, int32 H, 
     //        const int32 NX2 = StartX + W - 1;
     //        const int32 NY2 = StartY + H - 1;
 
-    //        //Á¶°ÇÁß ÇÏ³ª¶óµµ ¸¸Á·ÇÏ¸é °ãÄ¡Áö ¾ÊÀ½
+    //        //ì¡°ê±´ì¤‘ í•˜ë‚˜ë¼ë„ ë§Œì¡±í•˜ë©´ ê²¹ì¹˜ì§€ ì•ŠìŒ
     //        const bool bOverlap = !(NX2 < E.X || EX2 < StartX || NY2 < E.Y || EY2 < StartY);
 
     //        if (bOverlap) return false;
@@ -149,7 +149,7 @@ bool FInventoryGrid::SortCanPlaceRect(int32 StartX, int32 StartY, int32 W, int32
         const int32 NX2 = StartX + W - 1;
         const int32 NY2 = StartY + H - 1;
 
-        //Á¶°ÇÁß ÇÏ³ª¶óµµ ¸¸Á·ÇÏ¸é °ãÄ¡Áö ¾ÊÀ½
+        //ì¡°ê±´ì¤‘ í•˜ë‚˜ë¼ë„ ë§Œì¡±í•˜ë©´ ê²¹ì¹˜ì§€ ì•ŠìŒ
         const bool bOverlap = !(NX2 < E->X || EX2 < StartX || NY2 < E->Y || EY2 < StartY);
 
         if (bOverlap) return false;
@@ -177,7 +177,7 @@ bool FInventoryGrid::FindFirstFit(int32 W, int32 H, int32& OutX, int32& OutY, in
 bool FInventoryGrid::FindFirstFit(TSoftObjectPtr<UATGItemData> ItemDef, int32 W, int32 H, int32& OutX, int32& OutY, int32& Qty, int32 IgnoreId)
 {
     //int32 TempQty = Qty;
-    Qty = FindAddFitStack(ItemDef, Qty, IgnoreId); //Ã¤¿ï¼ö ÀÖ´Â ½ºÅÃ °Ë»ö ÈÄ Ã¤¿ò
+    Qty = FindAddFitStack(ItemDef, Qty, IgnoreId); //ì±„ìš¸ìˆ˜ ìˆëŠ” ìŠ¤íƒ ê²€ìƒ‰ í›„ ì±„ì›€
 
     for (int32 y = 0; y <= GridHeight - H; ++y)
     {
@@ -208,9 +208,9 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
     int32 RemainQty = Qty;
     for (auto& E : Entries)
     {
-        if (E.Id == IgnoreId) continue; //ÀÚ±â ÀÚ½Å ¹«½Ã
+        if (E.Id == IgnoreId) continue; //ìê¸° ìì‹  ë¬´ì‹œ
 
-        if (RemainQty == 0) //½ºÅØ Ã£À¸¸é¼­ ¼øÈ¸ÇÏ´Ù ³²Àº ¼ö·® 0µÇ¸é Á¾·á
+        if (RemainQty == 0) //ìŠ¤í… ì°¾ìœ¼ë©´ì„œ ìˆœíšŒí•˜ë‹¤ ë‚¨ì€ ìˆ˜ëŸ‰ 0ë˜ë©´ ì¢…ë£Œ
         {
             return RemainQty;
         }
@@ -232,22 +232,22 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
         }
 
         int32 RemainCapacity = E.Item->MaxStack - E.Quantity;
-        if (E.Item->ItemId == ItemDef->ItemId && RemainCapacity >= 1) // ¾ÆÀÌÅÛ ¾ÆÀÌµğ °°°í ½ºÅØ ³²Àº ÀÚ¸®°¡ 1ÀÌ»óÀÏ¶§
+        if (E.Item->ItemId == ItemDef->ItemId && RemainCapacity >= 1) // ì•„ì´í…œ ì•„ì´ë”” ê°™ê³  ìŠ¤í… ë‚¨ì€ ìë¦¬ê°€ 1ì´ìƒì¼ë•Œ
         {
             int32 AddedQty = FMath::Min(RemainCapacity, RemainQty);
-            RemainQty -= AddedQty; //½ºÅÃ¿¡ ³Ö°í ³²Àº ¾ÆÀÌÅÛ ¼ö·®
+            RemainQty -= AddedQty; //ìŠ¤íƒì— ë„£ê³  ë‚¨ì€ ì•„ì´í…œ ìˆ˜ëŸ‰
             E.Quantity += AddedQty;
             if (Owner)
             {   
                 Owner->ItemChanged(E.Id);
-                if (OwnerHasAuthority())    //¼­¹ö¿¡¸¸ ¹è¿­ ¸¶Å©
+                if (OwnerHasAuthority())    //ì„œë²„ì—ë§Œ ë°°ì—´ ë§ˆí¬
                 {
                     MarkItemDirty(E);
                     //Owner->InventoryForceNetUpdate();
                 }
                 else
                 {
-                    //ÇÁ¸®ºä À§Á¬ º¯°æ ºê·ÎµåÄÉ½ºÆ®
+                    //í”„ë¦¬ë·° ìœ„ì ¯ ë³€ê²½ ë¸Œë¡œë“œì¼€ìŠ¤íŠ¸
                     //Owner->OnItemPreChanged.Broadcast(E);
                 }
             }
@@ -260,7 +260,7 @@ int32 FInventoryGrid::FindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, int3
 bool FInventoryGrid::SortFindFirstFit(TSoftObjectPtr<UATGItemData> ItemDef, int32 W, int32 H, int32& OutX, int32& OutY, int32& Qty, int32 IgnoreId)
 {
     //int32 TempQty = Qty;
-    Qty = SortFindAddFitStack(ItemDef, Qty, IgnoreId); //Ã¤¿ï¼ö ÀÖ´Â ½ºÅÃ °Ë»ö ÈÄ Ã¤¿ò
+    Qty = SortFindAddFitStack(ItemDef, Qty, IgnoreId); //ì±„ìš¸ìˆ˜ ìˆëŠ” ìŠ¤íƒ ê²€ìƒ‰ í›„ ì±„ì›€
 
     for (int32 y = 0; y <= GridHeight - H; ++y)
     {
@@ -296,9 +296,9 @@ int32 FInventoryGrid::SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, 
             continue;
         }
 
-        if (E->Id == IgnoreId) continue; //ÀÚ±â ÀÚ½Å ¹«½Ã
+        if (E->Id == IgnoreId) continue; //ìê¸° ìì‹  ë¬´ì‹œ
 
-        if (RemainQty == 0) //½ºÅØ Ã£À¸¸é¼­ ¼øÈ¸ÇÏ´Ù ³²Àº ¼ö·® 0µÇ¸é Á¾·á
+        if (RemainQty == 0) //ìŠ¤í… ì°¾ìœ¼ë©´ì„œ ìˆœíšŒí•˜ë‹¤ ë‚¨ì€ ìˆ˜ëŸ‰ 0ë˜ë©´ ì¢…ë£Œ
         {
             return RemainQty;
         }
@@ -320,10 +320,10 @@ int32 FInventoryGrid::SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, 
         }
 
         int32 RemainCapacity = E->Item->MaxStack - E->Quantity;
-        if (E->Item->ItemId == ItemDef->ItemId && RemainCapacity >= 1) // ¾ÆÀÌÅÛ ¾ÆÀÌµğ °°°í ½ºÅØ ³²Àº ÀÚ¸®°¡ 1ÀÌ»óÀÏ¶§
+        if (E->Item->ItemId == ItemDef->ItemId && RemainCapacity >= 1) // ì•„ì´í…œ ì•„ì´ë”” ê°™ê³  ìŠ¤í… ë‚¨ì€ ìë¦¬ê°€ 1ì´ìƒì¼ë•Œ
         {
             int32 AddedQty = FMath::Min(RemainCapacity, RemainQty);
-            RemainQty -= AddedQty; //½ºÅÃ¿¡ ³Ö°í ³²Àº ¾ÆÀÌÅÛ ¼ö·®
+            RemainQty -= AddedQty; //ìŠ¤íƒì— ë„£ê³  ë‚¨ì€ ì•„ì´í…œ ìˆ˜ëŸ‰
 
             E->Quantity += AddedQty;
             MarkItemDirty(*E);
@@ -331,14 +331,14 @@ int32 FInventoryGrid::SortFindAddFitStack(TSoftObjectPtr<UATGItemData> ItemDef, 
             {
                 
                 Owner->ItemChanged(E->Id);
-                //if (OwnerHasAuthority())    //¼­¹ö¿¡¸¸ ¹è¿­ ¸¶Å©
+                //if (OwnerHasAuthority())    //ì„œë²„ì—ë§Œ ë°°ì—´ ë§ˆí¬
                 //{
                 //    MarkItemDirty(E);
                 //    Owner->InventoryForceNetUpdate();
                 //}
                 //else
                 //{
-                //    //ÇÁ¸®ºä À§Á¬ º¯°æ ºê·ÎµåÄÉ½ºÆ®
+                //    //í”„ë¦¬ë·° ìœ„ì ¯ ë³€ê²½ ë¸Œë¡œë“œì¼€ìŠ¤íŠ¸
                 //    //Owner->OnItemPreChanged.Broadcast(E);
                 //}
             }
@@ -384,8 +384,8 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
     FInventoryEntry NewE;
     NewE.Item = ItemDef;
 
-    int32 QtyStack = FMath::Min(ItemDef->MaxStack, Qty); // ÃÖ´ë ½ºÅÃ, ³²Àº ¼ö·® Áß ³·Àº °ª
-    RemainQty = Qty - QtyStack; //³²Àº ¼ö·® ´Ùµé¾î°¬À¸¸é ³²Àº °ªÀº 0
+    int32 QtyStack = FMath::Min(ItemDef->MaxStack, Qty); // ìµœëŒ€ ìŠ¤íƒ, ë‚¨ì€ ìˆ˜ëŸ‰ ì¤‘ ë‚®ì€ ê°’
+    RemainQty = Qty - QtyStack; //ë‚¨ì€ ìˆ˜ëŸ‰ ë‹¤ë“¤ì–´ê°”ìœ¼ë©´ ë‚¨ì€ ê°’ì€ 0
 
     NewE.Quantity = QtyStack;
     NewE.X = X; NewE.Y = Y;
@@ -416,10 +416,10 @@ int32 FInventoryGrid::AddItemAt(TSoftObjectPtr<UATGItemData> ItemDef, int32& Qty
     }
     else if (Owner && !OwnerHasAuthority())
     {
-        // Å¬¶ó: ÇÁ¸®ºä´Â Id ÀÚÃ¼¸¦ PredKey·Î ¾´´Ù (°íÀ¯Å°)
+        // í´ë¼: í”„ë¦¬ë·°ëŠ” Id ìì²´ë¥¼ PredKeyë¡œ ì“´ë‹¤ (ê³ ìœ í‚¤)
         NewE.Id = PreKey;
 
-        //PreviewEntries.Add(NewE); // º¹Á¦ ¾ÈÇÏ´Â ·ÎÄÃ ¹è¿­¿¡ Ãß°¡
+        //PreviewEntries.Add(NewE); // ë³µì œ ì•ˆí•˜ëŠ” ë¡œì»¬ ë°°ì—´ì— ì¶”ê°€
 
         //Owner->OnItemPreAdded.Broadcast(NewE);
 
@@ -437,11 +437,11 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
     FInventoryEntry* Me = GetById(EntryId);
     if (!Me) return false;
 
-    // ÀÌ¹ø ÀÌµ¿/½º¿Ò¿¡¼­ »ç¿ëÇÒ °Ë»ç¿ë Ä¡¼ö
+    // ì´ë²ˆ ì´ë™/ìŠ¤ì™‘ì—ì„œ ì‚¬ìš©í•  ê²€ì‚¬ìš© ì¹˜ìˆ˜
     const int32 NewW = bIsRotate ? Me->Height : Me->Width;
     const int32 NewH = bIsRotate ? Me->Width : Me->Height;
 
-    // ºó ÀÚ¸®¸é ÀÌµ¿
+    // ë¹ˆ ìë¦¬ë©´ ì´ë™
     if (CanPlaceRect(NewX, NewY, NewW, NewH, Me->Id))
     {
         Me->X = NewX;
@@ -450,7 +450,7 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         Me->Width = NewW;
         Me->Height = NewH;
 
-        // ¼º°ø È®Á¤ÀÌ¹Ç·Î ½ÇÁ¦ È¸Àü ¹İ¿µ
+        // ì„±ê³µ í™•ì •ì´ë¯€ë¡œ ì‹¤ì œ íšŒì „ ë°˜ì˜
         if (bIsRotate)
         {
             Me->bRotated = !Me->bRotated;
@@ -469,7 +469,7 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         return true;
     }
 
-    // ½º¿Ò ÈÄº¸ Ã£±â
+    // ìŠ¤ì™‘ í›„ë³´ ì°¾ê¸°
     FInventoryEntry* Other = nullptr;
     for (auto& E : Entries)
     {
@@ -506,7 +506,7 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         return false;
     }
      
-    // ¾ÆÀÌÅÛ Á¾·ù°¡ °°À» ¶§
+    // ì•„ì´í…œ ì¢…ë¥˜ê°€ ê°™ì„ ë•Œ
     if (Other->Item->ItemId == Me->Item->ItemId)
     {
         const int32 Remaining = Other->Item->MaxStack - Other->Quantity;
@@ -522,19 +522,19 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
 
     }
 
-    // ½º¿Ò °¡´É¼º °Ë»ç
+    // ìŠ¤ì™‘ ê°€ëŠ¥ì„± ê²€ì‚¬
     const int32 MeOldX = Me->X;
     const int32 MeOldY = Me->Y;
 
-    // Other°¡ ³» ±âÁ¸ ÀÚ¸®·Î µé¾î°¥ ¼ö ÀÖ´Â°¡ (Other´Â È¸Àü ¾øÀ½)
+    // Otherê°€ ë‚´ ê¸°ì¡´ ìë¦¬ë¡œ ë“¤ì–´ê°ˆ ìˆ˜ ìˆëŠ”ê°€ (OtherëŠ” íšŒì „ ì—†ìŒ)
     const bool bOtherFitInMy = CanPlaceRect(MeOldX, MeOldY, Other->Width, Other->Height, Me->Id);
 
-    // ³ª´Â »õ ÀÚ¸®(NewX,NewY)¿¡ µé¾î°¥ ¼ö ÀÖ´Â°¡ (³ª´Â NewW/NewH·Î °Ë»ç)
+    // ë‚˜ëŠ” ìƒˆ ìë¦¬(NewX,NewY)ì— ë“¤ì–´ê°ˆ ìˆ˜ ìˆëŠ”ê°€ (ë‚˜ëŠ” NewW/NewHë¡œ ê²€ì‚¬)
     const bool bMeFitInNew = CanPlaceRect(NewX, NewY, NewW, NewH, Other->Id);
 
     if (bMeFitInNew && bOtherFitInMy)
     {
-        // ½º¿Ò È®Á¤
+        // ìŠ¤ì™‘ í™•ì •
         Other->X = MeOldX;
         Other->Y = MeOldY;
 
@@ -542,11 +542,11 @@ bool FInventoryGrid::MoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsR
         Me->Y = NewY;
         Me->Width = NewW;
         Me->Height = NewH;
-        // ¼º°ø È®Á¤ÀÌ¹Ç·Î ½ÇÁ¦ È¸Àü ¹İ¿µ
+        // ì„±ê³µ í™•ì •ì´ë¯€ë¡œ ì‹¤ì œ íšŒì „ ë°˜ì˜
         if (bIsRotate)
         {
             Me->bRotated = !Me->bRotated;
-            //Swap(Me->Width, Me->Height); // ¶Ç´Â Orientation Åä±Û
+            //Swap(Me->Width, Me->Height); // ë˜ëŠ” Orientation í† ê¸€
         }
 
         if (Owner && OwnerHasAuthority())
@@ -574,11 +574,11 @@ bool FInventoryGrid::SortMove(int32 EntryId, int32 NewX, int32 NewY)
 
     //UE_LOG(LogTemp, Display, TEXT("SortMove"));
 
-    // ÀÌ¹ø ÀÌµ¿/½º¿Ò¿¡¼­ »ç¿ëÇÒ °Ë»ç¿ë Ä¡¼ö
+    // ì´ë²ˆ ì´ë™/ìŠ¤ì™‘ì—ì„œ ì‚¬ìš©í•  ê²€ì‚¬ìš© ì¹˜ìˆ˜
     const int32 NewW = Me->Width;
     const int32 NewH = Me->Height;
 
-    // ºó ÀÚ¸®¸é ÀÌµ¿
+    // ë¹ˆ ìë¦¬ë©´ ì´ë™
     if (SortCanPlaceRect(NewX, NewY, NewW, NewH, Me->Id))
     {
         Me->X = NewX;
@@ -601,15 +601,15 @@ bool FInventoryGrid::SortMove(int32 EntryId, int32 NewX, int32 NewY)
 
 bool FInventoryGrid::CheckMoveOrSwap(int32 StartX, int32 StartY, int32 W, int32 H, int32 Id)
 {
-    FInventoryEntry* Me = GetById(Id);
-    if (!Me) return false;
-
     if (CanPlaceRect(StartX, StartY, W, H, Id))
     {
         return true;
     }
 
-    // ½º¿Ò ÈÄº¸ Ã£±â
+    FInventoryEntry* Me = GetById(Id);
+    if (!Me) return false;
+
+    // ìŠ¤ì™‘ í›„ë³´ ì°¾ê¸°
     FInventoryEntry* Other = nullptr;
     for (auto& E : Entries)
     {
@@ -629,7 +629,7 @@ bool FInventoryGrid::CheckMoveOrSwap(int32 StartX, int32 StartY, int32 W, int32 
     }
     if (!Other) return false;
 
-    // ¾ÆÀÌÅÛ Á¾·ù°¡ °°À» ¶§
+    // ì•„ì´í…œ ì¢…ë¥˜ê°€ ê°™ì„ ë•Œ
     /*if (Other->Item->ItemId == Me->Item->ItemId)
     {
         const int32 Remaining = Other->Item->MaxStack - Other->Quantity;
@@ -645,10 +645,10 @@ bool FInventoryGrid::CheckMoveOrSwap(int32 StartX, int32 StartY, int32 W, int32 
         return true;
     }*/
   
-    // Other°¡ ³» ±âÁ¸ ÀÚ¸®·Î µé¾î°¥ ¼ö ÀÖ´Â°¡
+    // Otherê°€ ë‚´ ê¸°ì¡´ ìë¦¬ë¡œ ë“¤ì–´ê°ˆ ìˆ˜ ìˆëŠ”ê°€
     const bool bOtherFitInMy = CanPlaceRect(Me->X, Me->Y, Other->Width, Other->Height, Id);
 
-    // ³ª´Â »õ ÀÚ¸®¿¡ µé¾î°¥ ¼ö ÀÖ´Â°¡
+    // ë‚˜ëŠ” ìƒˆ ìë¦¬ì— ë“¤ì–´ê°ˆ ìˆ˜ ìˆëŠ”ê°€
     const bool bMeFitInNew = CanPlaceRect(StartX, StartY, W, H, Other->Id);
 
     if (bMeFitInNew && bOtherFitInMy)
@@ -709,7 +709,7 @@ bool FInventoryGrid::MergeStackAtAndDecrease(FInventoryEntry& Entry, int32 Qty, 
     }
 
 
-    // ¾ÆÀÌÅÛ Á¾·ù°¡ °°À» ¶§
+    // ì•„ì´í…œ ì¢…ë¥˜ê°€ ê°™ì„ ë•Œ
     if (Other->Item->ItemId == Entry.Item->ItemId)
     {
         const int32 Remain = Other->Item->MaxStack - Other->Quantity;
@@ -736,7 +736,7 @@ bool FInventoryGrid::Rotate(int32 EntryId)
     const int32 NewW = Me->Height;
     const int32 NewH = Me->Width;
 
-    // °°Àº À§Ä¡¿¡¼­ È¸ÀüÀÌ °¡´ÉÇÑÁö
+    // ê°™ì€ ìœ„ì¹˜ì—ì„œ íšŒì „ì´ ê°€ëŠ¥í•œì§€
     if (CanPlaceRect(Me->X, Me->Y, NewW, NewH, Me->Id))
     {
         Me->Width = NewW;
@@ -747,7 +747,7 @@ bool FInventoryGrid::Rotate(int32 EntryId)
         return true;
     }
 
-    // ¾ÈµÇ¸é Ã¹ ÀûÇÕ À§Ä¡ Å½»ö
+    // ì•ˆë˜ë©´ ì²« ì í•© ìœ„ì¹˜ íƒìƒ‰
     int32 Fx, Fy;
     if (FindFirstFit(NewW, NewH, Fx, Fy, Me->Id))
     {
@@ -791,7 +791,7 @@ bool FInventoryGrid::DecreaseQtyAndRemoveById(int32 EntryId, int32 Num)
         if (Owner)
         {
             Owner->ItemChanged(E->Id);
-            if (OwnerHasAuthority())    //¼­¹ö¿¡¸¸ ¹è¿­ ¸¶Å©
+            if (OwnerHasAuthority())    //ì„œë²„ì—ë§Œ ë°°ì—´ ë§ˆí¬
             {
                 MarkItemDirty(*E);
                 Owner->InventoryForceNetUpdate();
@@ -799,7 +799,7 @@ bool FInventoryGrid::DecreaseQtyAndRemoveById(int32 EntryId, int32 Num)
         }
         return true;
     }
-    //0ÀÌÇÏ ÀÏ ¶§ »èÁ¦
+    //0ì´í•˜ ì¼ ë•Œ ì‚­ì œ
     else
     {
         RemoveById(EntryId);
@@ -815,7 +815,7 @@ bool FInventoryGrid::DecreaseQtyByRef(FInventoryEntry& E, int32 Num)
         if (Owner)
         {
             Owner->ItemChanged(E.Id);
-            if (OwnerHasAuthority())    //¼­¹ö¿¡¸¸ ¹è¿­ ¸¶Å©
+            if (OwnerHasAuthority())    //ì„œë²„ì—ë§Œ ë°°ì—´ ë§ˆí¬
             {
                 MarkItemDirty(E);
                 Owner->InventoryForceNetUpdate();
@@ -823,7 +823,7 @@ bool FInventoryGrid::DecreaseQtyByRef(FInventoryEntry& E, int32 Num)
         }
         return true;
     }
-    //0ÀÌÇÏ ÀÏ ¶§ »èÁ¦
+    //0ì´í•˜ ì¼ ë•Œ ì‚­ì œ
     else
     {
         RemoveById(E.Id);
@@ -844,7 +844,7 @@ bool FInventoryGrid::IncreaseQtyById(int32 EntryId, int32 Num)
         if (Owner)
         {
             Owner->ItemChanged(E->Id);
-            if (OwnerHasAuthority())    //¼­¹ö¿¡¸¸ ¹è¿­ ¸¶Å©
+            if (OwnerHasAuthority())    //ì„œë²„ì—ë§Œ ë°°ì—´ ë§ˆí¬
             {
                 MarkItemDirty(*E);
                 Owner->InventoryForceNetUpdate();
@@ -878,7 +878,7 @@ bool FInventoryGrid::IncreaseQtyByRef(FInventoryEntry& E, int32 Num)
         if (Owner)
         {
             Owner->ItemChanged(E.Id);
-            if (OwnerHasAuthority())    //¼­¹ö¿¡¸¸ ¹è¿­ ¸¶Å©
+            if (OwnerHasAuthority())    //ì„œë²„ì—ë§Œ ë°°ì—´ ë§ˆí¬
             {
                 MarkItemDirty(E);
                 Owner->InventoryForceNetUpdate();
@@ -911,7 +911,7 @@ bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bo
     const int32 NewW = bIsRotate ? Me->Height : Me->Width;
     const int32 NewH = bIsRotate ? Me->Width : Me->Height;
 
-    // 1) ÀÌµ¿ ÇÁ¸®ºä: ´ÜÀÏ Ignore·Î ±âÁ¸ ÇÔ¼ö ±×´ë·Î
+    // 1) ì´ë™ í”„ë¦¬ë·°: ë‹¨ì¼ Ignoreë¡œ ê¸°ì¡´ í•¨ìˆ˜ ê·¸ëŒ€ë¡œ
     if (CanPlaceRect(NewX, NewY, NewW, NewH, Me->Id))
     {
         PreviewRemoveById(Me->Id);
@@ -926,7 +926,7 @@ bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bo
         return true;
     }
 
-    // 2) ½º¿Ò ÈÄº¸ Ã£±â (°ãÄ¡´Â ½ÇÁ¦ ¿£Æ®¸® ÇÏ³ª Ã£±â)
+    // 2) ìŠ¤ì™‘ í›„ë³´ ì°¾ê¸° (ê²¹ì¹˜ëŠ” ì‹¤ì œ ì—”íŠ¸ë¦¬ í•˜ë‚˜ ì°¾ê¸°)
     const FInventoryEntry* Other = nullptr;
     {
         const int32 NX2 = NewX + NewW - 1;
@@ -944,12 +944,12 @@ bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bo
 
     const int32 MeOldX = Me->X, MeOldY = Me->Y;
 
-    // 3) ½º¿Ò °¡´É È®ÀÎ: **µÎ ¿£Æ®¸®(Me/Other) ¸ğµÎ ¿¹¿Ü Ã³¸®**
+    // 3) ìŠ¤ì™‘ ê°€ëŠ¥ í™•ì¸: **ë‘ ì—”íŠ¸ë¦¬(Me/Other) ëª¨ë‘ ì˜ˆì™¸ ì²˜ë¦¬**
     const bool bMeFitInNew = CanPlaceRect(NewX, NewY, NewW, NewH, Other->Id);
     const bool bOtherFitInMy = CanPlaceRect(MeOldX, MeOldY, Other->Width, Other->Height, Me->Id);
     if (!bMeFitInNew || !bOtherFitInMy) return false;
 
-    // 4) ÇÁ¸®ºä ½º¿Ò Àû¿ë
+    // 4) í”„ë¦¬ë·° ìŠ¤ì™‘ ì ìš©
     PreviewRemoveById(Me->Id);
     PreviewRemoveById(Other->Id);
 
@@ -961,7 +961,7 @@ bool FInventoryGrid::PreviewMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bo
     //OwnerComp->OnItemPreAdded.Broadcast(PreA);
 
     FInventoryEntry PreB = *Other;
-    PreB.X = MeOldX;  PreB.Y = MeOldY; // È¸Àü/»çÀÌÁî À¯Áö
+    PreB.X = MeOldX;  PreB.Y = MeOldY; // íšŒì „/ì‚¬ì´ì¦ˆ ìœ ì§€
     PreviewEntries.Add(PreB);
     //OwnerComp->OnItemPreAdded.Broadcast(PreB);
 
@@ -993,7 +993,7 @@ bool FInventoryGrid::OwnerHasAuthority()
 
 void FInventoryGrid::SortEntryByItemId()
 {
-    //¼­¹ö¿¡¼­ ½ÇÇàµÇ´Â ÇÔ¼ö
+    //ì„œë²„ì—ì„œ ì‹¤í–‰ë˜ëŠ” í•¨ìˆ˜
     if (!Owner || !OwnerHasAuthority()) 
     {
         return;
@@ -1063,11 +1063,11 @@ void FInventoryGrid::SortEntryByItemId()
     UObject* OwnerObj = Owner.GetObject();
     if (!OwnerObj) return;
 
-    // TWeakObjectPtrÀ» »ç¿ëÇÏ¿© Owner°¡ »ì¾ÆÀÖ´ÂÁö È®ÀÎ
+    // TWeakObjectPtrì„ ì‚¬ìš©í•˜ì—¬ Ownerê°€ ì‚´ì•„ìˆëŠ”ì§€ í™•ì¸
     TWeakObjectPtr<UObject> WeakOwner(OwnerObj);
 
-    //  MarkArrayDirty() MarkItemDirty() µ¿½Ã¿¡ ½ÇÇàÇÏ¸é FRepLayout::DeltaSerializeFastArrayProperty() Å©·¯½Ã
-    //id±â¹İ »èÁ¦
+    //  MarkArrayDirty() MarkItemDirty() ë™ì‹œì— ì‹¤í–‰í•˜ë©´ FRepLayout::DeltaSerializeFastArrayProperty() í¬ëŸ¬ì‹œ
+    //idê¸°ë°˜ ì‚­ì œ
     Owner.GetObject()->GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this, DeleteIds, WeakOwner]() {
         
         if (!WeakOwner.IsValid())

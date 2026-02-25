@@ -24,8 +24,8 @@ class PROJECTA_API ULobbyWidget : public UUserWidget
 public:
 	virtual void NativeOnInitialized() override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (BindWidget))
-	TObjectPtr<UButton> Btn_Start;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (BindWidget))
+	//TObjectPtr<UButton> Btn_Start;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (BindWidget))
 	TObjectPtr<UEditableTextBox> EditableText_Chat;
@@ -38,8 +38,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Component, meta = (BindWidget))
 	TObjectPtr<UScrollBox> ScrollBox_Chat;
 
-	UFUNCTION()
-	void HandlePressStartBtn();
+	//UFUNCTION()
+	//void HandlePressStartBtn();
 
 	UFUNCTION()
 	void HandleTextCommit(const FText& Text, ETextCommit::Type CommitMethod);
@@ -62,5 +62,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	TArray<TSubclassOf<URichTextBlockDecorator>> RichTextImageDecorators;
 
-	void ShowStartBtn();
+	//void ShowStartBtn();
 };

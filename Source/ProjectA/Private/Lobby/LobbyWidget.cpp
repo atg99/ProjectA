@@ -19,11 +19,11 @@ void ULobbyWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
-	if (Btn_Start)
-	{
-		Btn_Start->OnClicked.AddDynamic(this, &ULobbyWidget::HandlePressStartBtn);
-		Btn_Start->SetVisibility(ESlateVisibility::Hidden);
-	}
+	//if (Btn_Start)
+	//{
+	//	Btn_Start->OnClicked.AddDynamic(this, &ULobbyWidget::HandlePressStartBtn);
+	//	Btn_Start->SetVisibility(ESlateVisibility::Hidden);
+	//}
 
 	if (EditableText_Chat)
 	{
@@ -41,10 +41,10 @@ void ULobbyWidget::NativeOnInitialized()
 	//}
 }
 
-void ULobbyWidget::HandlePressStartBtn()
-{
-	GetWorld()->ServerTravel(TEXT("DevLevel"));
-}
+//void ULobbyWidget::HandlePressStartBtn()
+//{
+//	GetWorld()->ServerTravel(TEXT("DevLevel"));
+//}
 
 void ULobbyWidget::HandleTextCommit(const FText& Text, ETextCommit::Type CommitMethod)
 {
@@ -132,12 +132,12 @@ void ULobbyWidget::AddMessage(const FText& Message)
 	}
 }
 
-void ULobbyWidget::ShowStartBtn()
-{
-	if (Btn_Start)
-	{
-		Btn_Start->SetVisibility(ESlateVisibility::Visible);
-	}
-}
+//void ULobbyWidget::ShowStartBtn()
+//{
+//	if (Btn_Start)
+//	{
+//		Btn_Start->SetVisibility(ESlateVisibility::Visible);
+//	}
+//}
 
 

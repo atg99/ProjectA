@@ -215,7 +215,7 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 		//아이템 복사
 		TargetEntry->Item = ItemDef;
 		TargetEntry->Quantity = 1;
-
+		TargetEntry->bRotated = false;
 		//TargetEntry->X = 0;
 		//TargetEntry->Y = 0;
 		//TargetEntry->Id = ++GlobalEquipmentIdCounter;

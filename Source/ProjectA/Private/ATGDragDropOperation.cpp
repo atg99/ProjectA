@@ -17,7 +17,7 @@ void UATGDragDropOperation::Dragged_Implementation(const FPointerEvent& PointerE
 	}
 
 	bool bCurrentRPressed = DragController->IsInputKeyDown(EKeys::R);
-	NET_LOG(FString::Printf(TEXT("bCurrentRPressed : %d"), bCurrentRPressed));
+	//NET_LOG(FString::Printf(TEXT("bCurrentRPressed : %d"), bCurrentRPressed));
 	if (bCurrentRPressed && !bLastRPressed)
 	{
 		bIsRotated = !bIsRotated;

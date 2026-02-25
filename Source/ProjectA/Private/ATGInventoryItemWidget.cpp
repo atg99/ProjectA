@@ -154,6 +154,7 @@ void UATGInventoryItemWidget::NativeOnDragDetected(const FGeometry& InGeo, const
 		Visual->SetRenderOpacity(0.4f);
 		Op->DefaultDragVisual = Visual;
 		Op->Pivot = EDragPivot::TopLeft;
+		Op->bIsRotated = bIsRotated;
 	}
 
 	Op->Payload = this; // 원본 위젯 참조로 EntryId 접근

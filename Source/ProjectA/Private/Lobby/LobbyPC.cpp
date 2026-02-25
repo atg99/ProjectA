@@ -35,10 +35,10 @@ void ALobbyPC::BeginPlay()
 				SetShowMouseCursor(true);
 
 				//SetInputMode(FInputModeUIOnly());
-				if (HasAuthority())
-				{
-					LobbyWidgetObject->ShowStartBtn();
-				}
+				//if (HasAuthority())
+				//{
+				//	LobbyWidgetObject->ShowStartBtn();
+				//}
 			}
 		}
 

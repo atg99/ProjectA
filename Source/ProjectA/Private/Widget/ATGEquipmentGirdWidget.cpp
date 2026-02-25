@@ -162,10 +162,28 @@ void UATGEquipmentGirdWidget::BuildCellBackground()
 
 void UATGEquipmentGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen)
 {
-	if (!InDragged || !InDragged->ItemDef) return;
+	if (!InDragged || InDragged->ItemDef.IsNull())
+	{
+		UE_LOG(LogTemp, Error, TEXT("UATGEquipmentGirdWidget::HandleIncomingItem "));
+		if (!InDragged)
+		{
+			UE_LOG(LogTemp, Error, TEXT("!InDragged"));
+		}
+		else if (InDragged->ItemDef.IsNull())
+		{
+			UE_LOG(LogTemp, Error, TEXT("InDragged->ItemDef is null"));
+		}
+		return;
+	}
 	UE_LOG(LogTemp, Display, TEXT("UATGEquipmentGirdWidget::HandleIncomingItem"));
 
-	if (UATGItemData* ItemData = InDragged->ItemDef.Get())
+	UATGItemData* ItemData = InDragged->ItemDef.Get();
+	if (!ItemData)
+	{
+		ItemData = InDragged->ItemDef.LoadSynchronous();
+	}
+
+	if (ItemData)
 	{
 		if (CheckFitEquip(ItemData))
 		{
@@ -216,8 +234,18 @@ bool UATGEquipmentGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 			bIsR = Op->bIsRotated;
 		}
 		
-		int32 W = bIsR ? E->Height : E->Width;
-		int32 H = bIsR ? E->Width : E->Height;
+		int32 W = 0;
+		int32 H = 0;
+		if (E->bRotated)
+		{
+			W = bIsR ? E->Width : E->Height;
+			H = bIsR ? E->Height : E->Width;
+		}
+		else
+		{
+			W = bIsR ? E->Height : E->Width;
+			H = bIsR ? E->Width : E->Height;
+		}
 		
 		bool bCanMove = Inven->CheckCanMove(Cell.X, Cell.Y, W, H, E->Id);
 
