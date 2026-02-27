@@ -31,6 +31,8 @@
 #include "DynamicMesh/DynamicVertexSkinWeightsAttribute.h"
 #include "Operations/TransferBoneWeights.h"
 
+#include "ProfilingDebugging/CpuProfilerTrace.h"
+
 //#include "SkeletalMeshLODRenderDataToDynamicMesh.h" 
 
 //#include <GeometryScriptingCore/Private/MeshAssetFunctions.cpp>
@@ -53,6 +55,8 @@ void USliceSystemComponent::BeginPlay()
 {
 	Super::BeginPlay();
     
+    PrimaryComponentTick.TickInterval = 0.033f;
+
     SetupPMCs();
    
     SetupDMCs();
@@ -505,9 +509,9 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
         DMC_Debris->SetMaterial(10, SliceCapMaterial);
     }
 
-    DMC_Stump->SetVisibility(true);
-    DMC_Debris->SetVisibility(true);
-    DMC_Debris->AddLocalOffset(FVector(0, 0, 20.f));
+    //DMC_Stump->SetVisibility(true);
+    //DMC_Debris->SetVisibility(true);
+    //DMC_Debris->AddLocalOffset(FVector(0, 0, 20.f));
 
     USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Stump, PMC_Stump.ProcMeshComp, PMC_Stump.SkinCache, TargetBoneIndices);
     USliceUtils::ConvertDynamicMeshToProcMesh(DMC_Debris, PMC_Debris.ProcMeshComp, PMC_Debris.SkinCache, TargetBoneIndices);
@@ -557,6 +561,7 @@ void USliceSystemComponent::SetupPMCs()
     PMC_Stump.ProcMeshComp->AttachToComponent(Owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
     PMC_Stump.ProcMeshComp->SetCollisionProfileName(FName("PMC"), true);
     PMC_Stump.ProcMeshComp->SetVisibility(false);
+    //PMC_Stump.ProcMeshComp->tick
     //PMC_Stump->UpdateMeshSection_LinearColor()
 
     PMC_Debris.ProcMeshComp = NewObject<UProceduralMeshComponent>(Owner, TEXT("PMC_Debris"));
@@ -898,6 +903,10 @@ void USliceSystemComponent::PrecomputeSkinningMatrices()
     USkeletalMeshComponent* Mesh = Character->GetMesh();
     if (!Mesh) return;
 
+    // 블록 측정 (Scope): 이 함수가 시작해서 끝날 때까지의 실행 시간을 Insights에 블록으로 그려줍니다.
+ 
+    TRACE_CPUPROFILER_EVENT_SCOPE(Skinning_1_PrecomputeTotal);
+
     // (A) 현재 본 트랜스폼 (Component Space)
     const TArray<FTransform>& ComponentSpaceTransforms = Mesh->GetComponentSpaceTransforms();
 
@@ -910,16 +919,19 @@ void USliceSystemComponent::PrecomputeSkinningMatrices()
         SkinningMatrices.SetNumUninitialized(NumBones);
     }
 
-    // (C) 행렬 곱 계산 (RefInv * Current)
-    ParallelFor(NumBones, [&](int32 BoneIdx)
-        {
-            if (ComponentSpaceTransforms.IsValidIndex(BoneIdx))
+    {
+        // (C) 행렬 곱 계산 (RefInv * Current)
+        TRACE_CPUPROFILER_EVENT_SCOPE(Skinning_1A_ParallelMath);
+        ParallelFor(NumBones, [&](int32 BoneIdx)
             {
-                FMatrix RefInv = (FMatrix)RefInvMatrices[BoneIdx];
-                FMatrix Current = ComponentSpaceTransforms[BoneIdx].ToMatrixWithScale();
-                SkinningMatrices[BoneIdx] = RefInv * Current;
-            }
-        });
+                if (ComponentSpaceTransforms.IsValidIndex(BoneIdx))
+                {
+                    FMatrix RefInv = (FMatrix)RefInvMatrices[BoneIdx];
+                    FMatrix Current = ComponentSpaceTransforms[BoneIdx].ToMatrixWithScale();
+                    SkinningMatrices[BoneIdx] = RefInv * Current;
+                }
+            });
+    }
 }
 
 void USliceSystemComponent::UpdatePMCSkinning(FSlicePMC& InSlicePMC)
@@ -931,6 +943,11 @@ void USliceSystemComponent::UpdatePMCSkinning(FSlicePMC& InSlicePMC)
         return;
     }
 
+
+    // 블록 측정 (Scope): 이 함수가 시작해서 끝날 때까지의 실행 시간을 Insights에 블록으로 그려줍니다.
+    TRACE_CPUPROFILER_EVENT_SCOPE(Skinning_2_UpdateTotal);
+    
+    //TRACE_BOOKMARK(TEXT("UpdatePMCSkinning %s"), *InSlicePMC.ProcMeshComp->GetName());
     // 2. TMap Lookup 최적화 (Pre-calculation)
     // ParallelFor 내부에서 TMap::Find는 느리므로, SectionIndex로 바로 접근 가능한 포인터 배열을 만듭니다.
     int32 MaxSectionIndex = 0;
@@ -955,77 +972,85 @@ void USliceSystemComponent::UpdatePMCSkinning(FSlicePMC& InSlicePMC)
     const int32 MatrixCount = SkinningMatrices.Num();
     const FCachedSkinVertex* CacheData = InSlicePMC.SkinCache.GetData(); // Raw Pointer for Speed
 
-    // 3. 병렬 연산 (ParallelFor)
-    ParallelFor(InSlicePMC.SkinCache.Num(), [&](int32 i)
-        {
-            const FCachedSkinVertex& V = CacheData[i];
-
-            // Lookup 테이블을 통해 O(1)로 버퍼 접근 (락 불필요: 읽기 전용 Lookup + 서로 다른 VertIndex 쓰기)
-            if (!FastBufferLookup.IsValidIndex(V.SectionIndex)) return;
-            FProcMeshSectionBuffer* Buffer = FastBufferLookup[V.SectionIndex];
-
-            if (!Buffer || !Buffer->Vertices.IsValidIndex(V.VertIndex)) return;
-
-            // 최종 위치/노멀 계산
-            FVector FinalPos = FVector::ZeroVector;
-            FVector FinalNormal = FVector::ZeroVector;
-            FVector FinalTangentX = FVector::ZeroVector; // 탄젠트 누적 변수
-
-            // Loop Unrolling 고려: 4번 고정이므로 컴파일러가 알아서 최적화하겠지만 명시적으로 깔끔하게 작성
-            for (int32 w = 0; w < 4; ++w)
+    {
+        TRACE_CPUPROFILER_EVENT_SCOPE(Skinning_2A_ParallelVertexMath);
+        // 3. 병렬 연산 (ParallelFor)
+        ParallelFor(InSlicePMC.SkinCache.Num(), [&](int32 i)
             {
-                const float Weight = V.BoneWeights[w];
+                const FCachedSkinVertex& V = CacheData[i];
 
-                // 유의미한 웨이트만 계산 (최적화 핵심)
-                if (Weight > 0.01f)
+                // Lookup 테이블을 통해 O(1)로 버퍼 접근 (락 불필요: 읽기 전용 Lookup + 서로 다른 VertIndex 쓰기)
+                if (!FastBufferLookup.IsValidIndex(V.SectionIndex)) return;
+                FProcMeshSectionBuffer* Buffer = FastBufferLookup[V.SectionIndex];
+
+                if (!Buffer || !Buffer->Vertices.IsValidIndex(V.VertIndex)) return;
+
+                // 최종 위치/노멀 계산
+                FVector FinalPos = FVector::ZeroVector;
+                FVector FinalNormal = FVector::ZeroVector;
+                FVector FinalTangentX = FVector::ZeroVector; // 탄젠트 누적 변수
+
+                // Loop Unrolling 고려: 4번 고정이므로 컴파일러가 알아서 최적화하겠지만 명시적으로 깔끔하게 작성
+                for (int32 w = 0; w < 4; ++w)
                 {
-                    const int32 BoneIdx = V.BoneIndices[w];
+                    const float Weight = V.BoneWeights[w];
 
-                    // 행렬 인덱스 유효성 체크 (Bounds Check)
-                    if (BoneIdx >= 0 && BoneIdx < MatrixCount)
+                    // 유의미한 웨이트만 계산 (최적화 핵심)
+                    if (Weight > 0.01f)
                     {
-                        const FMatrix& Mat = SkinningMatrices[BoneIdx];
+                        const int32 BoneIdx = V.BoneIndices[w];
 
-                        // TransformPosition/Vector 연산
-                        FinalPos += Mat.TransformPosition(V.InitialPos) * Weight;
-                        FinalNormal += Mat.TransformVector(V.InitialNormal) * Weight;
+                        // 행렬 인덱스 유효성 체크 (Bounds Check)
+                        if (BoneIdx >= 0 && BoneIdx < MatrixCount)
+                        {
+                            const FMatrix& Mat = SkinningMatrices[BoneIdx];
 
-                        // 탄젠트 벡터도 동일하게 회전
-                        // Buffer->InitialTangents[V.VertIndex].TangentX 가 원본 벡터
-                        FinalTangentX += Mat.TransformVector(Buffer->InitialTangents[V.VertIndex].TangentX) * Weight;
+                            // TransformPosition/Vector 연산
+                            FinalPos += Mat.TransformPosition(V.InitialPos) * Weight;
+                            FinalNormal += Mat.TransformVector(V.InitialNormal) * Weight;
+
+                            // 탄젠트 벡터도 동일하게 회전
+                            // Buffer->InitialTangents[V.VertIndex].TangentX 가 원본 벡터
+                            FinalTangentX += Mat.TransformVector(Buffer->InitialTangents[V.VertIndex].TangentX) * Weight;
+                        }
                     }
                 }
-            }
 
-            // 결과 쓰기 (Thread-Safe: 각 스레드는 고유한 V.SectionIndex -> V.VertIndex에만 씀)
-            Buffer->Vertices[V.VertIndex] = FinalPos;
-            Buffer->Normals[V.VertIndex] = FinalNormal.GetSafeNormal(); // 정규화 필수
+                // 결과 쓰기 (Thread-Safe: 각 스레드는 고유한 V.SectionIndex -> V.VertIndex에만 씀)
+                Buffer->Vertices[V.VertIndex] = FinalPos;
+                Buffer->Normals[V.VertIndex] = FinalNormal.GetSafeNormal(); // 정규화 필수
 
-            // 탄젠트 정규화 및 업데이트
-            // bFlipTangentY 값은 원본 그대로 유지
-            bool bFlipY = Buffer->InitialTangents[V.VertIndex].bFlipTangentY;
-            Buffer->Tangents[V.VertIndex] = FProcMeshTangent(FinalTangentX.GetSafeNormal(), bFlipY);
-        });
-
+                // 탄젠트 정규화 및 업데이트
+                // bFlipTangentY 값은 원본 그대로 유지
+                bool bFlipY = Buffer->InitialTangents[V.VertIndex].bFlipTangentY;
+                Buffer->Tangents[V.VertIndex] = FProcMeshTangent(FinalTangentX.GetSafeNormal(), bFlipY);
+            });
+    }
     // 4. GPU 데이터 전송 (반드시 Main Thread에서 수행)
     // TMap 순회하며 변경된 버퍼 업데이트
-    for (auto& Elem : InSlicePMC.UpdateBuffers)
     {
-        const int32 SectionIdx = Elem.Key;
-        const FProcMeshSectionBuffer& Buff = Elem.Value; // const reference로 복사 방지
+        TRACE_CPUPROFILER_EVENT_SCOPE(Skinning_2B_SubmitToGPU);
+        for (auto& Elem : InSlicePMC.UpdateBuffers)
+        {
+            const int32 SectionIdx = Elem.Key;
+            const FProcMeshSectionBuffer& Buff = Elem.Value; // const reference로 복사 방지
 
-        // 업데이트 수행
-        InSlicePMC.ProcMeshComp->UpdateMeshSection_LinearColor(
-            SectionIdx,
-            Buff.Vertices,
-            Buff.Normals,
-            Buff.UVs,       // 백업된 UV 유지
-            TArray<FVector2D>(), // UV1 (Empty)
-            TArray<FVector2D>(), // UV2 (Empty)
-            TArray<FVector2D>(), // UV3 (Empty)
-            Buff.Colors,    // 백업된 Color 유지
-            Buff.Tangents,  // 백업된 Tangent 유지
-            false           // Collision Update 끔 (성능상 매우 중요)
-        );
+            // 업데이트 수행
+            InSlicePMC.ProcMeshComp->UpdateMeshSection_LinearColor(
+                SectionIdx,
+                Buff.Vertices,
+                Buff.Normals,
+                TArray<FVector2D>(), // [수정] Buff.UVs 대신 빈 배열 전달 (UV 복사 생략!)
+                TArray<FVector2D>(), TArray<FVector2D>(), TArray<FVector2D>(),
+                TArray<FLinearColor>(), // [수정] Buff.Colors 대신 빈 배열 전달 (Color 복사 생략!)
+                //Buff.UVs,       // 백업된 UV 유지
+                //TArray<FVector2D>(), // UV1 (Empty)
+                //TArray<FVector2D>(), // UV2 (Empty)
+                //TArray<FVector2D>(), // UV3 (Empty)
+                //Buff.Colors,    // 백업된 Color 유지
+                Buff.Tangents,  // 백업된 Tangent 유지
+                false           // Collision Update 끔 (성능상 매우 중요)
+            );
+        }
     }
 }
