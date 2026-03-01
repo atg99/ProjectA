@@ -56,23 +56,24 @@ void USliceSystemComponent::BeginPlay()
 	Super::BeginPlay();
     
     PrimaryComponentTick.TickInterval = 0.033f;
-
+    ACharacter* Character = Cast<ACharacter>(GetOwner());
+    AddTickPrerequisiteComponent(Character->GetMesh());
     SetupPMCs();
    
     SetupDMCs();
 
-    if (!IsRunningDedicatedServer())
-    {
-        if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
-        {
-            if (USkeletalMesh* OriginalMesh = Character->GetMesh()->GetSkeletalMeshAsset())
-            {
-                // 원본 에셋을 복제 독립적인 에셋 생성
-                USkeletalMesh* NewMesh = DuplicateObject<USkeletalMesh>(OriginalMesh, Character);
-                Character->GetMesh()->SetSkeletalMeshAsset(NewMesh);
-            }
-        }
-    }
+    //if (!IsRunningDedicatedServer())
+    //{
+    //    if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
+    //    {
+    //        if (USkeletalMesh* OriginalMesh = Character->GetMesh()->GetSkeletalMeshAsset())
+    //        {
+    //            // 원본 에셋을 복제 독립적인 에셋 생성
+    //            USkeletalMesh* NewMesh = DuplicateObject<USkeletalMesh>(OriginalMesh, Character);
+    //            Character->GetMesh()->SetSkeletalMeshAsset(NewMesh);
+    //        }
+    //    }
+    //}
 }
 
 // Called every frame
@@ -202,7 +203,7 @@ void USliceSystemComponent::SliceBone(FName TargetBone, const FVector& HitLocati
     //Mesh->AddImpulse(-HitNormal * ImpulsePower, TargetBone, false);
 
     // 5. 마스킹
-    USliceUtils::MaskTargetBoneOnly(Character->GetMesh(), TargetBone);
+    //USliceUtils::MaskTargetBoneOnly(Character->GetMesh(), TargetBone);
 
 }
 
@@ -329,7 +330,7 @@ void USliceSystemComponent::SliceBone_DMC(FName TargetBone, const FVector& HitLo
     //Mesh->AddImpulse(-HitNormal * ImpulsePower, TargetBone, false);
 
     // 5. 마스킹
-    USliceUtils::MaskTargetBoneOnly(Character->GetMesh(), TargetBone);
+    //USliceUtils::MaskTargetBoneOnly(Character->GetMesh(), TargetBone);
 }
 
 void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVector& HitLocation, const FVector& HitNormal, const FVector& CutNormal, float ImpulsePower)
@@ -546,7 +547,8 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
 		FName BoneName = Mesh->GetBoneName(BoneIdx);
         Mesh->SetAllBodiesBelowSimulatePhysics(BoneName, true); // TargetBone 이하는 물리 적용되어 떨어져 나감
         Mesh->BreakConstraint(-HitNormal * ImpulsePower, HitLocation, BoneName);
-        USliceUtils::MaskTargetBoneOnly(Character->GetMesh(), BoneName);
+        USliceUtils::MaskTargetBoneOnly_2(Character->GetMesh(), BoneName);
+        //Character->GetMesh()->HideBoneByName(BoneName, EPhysBodyOp::PBO_None);
     }
 }
 
@@ -580,6 +582,7 @@ void USliceSystemComponent::SetupDMCs()
     DMC_Stump = NewObject<UDynamicMeshComponent>(Owner, TEXT("DMC_Stump"));
     DMC_Stump->RegisterComponent();
     DMC_Stump->SetCollisionProfileName(FName("PMC"), true); // Stump는 보통 충돌 끔
+    DMC_Stump->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     DMC_Stump->SetVisibility(false);
 
     // Debris 생성
@@ -587,6 +590,7 @@ void USliceSystemComponent::SetupDMCs()
     DMC_Debris->RegisterComponent();
     DMC_Debris->SetCollisionProfileName(FName("PMC"), true); // Stump는 보통 충돌 끔
     //DMC_Debris->EnableComplexAsSimpleCollision(); // 복잡한 모양대로 물리 적용
+    DMC_Debris->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     DMC_Debris->SetVisibility(false);
 }
 

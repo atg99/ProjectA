@@ -10,6 +10,7 @@
 #include "Common/TcpSocketBuilder.h"
 #include "Async/Async.h"
 #include "InventoryTypes.h"
+#include "Misc/ConfigCacheIni.h"
 //namespace GamePacket;
 
 FTcpSocketWorker::FTcpSocketWorker(FSocket* InSocket, FOnBytesReceived InCallback)
@@ -67,6 +68,21 @@ void UNetworkGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 	HTTPModule = &FHttpModule::Get();
 	Socket = nullptr;
 	bIsConnected = false;
+
+	FString ReadIP;
+	
+	if (GConfig->GetString(TEXT("ServerSettings"), TEXT("LiveServerIP"), ReadIP, GGameIni))
+	{
+		BackendIP = ReadIP;
+		UE_LOG(LogTemp, Warning, TEXT("LiveServerIP: %s"), *BackendIP);
+	}
+	else
+	{
+		// 만약 ini 파일에 값이 없거나 못 읽었다면 기본값(로컬)으로 튕겨냅니다 (방어 코드)
+		BackendIP = TEXT("127.0.0.1");
+		UE_LOG(LogTemp, Error, TEXT("Can't Find LiveServerIP use LocalHost"));
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("NetworkSubsystem Initialized"));
 }
 
@@ -86,6 +102,7 @@ void UNetworkGameInstanceSubsystem::BackendLogin()
 	);
 
 	FString URL = FString::Printf(TEXT("http://%s:3000/api/v1/auth/login"), *BackendIP);
+	NET_LOG(FString::Printf(TEXT("%s"), *URL));
 
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
@@ -110,7 +127,7 @@ void UNetworkGameInstanceSubsystem::BackendRegister(FString NewUserID, FString N
 	Request->OnProcessRequestComplete().BindUObject(this, &UNetworkGameInstanceSubsystem::OnBackendRegisterProcessRequestComplete);
 
 	FString URL = FString::Printf(TEXT("http://%s:3000/api/v1/auth/register"), *BackendIP);
-
+	NET_LOG(FString::Printf(TEXT("%s"), *URL));
 	Request->SetURL(URL);
 	Request->SetVerb(TEXT("POST"));
 	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
@@ -163,7 +180,7 @@ void UNetworkGameInstanceSubsystem::OnBackendLoginProcessRequestComplete(FHttpRe
 
 		ConnectToTCPServer(BackendIP, TCPPort);
 
-		UGameplayStatics::OpenLevel(GetWorld(), TEXT("LobbyMap"), true);
+		UGameplayStatics::OpenLevel(this, TEXT("LobbyMap"), true);
 	}
 	else
 	{

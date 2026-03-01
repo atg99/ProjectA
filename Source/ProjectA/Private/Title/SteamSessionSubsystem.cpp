@@ -46,7 +46,7 @@ void USteamSessionSubsystem::CreateGameSession(FString SessionName, int32 MaxPla
 	// 세션 설정
 	TSharedPtr<FOnlineSessionSettings> SessionSettings = MakeShareable(new FOnlineSessionSettings());
 
-	SessionSettings->bIsLANMatch = bIsLAN;
+	SessionSettings->bIsLANMatch = false;
 	SessionSettings->NumPublicConnections = MaxPlayers;
 	SessionSettings->bAllowJoinInProgress = true;
 	SessionSettings->bAllowJoinViaPresence = true; // 스팀 친구 초대/참가 기능 필수
@@ -100,8 +100,8 @@ void USteamSessionSubsystem::FindGameSessions(bool bIsLAN)
 
 	// 검색 설정
 	LastSessionSearch = MakeShareable(new FOnlineSessionSearch());
-	LastSessionSearch->MaxSearchResults = 100;
-	LastSessionSearch->bIsLanQuery = bIsLAN;
+	LastSessionSearch->MaxSearchResults = 10000;
+	LastSessionSearch->bIsLanQuery = false;
 	// 로비
 	LastSessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
 

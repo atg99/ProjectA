@@ -13,8 +13,7 @@
 				"AIModule",
 				"UMG",
 				"GameplayAbilities",
-				"CoreUObject",
-				"Blutility"
+				"CoreUObject"
 			]
 		}
 	],

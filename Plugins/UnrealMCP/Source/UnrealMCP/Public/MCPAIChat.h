@@ -13,7 +13,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOrchestratorResponseDelegate, const FString&, ResponseContent, bool, bSuccess);
 
 UCLASS()
-class PROJECTA_API UMCPAIChat : public UEditorUtilityBlueprintAsyncActionBase
+class UNREALMCP_API UMCPAIChat : public UEditorUtilityBlueprintAsyncActionBase
 {
 	GENERATED_BODY()
 

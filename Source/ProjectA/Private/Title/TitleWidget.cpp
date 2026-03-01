@@ -40,7 +40,7 @@ void UTitleWidget::SaveData()
 		UNetworkGameInstanceSubsystem* MySubsystem = GI->GetSubsystem<UNetworkGameInstanceSubsystem>();
 		MySubsystem->UserID = UserID->GetText().ToString();
 		MySubsystem->Password = Password->GetText().ToString();
-		MySubsystem->BackendIP = BackendIP;
+		//MySubsystem->BackendIP = BackendIP;
 		MySubsystem->BackendLogin();
 	}
 }

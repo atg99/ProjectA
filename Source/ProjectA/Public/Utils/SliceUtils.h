@@ -63,6 +63,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Slicing")
 	static void MaskTargetBoneOnly(USkeletalMeshComponent* SkeletalMeshComp, FName TargetBoneName);
+
+	UFUNCTION(BlueprintCallable, Category = "Slicing")
+	static void MaskTargetBoneOnly_2(USkeletalMeshComponent* SkeletalMeshComp, FName TargetBoneName);
+
 	
     UFUNCTION(BlueprintCallable, Category = "Slicing")
     static void ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp);

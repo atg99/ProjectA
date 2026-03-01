@@ -519,6 +519,114 @@ void USliceUtils::MaskTargetBoneOnly(USkeletalMeshComponent* SkeletalMeshComp, F
     }
 }
 
+void USliceUtils::MaskTargetBoneOnly_2(USkeletalMeshComponent* SkeletalMeshComp, FName TargetBoneName)
+{
+    if (!SkeletalMeshComp) return;
+
+    USkeletalMesh* SkelMesh = SkeletalMeshComp->GetSkeletalMeshAsset();
+    if (!SkelMesh) return;
+
+    FSkeletalMeshRenderData* RenderData = SkelMesh->GetResourceForRendering();
+    if (!RenderData || !RenderData->LODRenderData.IsValidIndex(0)) return;
+
+    FSkeletalMeshLODRenderData& LODData = RenderData->LODRenderData[0];
+    const FSkinWeightVertexBuffer& SkinWeightBuffer = LODData.SkinWeightVertexBuffer;
+
+    int32 TargetBoneIndex = SkeletalMeshComp->GetBoneIndex(TargetBoneName);
+    if (TargetBoneIndex == INDEX_NONE) return;
+
+    uint32 NumVertices = LODData.GetNumVertices();
+
+    // 1. 컴포넌트의 LODInfo가 생성되어 있는지 확인 (보통 BeginPlay 이후엔 존재함)
+    if (!SkeletalMeshComp->LODInfo.IsValidIndex(0))
+    {
+        return;
+    }
+    FSkelMeshComponentLODInfo& LODInfo = SkeletalMeshComp->LODInfo[0];
+
+    // 2. 이 컴포넌트(인스턴스) 전용 버텍스 컬러 오버라이드 버퍼를 준비합니다.
+    bool bIsFirstTime = false;
+    if (!LODInfo.OverrideVertexColors)
+    {
+        LODInfo.OverrideVertexColors = new FColorVertexBuffer();
+        bIsFirstTime = true;
+    }
+
+    // 버텍스 컬러를 쓸 임시 배열 (이미 마스킹된 부분 누적을 위해)
+    TArray<FColor> NewColors;
+    NewColors.Init(FColor::White, NumVertices);
+
+    if (!bIsFirstTime && LODInfo.OverrideVertexColors->GetNumVertices() == NumVertices)
+    {
+        for (uint32 i = 0; i < NumVertices; i++)
+        {
+            NewColors[i] = LODInfo.OverrideVertexColors->VertexColor(i);
+        }
+    }
+
+    bool bModified = false;
+
+    // 3. 기존에 작성하셨던 완벽한 스킨 웨이트 검사 로직
+    for (const FSkelMeshRenderSection& Section : LODData.RenderSections)
+    {
+        for (uint32 i = 0; i < Section.NumVertices; i++)
+        {
+            int32 VertexIndex = Section.BaseVertexIndex + i;
+
+            if (NewColors[VertexIndex].A == 0) continue; // 이미 숨겨진 곳은 패스
+
+            bool bShouldMask = false;
+            int32 NumInfluences = SkinWeightBuffer.GetMaxBoneInfluences();
+
+            for (int32 InfIdx = 0; InfIdx < NumInfluences; InfIdx++)
+            {
+                float Weight = SkinWeightBuffer.GetBoneWeight(VertexIndex, InfIdx);
+                if (Weight < 0.5f) continue; // 작성하신 대로 0.5 이상만 날림
+
+                int32 BoneIndexInBuffer = SkinWeightBuffer.GetBoneIndex(VertexIndex, InfIdx);
+                int32 RealBoneIndex = BoneIndexInBuffer;
+
+                if (Section.BoneMap.Num() > 0 && Section.BoneMap.IsValidIndex(BoneIndexInBuffer))
+                {
+                    RealBoneIndex = Section.BoneMap[BoneIndexInBuffer];
+                }
+
+                if (RealBoneIndex == TargetBoneIndex)
+                {
+                    bShouldMask = true;
+                    break;
+                }
+            }
+
+            if (bShouldMask)
+            {
+                NewColors[VertexIndex].A = 0; // 투명화 (알파 0)
+                bModified = true;
+            }
+        }
+    }
+
+    // 4. 컴포넌트 전용 버퍼 업데이트 (렌더 스레드 안전성 보장)
+    if (bModified)
+    {
+        LODInfo.OverrideVertexColors->InitFromColorArray(NewColors);
+
+        if (bIsFirstTime)
+        {
+            // 처음 생성되었을 때 리소스 초기화
+            BeginInitResource(LODInfo.OverrideVertexColors);
+        }
+        else
+        {
+            // 이미 존재하는 리소스라면 데이터만 업데이트
+            BeginUpdateResourceRHI(LODInfo.OverrideVertexColors);
+        }
+
+        // 변경 사항을 GPU에 강제로 다시 그리라고 지시
+        SkeletalMeshComp->MarkRenderStateDirty();
+    }
+}
+
 void USliceUtils::ConvertDynamicMeshToProcMesh(UDynamicMeshComponent* DynamicMeshComp, UProceduralMeshComponent* ProcMeshComp)
 {
     if (!DynamicMeshComp || !ProcMeshComp) return;
