@@ -273,8 +273,9 @@ void UNetworkGameInstanceSubsystem::ConnectToTCPServer(FString IpAddress, int32 
 				}
 			}));
 
-		// 연결 즉시 로그인 패킷 전송
-		SendLoginPacket(CachedToken);
+		// 연결 즉시 로그인 패킷 전송 X LobbyBeginPlay에서 
+		// 로컬 OS의 송신 버퍼(Send Buffer)가 완벽한 쓰기 가능(Writable) 상태로 전환되지 않았을 수 있음
+		//SendLoginPacket(CachedToken);
 	}
 	else
 	{
@@ -301,6 +302,12 @@ void UNetworkGameInstanceSubsystem::TCPDisconnect()
 
 	bIsConnected = false;
 	ReceiveBuffer.Empty();
+}
+
+
+void UNetworkGameInstanceSubsystem::TrySendTCPLoginPacket()
+{
+	SendLoginPacket(CachedToken);
 }
 
 // [Send 로직]
@@ -373,7 +380,12 @@ void UNetworkGameInstanceSubsystem::SendPacket(const uint8* Data, int32 Size)
 	}
 
 	int32 Sent = 0;
-	Socket->Send(Buffer.GetData(), Buffer.Num(), Sent);
+	bool bSent = Socket->Send(Buffer.GetData(), Buffer.Num(), Sent);
+
+	if (!bSent || Sent < Buffer.Num())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to send TCP packet! Sent %d / %d bytes"), Sent, Buffer.Num());
+	}
 }
 
 // [Receive 로직] - Framing 및 Deserialization

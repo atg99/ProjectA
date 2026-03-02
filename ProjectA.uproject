@@ -72,6 +72,10 @@
 		{
 			"Name": "GeometryProcessing",
 			"Enabled": true
+		},
+		{
+			"Name": "SteamSockets",
+			"Enabled": true
 		}
 	]
 }

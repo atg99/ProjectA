@@ -32,36 +32,36 @@ void USteamSessionSubsystem::CreateGameSession(FString SessionName, int32 MaxPla
 	IOnlineSessionPtr SessionInterface = GetSessionInterface();
 	if (!SessionInterface.IsValid()) return;
 
-	// ÀÌ¹Ì ¼¼¼ÇÀÌ ÀÖ´Ù¸é ÆÄ±« (¾ÈÀüÀåÄ¡)
+	// ì´ë¯¸ ì„¸ì…˜ì´ ìžˆë‹¤ë©´ íŒŒê´´ (ì•ˆì „ìž¥ì¹˜)
 	auto ExistingSession = SessionInterface->GetNamedSession(NAME_GameSession);
 	if (ExistingSession)
 	{
 		SessionInterface->DestroySession(NAME_GameSession);
 	}
 
-	// µ¨¸®°ÔÀÌÆ® ¹ÙÀÎµù
+	// ë¸ë¦¬ê²Œì´íŠ¸ ë°”ì¸ë”©
 	CreateSessionCompleteDelegateHandle = SessionInterface->AddOnCreateSessionCompleteDelegate_Handle(
 		FOnCreateSessionCompleteDelegate::CreateUObject(this, &USteamSessionSubsystem::OnCreateSessionCompleteCallback));
 
-	// ¼¼¼Ç ¼³Á¤
+	// ì„¸ì…˜ ì„¤ì •
 	TSharedPtr<FOnlineSessionSettings> SessionSettings = MakeShareable(new FOnlineSessionSettings());
 
 	SessionSettings->bIsLANMatch = false;
 	SessionSettings->NumPublicConnections = MaxPlayers;
 	SessionSettings->bAllowJoinInProgress = true;
-	SessionSettings->bAllowJoinViaPresence = true; // ½ºÆÀ Ä£±¸ ÃÊ´ë/Âü°¡ ±â´É ÇÊ¼ö
-	SessionSettings->bShouldAdvertise = true;      // ´Ù¸¥ »ç¶÷ÀÌ °Ë»ö °¡´ÉÇÏµµ·Ï
-	SessionSettings->bUsesPresence = true;         // ½ºÆÀ ·Îºñ ±â´ÉÀ» ¾²·Á¸é ÇÊ¼ö!
-	SessionSettings->bUseLobbiesIfAvailable = true; // UE 5.x ½ºÆÀ ·Îºñ »ç¿ë
+	SessionSettings->bAllowJoinViaPresence = true; // ìŠ¤íŒ€ ì¹œêµ¬ ì´ˆëŒ€/ì°¸ê°€ ê¸°ëŠ¥ í•„ìˆ˜
+	SessionSettings->bShouldAdvertise = true;      // ë‹¤ë¥¸ ì‚¬ëžŒì´ ê²€ìƒ‰ ê°€ëŠ¥í•˜ë„ë¡
+	SessionSettings->bUsesPresence = true;         // ìŠ¤íŒ€ ë¡œë¹„ ê¸°ëŠ¥ì„ ì“°ë ¤ë©´ í•„ìˆ˜!
+	SessionSettings->bUseLobbiesIfAvailable = true; // UE 5.x ìŠ¤íŒ€ ë¡œë¹„ ì‚¬ìš©
 
-	// Ä¿½ºÅÒ µ¥ÀÌÅÍ ¼³Á¤ (¿¹: ¸Ê ÀÌ¸§)
+	// ì»¤ìŠ¤í…€ ë°ì´í„° ì„¤ì • (ì˜ˆ: ë§µ ì´ë¦„)
 	SessionSettings->Set(FName("SERVER_NAME"), SessionName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
-	// ¼¼¼Ç »ý¼º ½Ãµµ
+	// ì„¸ì…˜ ìƒì„± ì‹œë„
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if (!SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *SessionSettings))
 	{
-		// ½ÇÆÐ ½Ã ¹Ù·Î µ¨¸®°ÔÀÌÆ® ÇØÁ¦ ¹× ¾Ë¸²
+		// ì‹¤íŒ¨ ì‹œ ë°”ë¡œ ë¸ë¦¬ê²Œì´íŠ¸ í•´ì œ ë° ì•Œë¦¼
 		SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
 		OnCreateSessionComplete.Broadcast(false);
 	}
@@ -84,7 +84,7 @@ void USteamSessionSubsystem::OnCreateSessionCompleteCallback(FName SessionName, 
 		{
 			const FString Token = NetworkGameInstanceSubsystem->LoginData.token;
 			FString Options = FString::Printf(TEXT("?listen?Token=%s"), *Token);
-			// ¼¼¼Ç »ý¼º ¼º°ø ½Ã ·Îºñ ·¹º§(Listen Server)·Î ÀÌµ¿
+			// ì„¸ì…˜ ìƒì„± ì„±ê³µ ì‹œ ë¡œë¹„ ë ˆë²¨(Listen Server)ë¡œ ì´ë™
 			UGameplayStatics::OpenLevel(GetWorld(), "DevLevel", true, Options);
 		}
 	}
@@ -98,11 +98,11 @@ void USteamSessionSubsystem::FindGameSessions(bool bIsLAN)
 	FindSessionsCompleteDelegateHandle = SessionInterface->AddOnFindSessionsCompleteDelegate_Handle(
 		FOnFindSessionsCompleteDelegate::CreateUObject(this, &USteamSessionSubsystem::OnFindSessionsCompleteCallback));
 
-	// °Ë»ö ¼³Á¤
+	// ê²€ìƒ‰ ì„¤ì •
 	LastSessionSearch = MakeShareable(new FOnlineSessionSearch());
 	LastSessionSearch->MaxSearchResults = 10000;
 	LastSessionSearch->bIsLanQuery = false;
-	// ·Îºñ
+	// ë¡œë¹„
 	LastSessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
 
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
@@ -142,7 +142,7 @@ void USteamSessionSubsystem::OnFindSessionsCompleteCallback(bool bWasSuccessful)
 			}
 			FSearchSessionResult BpResult;
 
-			// ¼¼¼Ç ¼³Á¤¿¡¼­ ³Ö¾îµÐ SERVER_NAME °¡Á®¿À±â
+			// ì„¸ì…˜ ì„¤ì •ì—ì„œ ë„£ì–´ë‘” SERVER_NAME ê°€ì ¸ì˜¤ê¸°
 			FString ServerName = "Unknown Server";
 			Result.Session.SessionSettings.Get(FName("SERVER_NAME"), ServerName);
 
@@ -150,7 +150,7 @@ void USteamSessionSubsystem::OnFindSessionsCompleteCallback(bool bWasSuccessful)
 			BpResult.CurrentPlayers = Result.Session.SessionSettings.NumPublicConnections - Result.Session.NumOpenPublicConnections;
 			BpResult.MaxPlayers = Result.Session.SessionSettings.NumPublicConnections;
 			BpResult.Ping = Result.PingInMs;
-			BpResult.SearchResultIndex = i; // ³ªÁß¿¡ JoinÇÒ ¶§ ÀÌ ÀÎµ¦½º »ç¿ë
+			BpResult.SearchResultIndex = i; // ë‚˜ì¤‘ì— Joiní•  ë•Œ ì´ ì¸ë±ìŠ¤ ì‚¬ìš©
 
 			BlueprintResults.Add(BpResult);
 		}
@@ -172,7 +172,7 @@ void USteamSessionSubsystem::JoinGameSession(const FSearchSessionResult& Session
 	IOnlineSessionPtr SessionInterface = GetSessionInterface();
 	if (!SessionInterface.IsValid()) return;
 
-	// °Ë»ö °á°ú°¡ À¯È¿ÇÑÁö Ã¼Å©
+	// ê²€ìƒ‰ ê²°ê³¼ê°€ ìœ íš¨í•œì§€ ì²´í¬
 	if (!LastSessionSearch.IsValid() || !LastSessionSearch->SearchResults.IsValidIndex(SessionResult.SearchResultIndex))
 	{
 		OnJoinSessionComplete.Broadcast(false);
@@ -184,7 +184,7 @@ void USteamSessionSubsystem::JoinGameSession(const FSearchSessionResult& Session
 
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 
-	// Ã£Àº °á°ú(SearchResults) Áß ÇØ´ç ÀÎµ¦½ºÀÇ ¼¼¼Ç¿¡ Âü°¡ ¿äÃ»
+	// ì°¾ì€ ê²°ê³¼(SearchResults) ì¤‘ í•´ë‹¹ ì¸ë±ìŠ¤ì˜ ì„¸ì…˜ì— ì°¸ê°€ ìš”ì²­
 	const FOnlineSessionSearchResult& SearchResult = LastSessionSearch->SearchResults[SessionResult.SearchResultIndex];
 
 	if (!SessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, SearchResult))
@@ -204,11 +204,11 @@ void USteamSessionSubsystem::OnJoinSessionCompleteCallback(FName SessionName, EO
 
 	if (Result == EOnJoinSessionCompleteResult::Success)
 	{
-		// Âü°¡ ¼º°ø ½Ã Á¢¼ÓÇÒ IP(¶Ç´Â ½ºÆÀ ÁÖ¼Ò)¸¦ ¾ò¾î¿È
+		// ì°¸ê°€ ì„±ê³µ ì‹œ ì ‘ì†í•  IP(ë˜ëŠ” ìŠ¤íŒ€ ì£¼ì†Œ)ë¥¼ ì–»ì–´ì˜´
 		FString ConnectString;
 		if (SessionInterface->GetResolvedConnectString(NAME_GameSession, ConnectString))
 		{
-			// Å¬¶óÀÌ¾ðÆ® Æ®·¡ºí (¼­¹ö·Î ÀÌµ¿)
+			// í´ë¼ì´ì–¸íŠ¸ íŠ¸ëž˜ë¸” (ì„œë²„ë¡œ ì´ë™)
 			APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 			if (PlayerController)
 			{

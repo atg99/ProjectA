@@ -209,6 +209,8 @@ public:
 
 	FBackendLoginData LoginData;
 
+	void TrySendTCPLoginPacket();
+
 protected:
 
 	FHttpModule* HTTPModule;

@@ -9,6 +9,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
+#include "Title/NetworkGameInstanceSubsystem.h"
 
 ALobbyPC::ALobbyPC()
 {
@@ -40,6 +41,12 @@ void ALobbyPC::BeginPlay()
 				//	LobbyWidgetObject->ShowStartBtn();
 				//}
 			}
+		}
+
+		UNetworkGameInstanceSubsystem* NetworkSubsystem = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
+		if (NetworkSubsystem)
+		{
+			NetworkSubsystem->TrySendTCPLoginPacket();
 		}
 
 	}

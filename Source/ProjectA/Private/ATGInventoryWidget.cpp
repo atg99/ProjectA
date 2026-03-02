@@ -34,7 +34,7 @@ void UATGInventoryWidget::NativeConstruct()
 
 			InjectInvenComp(InvenComp, EquipComp);
 
-			// ·Îºñ¸ÊÀÏ¶§ PS¿¡ ContainerComponentÃß°¡ DB data ¿¬°á (°ÔÀÓ¸Ê PS ¿¡ ContainerComp ´Þ¸é¾ÈµÊ)
+			// ë¡œë¹„ë§µì¼ë•Œ PSì— ContainerComponentì¶”ê°€ DB data ì—°ê²° (ê²Œìž„ë§µ PS ì— ContainerComp ë‹¬ë©´ì•ˆë¨)
 			auto ContainerComp = PS->FindComponentByClass<UATGContainerComponent>();
 			if (ContainerComp)
 			{
@@ -101,14 +101,14 @@ void UATGInventoryWidget::HandleInitInventoryComp(UATGInventoryComponent* GetInv
 
 void UATGInventoryWidget::InjectInvenComp(UATGInventoryComponent* InInventoryComponent, UATGEquipmentComponent* InEquipmentComponent)
 {
-	if (ensure(InInventoryComponent))
+	if (InInventoryComponent)
 	{
 		InventoryComponent = InInventoryComponent;
 		PlayerGrid->Inven = InInventoryComponent;
 		PlayerGrid->BindInventoryComp();
 	}
 	
-	if (ensure(InEquipmentComponent))
+	if (InEquipmentComponent)
 	{
 		EquipmentComponent = InEquipmentComponent;
 
@@ -140,9 +140,9 @@ bool UATGInventoryWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEv
 
 	UE_LOG(LogTemp, Display, TEXT("PlayerLocal : %f, %f \n ContainerLocal : %f, %f"), PlayerLocal.X, PlayerLocal.Y, ContainerLocal.X, ContainerLocal.Y);
 
-	// ±×¸®µå »óÀ§ À§Á¬ÀÌ ´Ù¸¥ ±×¸®µå¿¡¼­ ¿Â drag drop ÀÌº¥Æ® Ã³¸®   
-	// InOperation¿¡ ÀÖ´Â TScriptInterface·Î ÀÚ±â ±×¸®µå¿¡¼­¿Â ÀÌº¥Æ®ÀÎÁö °Ë»çÈÄ ´Ù¸¥ ±×¸®µå¸é TryAddItemAt ¼­¹ö RPCÀü¼Û
-	// ÈÄ ÀÌº¥Æ® ¼Ò½º ±×¸®µå´Â ¼ö·®°¨¼Ò, ¹ÞÀº ±×¸®µå´Â ¼ö·® Áõ°¡
+	// ê·¸ë¦¬ë“œ ìƒìœ„ ìœ„ì ¯ì´ ë‹¤ë¥¸ ê·¸ë¦¬ë“œì—ì„œ ì˜¨ drag drop ì´ë²¤íŠ¸ ì²˜ë¦¬   
+	// InOperationì— ìžˆëŠ” TScriptInterfaceë¡œ ìžê¸° ê·¸ë¦¬ë“œì—ì„œì˜¨ ì´ë²¤íŠ¸ì¸ì§€ ê²€ì‚¬í›„ ë‹¤ë¥¸ ê·¸ë¦¬ë“œë©´ TryAddItemAt ì„œë²„ RPCì „ì†¡
+	// í›„ ì´ë²¤íŠ¸ ì†ŒìŠ¤ ê·¸ë¦¬ë“œëŠ” ìˆ˜ëŸ‰ê°ì†Œ, ë°›ì€ ê·¸ë¦¬ë“œëŠ” ìˆ˜ëŸ‰ ì¦ê°€
 
 	PlayerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
 	ContainerGrid->NativeOnDrop(InGeo, InDragDropEvent, InOperation);
