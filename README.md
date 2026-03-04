@@ -20,7 +20,7 @@ ProjectA는 언리얼 엔진 5의 최신 기능을 활용하여 구축된, 깊�
 | --- | --- | --- |
 | **Engine** | Unreal Engine 5 | Core Game Logic, Physics, Rendering |
 | **Physics** | GeometryScript, ProceduralMesh | Dynamic Slicing, Gore System |
-| **Networking** | UE5 Replication, FastArraySerializer | Gameplay Replication, Inventory Sync |
+| **Networking** | UE5 Replication, Iris Replication, FastArraySerializer | Gameplay Replication, Network Traffic & CPU Optimization, Inventory Sync |
 | **Backend** | Node.js, Express, [Socket.IO](http://socket.io/) | Auth, API, Real-time Chat (TCP) |
 | **Data** | MySQL, FlatBuffers | Persistent Data, Network Optimization |
 | **AI** | Behavior Tree, AIPerception | Enemy Logic, Navigation |
@@ -75,6 +75,17 @@ ProjectA는 언리얼 엔진 5의 최신 기능을 활용하여 구축된, 깊�
     - **FlatBuffers Implementation:** 실시간 통신 패킷에 Google의 **FlatBuffers**를 도입.
     - **Zero-Copy Serialization:** 수신한 패킷 데이터를 별도의 파싱(Unpacking) 과정 없이 메모리 오프셋으로 직접 접근하여 읽는 `Zero-Copy` 특성을 활용, JSON 대비 CPU 사용량을 최소화하고 GC 오버헤드 감소.
 
+### 3.5 대규모 액터 네트워크 동기화 (Massive Actor Replication)
+
+**개요** 
+리슨 서버(Listen Server) 환경에서 방장(Host)의 연산 부하를 최소화하기 위해 데이터 지향 설계(DOD) 기반의 Iris(차세대 네트워크 아키텍처)를 도입했습니다.
+
+Iris Replication System 도입:
+
+Push Model Architecture: 매 틱마다 모든 액터의 변경을 감지하는 레거시 폴링(Polling) 방식 대신, 상태가 변경된(Dirty) 데이터만 필터링하여 동기화하는 푸시 모델을 적용해 호스트 PC의 CPU 병목을 원천 차단.
+
+Quantized State Management: 수많은 루팅 아이템과 AI의 네트워크 상태 데이터를 양자화(Quantized)된 저용량 비트 포맷으로 연속된 배열(Array)에 관리. 캐시 히트율(Cache Hit Rate)을 극대화하고 직렬화(Serialization) 오버헤드를 대폭 감소시킴.
+
 ---
 
 ## 4. 기술적 문제 해결 (Technical Challenges & Solutions)
@@ -93,6 +104,10 @@ ProjectA는 언리얼 엔진 5의 최신 기능을 활용하여 구축된, 깊�
 
 - **Problem:** 아이템의 위치(Grid Index), 회전, 상태 등이 변경될 때마다 전체 배열을 복제하면 대역폭 낭비가 심함.
 - **Solution:** 언리얼 엔진의 `FFastArraySerializer`를 활용하여 변경된 항목(Dirty Item)만 감지하고, 해당 델타 데이터만 클라이언트로 전송하도록 구조 개선.
+
+### Challenge 4: 리슨 서버(Listen Server) 환경의 대규모 오브젝트 동기화 병목
+- **Problem** 익스트랙션 장르 특성상 맵 전역에 수천 개의 루팅 아이템, 탄약, AI가 배치됨. 이를 스팀 리슨 서버에서 기존 언리얼 레거시 네트워크(Polling)로 동기화할 경우, 인게임 렌더링과 서버 연산을 동시에 수행해야 하는 방장(Host) PC의 메인 스레드에 과부하가 발생하여 전체 세션의 심각한 프레임 드랍 및 네트워크 지연(Lag)이 유발됨.
+- **Solution** 대규모 동기화에 특화된 Iris Replication System을 선제적으로 활성화하여 아키텍처 전면 개편. 데이터 지향 설계(DOD) 기반의 멀티스레드 패킷 처리와 양자화(Quantized)된 상태 전송을 통해 서버 연산 비용을 획기적으로 낮춤.
 
 ---
 
