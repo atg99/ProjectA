@@ -33,8 +33,8 @@
 
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 
-//#include "SkeletalMeshLODRenderDataToDynamicMesh.h" 
-
+#include "SkeletalMeshLODRenderDataToDynamicMesh.h"
+#include <SkeletalMeshLODRenderDataToDynamicMesh.h>
 //#include <GeometryScriptingCore/Private/MeshAssetFunctions.cpp>
 //#include <GeometryScriptingCore/Public/GeometryScript/MeshAssetFunctions.h>
 
@@ -345,7 +345,7 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
     if (!Mesh || !DMC_Stump || !DMC_Debris) return;
 
     FTransform MeshTransform;
-    EGeometryScriptOutcomePins Outcome;
+    //EGeometryScriptOutcomePins Outcome;
 
     FGeometryScriptCopyMeshFromAssetOptions CopyMeshFromAssetOptions;
     CopyMeshFromAssetOptions.bRequestTangents = true;
@@ -377,39 +377,72 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
         GeometryScriptMeshReadLOD.LODIndex, 
         DMC_Stump->GetDynamicMesh(), 
         nullptr);*/
-    DMC_Stump->GetDynamicMesh()->Reset();
-    //USliceUtils::InitializeDMCFromSkeletalMesh(DMC_Stump, Mesh, Outcome);
-    UGeometryScriptLibrary_StaticMeshFunctions::CopyMeshFromSkeletalMesh(
-        Mesh->GetSkeletalMeshAsset(),
-        DMC_Stump->GetDynamicMesh(),
-        CopyMeshFromAssetOptions,
-        GeometryScriptMeshReadLOD,
-        Outcome,
-        nullptr
-    );
 
-    if (Outcome == EGeometryScriptOutcomePins::Failure)
-    {
-        NET_LOG(TEXT("Error: InitializeDMCFromSkeletalMesh fail"));
-        return;
-    }
+    //DMC_Stump->GetDynamicMesh()->Reset();
+    ////USliceUtils::InitializeDMCFromSkeletalMesh(DMC_Stump, Mesh, Outcome);
+    //UGeometryScriptLibrary_StaticMeshFunctions::CopyMeshFromSkeletalMesh(
+    //    Mesh->GetSkeletalMeshAsset(),
+    //    DMC_Stump->GetDynamicMesh(),
+    //    CopyMeshFromAssetOptions,
+    //    GeometryScriptMeshReadLOD,
+    //    Outcome,
+    //    nullptr
+    //);
 
-    DMC_Debris->GetDynamicMesh()->Reset();
-    //USliceUtils::InitializeDMCFromSkeletalMesh(DMC_Debris, Mesh, Outcome);
-    UGeometryScriptLibrary_StaticMeshFunctions::CopyMeshFromSkeletalMesh(
-        Mesh->GetSkeletalMeshAsset(),
-        DMC_Debris->GetDynamicMesh(),
-        CopyMeshFromAssetOptions,
-        GeometryScriptMeshReadLOD,
-        Outcome,
-        nullptr
-    );
+    //if (Outcome == EGeometryScriptOutcomePins::Failure)
+    //{
+    //    NET_LOG(TEXT("Error: InitializeDMCFromSkeletalMesh fail"));
+    //    return;
+    //}
 
-    if (Outcome == EGeometryScriptOutcomePins::Failure)
-    {
-        NET_LOG(TEXT("Error: InitializeDMCFromSkeletalMesh fail"));
-        return;
-    }
+    //DMC_Debris->GetDynamicMesh()->Reset();
+    ////USliceUtils::InitializeDMCFromSkeletalMesh(DMC_Debris, Mesh, Outcome);
+    //UGeometryScriptLibrary_StaticMeshFunctions::CopyMeshFromSkeletalMesh(
+    //    Mesh->GetSkeletalMeshAsset(),
+    //    DMC_Debris->GetDynamicMesh(),
+    //    CopyMeshFromAssetOptions,
+    //    GeometryScriptMeshReadLOD,
+    //    Outcome,
+    //    nullptr
+    //);
+
+    //if (Outcome == EGeometryScriptOutcomePins::Failure)
+    //{
+    //    NET_LOG(TEXT("Error: InitializeDMCFromSkeletalMesh fail"));
+    //    return;
+    //}
+
+    USkeletalMesh* SkelMeshAsset = Mesh->GetSkeletalMeshAsset();
+    if (!SkelMeshAsset || !SkelMeshAsset->GetResourceForRendering()) return;
+
+    // 1. LOD 0의 렌더 데이터 가져오기 (Allow CPU Access 필수)
+    FSkeletalMeshRenderData* RenderData = SkelMeshAsset->GetResourceForRendering();
+    if (RenderData->LODRenderData.Num() == 0) return;
+
+    const FSkeletalMeshLODRenderData& LODData = RenderData->LODRenderData[0];
+    const FReferenceSkeleton& RefSkeletonC = SkelMeshAsset->GetRefSkeleton();
+
+    UE::Geometry::FSkeletalMeshLODRenderDataToDynamicMesh Converter;
+    UE::Geometry::FSkeletalMeshLODRenderDataToDynamicMesh::ConversionOptions Options;
+
+    Options.bWantMaterialIDs = true;
+    Options.bWantNormals = true;
+    Options.bWantNormals = true;
+    Options.bWantSkinWeights = true;
+    Options.bWantTangents = true;
+    Options.bWantUVs = true;
+    Options.bWantVertexColors = true;
+    // Options.bRequestedBoneWeights = true; // 스킨 웨이트가 필요하다면 이 옵션도 켜주세요!
+
+    DMC_Stump->GetDynamicMesh()->EditMesh([&](FDynamicMesh3& OutMesh)
+        {
+            Converter.Convert(&LODData, RefSkeletonC, Options, OutMesh);
+        });
+
+    DMC_Debris->GetDynamicMesh()->EditMesh([&](FDynamicMesh3& OutMesh)
+        {
+            Converter.Convert(&LODData, RefSkeletonC, Options, OutMesh);
+        });
 
     // 머터리얼 에셋 동기화
     int32 NumMaterials = Mesh->GetNumMaterials();
@@ -522,7 +555,6 @@ void USliceSystemComponent::CopyWeightAndSlice_DMC(FName TargetBone, const FVect
 	PMC_Stump.ProcMeshComp->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
     PMC_Debris.ProcMeshComp->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
     //PMC_Debris.ProcMeshComp->AddLocalOffset(FVector(0, 0, 20.f));
-
 
     // Stump는 TargetBone(잘린 뼈)과 그 자식들의 웨이트를 버림
     RefineSkinWeights(PMC_Stump, TargetBoneIndices, true);

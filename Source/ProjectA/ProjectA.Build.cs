@@ -31,6 +31,7 @@ public class ProjectA : ModuleRules
 			"GeometryFramework",
             "GeometryScriptingCore",
             "DynamicMesh",
+            "MeshConversion",
             "GeometryCore",
             "MeshConversion",
             "MeshConversionEngineTypes", 
