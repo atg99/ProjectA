@@ -50,10 +50,8 @@ void UATGItemContextMenuWidget::OnUseClicked()
 {
     if (IsValid(CurrentItemInfo.ItemWidget))
     {
-        // 아이템 사용 로직 호출
         InvenComp->UseItem(CurrentItemInfo);
 
-        // 메뉴 닫기
         SetVisibility(ESlateVisibility::Collapsed);
     }
 }
@@ -62,7 +60,6 @@ void UATGItemContextMenuWidget::OnDropClicked()
 {
     if (IsValid(CurrentItemInfo.ItemWidget))
     {
-        // 아이템 버리기 로직 호출
         // CurrentItemData->Drop();
 
         SetVisibility(ESlateVisibility::Collapsed);

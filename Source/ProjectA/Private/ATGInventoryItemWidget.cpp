@@ -138,7 +138,21 @@ FReply UATGInventoryItemWidget::NativeOnMouseButtonDown(const FGeometry& InGeo, 
 		Info.bIsRotated = bIsRotated;
 		Info.EntryId = EntryId;
 
-		FVector2D MousePosition = InMouseEvent.GetScreenSpacePosition();
+		FVector2D MousePosition = FVector2D(0);
+		APlayerController* PC = GetOwningPlayer();
+		if (PC)
+		{
+			double posX;
+			double posY;
+
+			PC->GetMousePosition(posX, posY);
+			MousePosition = FVector2D(posX, posY);
+		}
+		else
+		{
+			NET_LOG(FString::Printf(TEXT("No PlayerController")));
+		}
+
 		Inven->OpenContextMenu(Info, MousePosition);
 		return FReply::Handled();
 	}
