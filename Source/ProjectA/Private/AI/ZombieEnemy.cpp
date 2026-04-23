@@ -186,7 +186,10 @@ float AZombieEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 		FRadialDamageEvent* Event = (FRadialDamageEvent*)(&DamageEvent);
 		if (Event)
 		{
-			
+			FHitResult RadialHitResult;
+			FVector OutVector;
+			Event->GetBestHitInfo(this, DamageCauser, RadialHitResult, OutVector);
+			ContextHandle.AddHitResult(RadialHitResult);
 		}
 	}
 	else //(DamageEvent.IsOfType(FDamageEvent::ClassID))
