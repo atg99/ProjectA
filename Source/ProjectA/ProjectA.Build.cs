@@ -38,7 +38,7 @@ public class ProjectA : ModuleRules
 			// Iris
             "NetCore",
             "IrisCore",
-            // RenderData Á¢±Ù¿ë
+            // RenderData ï¿½ï¿½ï¿½Ù¿ï¿½
             "RenderCore",
             "RHI",
 
@@ -50,10 +50,13 @@ public class ProjectA : ModuleRules
 
             "OnlineSubsystem",
             "OnlineSubsystemSteam",
-            "OnlineSubsystemUtils"
+            "OnlineSubsystemUtils",
+
+            // Plugins
+            "ATGGridInventory"
         });
 
-        // ThirdParty Æú´õ¸¦ ÀÎÅ¬·çµå °æ·Î¿¡ Ãß°¡
+        // ThirdParty ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å¬ï¿½ï¿½ï¿½ ï¿½ï¿½Î¿ï¿½ ï¿½ß°ï¿½
         PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty"));
 
         PrivateDependencyModuleNames.AddRange(new string[] { "NetCore" });

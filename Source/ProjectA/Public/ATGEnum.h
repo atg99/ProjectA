@@ -3,54 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ATGInventoryEnums.h"
+#include "ATGInventoryInterface.h"  // FInteractionData, IATGInterface (moved to plugin)
 #include "ATGEnum.generated.h"
-/**
- * 
- */
-
-UENUM(BlueprintType)
-enum class EItemType : uint8
-{
-	None		=0		UMETA(DisplayName = "None"),
-	Equipment	=10		UMETA(DisplayName = "Equipment"),
-	Consumables	=20		UMETA(DisplayName = "Consumables"),
-	Materials 	=30		UMETA(DisplayName = "Materials"),
-};
-
-UENUM(BlueprintType)
-enum class EEquipmentType : uint8
-{
-	None	=0		UMETA(DisplayName = "None"),
-	Weapon	=10		UMETA(DisplayName = "Weapon"),
-	Armor	=20		UMETA(DisplayName = "Armor"),
-};
-
-UENUM(BlueprintType)
-enum class EWeaponType : uint8
-{
-	None		= 0		UMETA(DisplayName = "None"),
-	MainWeapon  = 10	UMETA(DisplayName = "MainWeapon"),
-	SubWeapon   = 20	UMETA(DisplayName = "SubWeapon"),
-};
-
-UENUM(BlueprintType)
-enum class EEquipmentSlotType : uint8
-{
-	None		= 0			UMETA(DisplayName = "None"),
-	MainWeapon1Slot	= 1		UMETA(DisplayName = "MainWeapon1Slot"),
-	MainWeapon2Slot	= 2		UMETA(DisplayName = "MainWeapon2Slot"),
-};
-ENUM_RANGE_BY_FIRST_AND_LAST(EEquipmentSlotType, EEquipmentSlotType::None, EEquipmentSlotType::MainWeapon2Slot);
-
-UENUM(BlueprintType)
-enum class EInteractionType : uint8
-{
-	None			UMETA(DisplayName = "None"),
-	PickUpItem		UMETA(DisplayName = "PickUpItem"),
-	ItemGridBox		UMETA(DisplayName = "OpenItemGrid"),
-	Equipment		UMETA(DisplayName = "Equipment"),
-};
-
 
 UENUM(BlueprintType)
 enum class EMonsterState : uint8
@@ -70,61 +25,8 @@ enum class ECGait : uint8
 	Sprint = 2	UMETA(DisplayName = "Sprint"),
 };
 
-UENUM(BlueprintType)
-enum class EPlayerAbilityInputID : uint8
-{
-	None,
-
-	// GAS ÇÊ¼ö ¿¹¾à¾î Confirm
-	Confirm,
-
-	// GAS ÇÊ¼ö ¿¹¾à¾î Cancel
-	Cancel,
-
-	MeleeAttack,
-};
-
-UENUM(BlueprintType)
-enum class EWeaponCategory : uint8
-{
-	None = 0			UMETA(DisplayName = "None"),
-	GunWeapon = 1		UMETA(DisplayName = "GunWeapon"),
-	MeleeWeapon = 2	UMETA(DisplayName = "MeleeWeapon"),
-};
-
+// FInteractionData moved to ATGInventoryInterface.h (ATGGridInventory plugin)
 class UATGItemData;
-
-USTRUCT(BlueprintType)
-struct FInteractionData
-{
-	GENERATED_BODY()
-
-	FInteractionData()
-		: InteractedActor(nullptr)
-		, InteractedComponent(nullptr)
-		, InteractionType(EInteractionType::None)
-		, ItemQty(0)
-	{
-	}
-
-	UPROPERTY(BlueprintReadWrite)
-	AActor* InteractingActor;
-
-	UPROPERTY(BlueprintReadWrite)
-	AActor* InteractedActor;
-
-	UPROPERTY(BlueprintReadWrite)
-	UActorComponent* InteractedComponent;
-
-	UPROPERTY(BlueprintReadWrite)
-	EInteractionType InteractionType;
-
-	UPROPERTY(BlueprintReadWrite)
-	TSoftObjectPtr<UATGItemData> ItemDef;
-
-	UPROPERTY(BlueprintReadWrite)
-	int32 ItemQty;
-};
 
 USTRUCT(BlueprintType)
 struct FEquipmentSlot
@@ -145,25 +47,25 @@ public:
 	float ADSTime = 0.2;
 };
 
-//³¯¾Æ°¡°í ÀÖ´Â ÃÑ¾Ë Á¤º¸
+//ï¿½ï¿½ï¿½Æ°ï¿½ï¿½ï¿½ ï¿½Ö´ï¿½ ï¿½Ñ¾ï¿½ ï¿½ï¿½ï¿½ï¿½
 USTRUCT(BlueprintType)
 struct FBullet
 {
 	GENERATED_BODY()
 public:
-	//½ÃÀÛ À§Ä¡
+	//ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡
 	UPROPERTY()
 	FVector StartLocation;
-	//À§Ä¡
+	//ï¿½ï¿½Ä¡
 	UPROPERTY()
 	FVector Location;
-	//¼Óµµ ¹æÇâ + ¼Ó·Â
+	//ï¿½Óµï¿½ ï¿½ï¿½ï¿½ï¿½ + ï¿½Ó·ï¿½
 	UPROPERTY()
 	FVector Velocity;
-	// Áß·Â ¿µÇâµµ 1.0 ~ 0.0
+	// ï¿½ß·ï¿½ ï¿½ï¿½ï¿½âµµ 1.0 ~ 0.0
 	UPROPERTY()
 	float GravityScale;
-	// Ç×·Â °è¼ö 0.0ÀÌ¸é ÀúÇ× ¾øÀ½, °ªÀÌ Å¬¼ö·Ï »¡¸® ´À·ÁÁü
+	// ï¿½×·ï¿½ ï¿½ï¿½ï¿?0.0ï¿½Ì¸ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	UPROPERTY()
 	float DragCoefficient;
 
@@ -190,7 +92,7 @@ public:
 	FHitResult Result;
 };
 
-//¹«±âÀÇ ÃÑ¾Ë Á¤º¸
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ñ¾ï¿½ ï¿½ï¿½ï¿½ï¿½
 USTRUCT(BlueprintType)
 struct FWeaponBulletData
 {
@@ -206,11 +108,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DragCoefficient = 1.f;
 
-	//Åº¼Ó
+	//Åºï¿½ï¿½
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Speed = 500.f;
 
-	//ÀúÁö·Â
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ImpulseScale = 10000;
 };
@@ -227,23 +129,4 @@ public:
 	bool WantsToAim;
 };
 
-USTRUCT(BlueprintType)
-struct FATGItemInfo
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly)
-	class UATGInventoryItemWidget* ItemWidget;
-
-	UPROPERTY(BlueprintReadOnly)
-	TSoftObjectPtr<class UATGItemData> ItemDef;
-
-	UPROPERTY(BlueprintReadOnly)
-	int32 EntryId = -1;
-
-	UPROPERTY(BlueprintReadOnly)
-	int32 Quantity = -1;
-
-	UPROPERTY(BlueprintReadOnly)
-	bool bIsRotated = false;
-};
+// FATGItemInfo moved to ATGInventoryInterface.h (ATGGridInventory plugin)

@@ -1,0 +1,187 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
+#include "InventoryTypes.h"
+#include "NativeGameplayTags.h"
+#include "ATGInventoryOwnerInterface.h"
+#include "ATGInventoryComponent.generated.h"
+
+class AATGItem;
+class UATGPickupComponent;
+class UATGItemContextMenuWidget;
+
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Item_Use);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridEvent, int32, EntryId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridPreEvent, FInventoryEntry, PreE);
+
+UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+class ATGGRIDINVENTORY_API UATGInventoryComponent : public UActorComponent, public IATGInventoryOwnerInterface
+{
+	GENERATED_BODY()
+
+public:
+	UATGInventoryComponent();
+
+protected:
+	virtual void BeginPlay() override;
+
+public:
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+protected:
+
+	UPROPERTY(EditAnywhere, Replicated)
+	FInventoryGrid Inventory;
+
+	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_GridSize)
+	FIntPoint GridSize = FIntPoint(10,10);
+
+	UFUNCTION()
+	void OnRep_GridSize();
+
+public:
+	virtual void ItemRemoved(int32 EntryId) override;
+	virtual void ItemAdded(int32 EntryId) override;
+	virtual void ItemChanged(int32 EntryId) override;
+	virtual void InventoryForceNetUpdate() override;
+	virtual bool IsLocallyOwned() override;
+
+public:
+
+	UFUNCTION(BlueprintCallable)
+	virtual void IncreaseGridSize(int32 W, int32 H) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void DecreaseGridSize(int32 W, int32 H) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SetGridSize(int32 W, int32 H) override;
+
+	UFUNCTION(BlueprintCallable)
+	virtual FIntPoint GetGridSize() override;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridEvent OnItemAdded;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridEvent OnItemRemoved;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridEvent OnItemChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridEvent OnRebuildAll;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridPreEvent OnItemPreAdded;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridPreEvent OnItemPreChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnGridEvent OnItemPreRemoved;
+
+	UFUNCTION(Server, Reliable)
+	void ServerAddItemAuto(FClientAddRequest ClientAddRequest, AActor* InteractedActor);
+
+	UFUNCTION()
+	TArray<int32> AddItemAuto(FClientAddRequest& ClientAddRequest, AActor* InteractActor = nullptr);
+
+	UFUNCTION(Server, Reliable)
+	void ServerMoveOrSwap(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRotateItem(int32 EntryId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRemoveItem(int32 EntryId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerDecreaseItem(int32 EntryId, int32 Qty);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSpawnItem(int32 EntryId, int32 SplitNum = -1);
+
+	UFUNCTION(Client, Reliable)
+	void ClientAddItemResult(FInventoryChangeResult Result);
+
+	UFUNCTION(Client, Reliable)
+	void ClientMoveResult(const FInventoryChangeResult& Result);
+
+	UFUNCTION(Server, Reliable)
+	void ServerAddItemAt(FClientAddRequest ClientAddRequest, int32 OtherGridId, const TScriptInterface<IATGInventoryOwnerInterface>& Inven);
+
+	virtual void TryAddItemAt(TScriptInterface<IATGInventoryOwnerInterface> Inven, int32 OtherGridId, TSoftObjectPtr<UATGItemData> ItemDef, int32 InQty, int32 X, int32 Y, bool bRotate = false) override;
+
+	UFUNCTION()
+	void TryPickupClient(TSoftObjectPtr<UATGItemData> ItemDef, int32 Quantity, AActor* InteractActor);
+
+	UFUNCTION()
+	virtual void TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate) override;
+
+	UFUNCTION()
+	virtual void TryDropItem(int32 EntryId, int32 SplitNum = -1) override;
+
+	virtual void TryHandleTransItemResult(int32 EntryId, int32 RemoveQty = -1) override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerHandleTransItemResult(int32 EntryId, int32 RemoveQty = -1);
+
+	UFUNCTION()
+	virtual void TrySortByItemId() override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerSortByItemId();
+
+	UFUNCTION(Server, Reliable)
+	void ServerDropItem(int32 EntryId, int32 SplitNum = -1);
+
+	virtual bool CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId = -1) override;
+
+	virtual void TrySplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSplitStack(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate, int32 SplitNum);
+
+	virtual const TArray<FInventoryEntry>& GetEntries() override { return Inventory.Entries; }
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Grid")
+	virtual FInventoryGrid& GetInventory() override { return Inventory; }
+
+	virtual int32 GetGridWidth() const override { return Inventory.GridWidth; }
+	virtual int32 GetGridHeight() const override { return Inventory.GridHeight; }
+
+	bool IsHasAuthority();
+
+	UATGPickupComponent* GetPickupComp(AActor* InteractedActor);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
+	TSubclassOf<AATGItem> ItemBPClass;
+
+	UFUNCTION(BlueprintCallable)
+	void UseItem(const FATGItemInfo& ItemInfo);
+
+	UFUNCTION(BlueprintCallable)
+	virtual void OpenContextMenu(FATGItemInfo& ItemInfo, FVector2D ScreenPosition) override;
+
+protected:
+
+	UFUNCTION()
+	void HandleReplicatedAdd(int32 EntryId);
+
+	int32 LocalPred = -1;
+
+public:
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UATGItemContextMenuWidget> ContextMenuClass;
+
+	UPROPERTY()
+	TObjectPtr<UATGItemContextMenuWidget> ContextMenuWidget = nullptr;
+};

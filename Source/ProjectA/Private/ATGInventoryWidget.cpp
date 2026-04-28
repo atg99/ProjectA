@@ -13,7 +13,7 @@
 #include "Components/GridPanel.h"
 #include "ATGEquipmentComponent.h"
 #include "GameFramework/PlayerState.h"
-#include "../Public/Widget/ATGEquipmentGirdWidget.h"
+#include "Widget/ATGEquipmentGirdWidget.h"
 
 
 void UATGInventoryWidget::NativeConstruct()
