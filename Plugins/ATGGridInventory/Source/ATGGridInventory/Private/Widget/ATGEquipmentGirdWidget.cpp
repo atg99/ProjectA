@@ -26,6 +26,9 @@ void UATGEquipmentGirdWidget::BindInventoryComp()
 		return;
 	}
 
+	EquipmentComp->OnFirstMainWeaponChanged.RemoveDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
+	EquipmentComp->OnSecondMainWeaponChanged.RemoveDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
+
 	switch (EquipmentSlot)
 	{
 	case EEquipmentSlotType::MainWeapon1Slot:

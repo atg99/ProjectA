@@ -6,6 +6,8 @@ public class ATGGridInventory : ModuleRules
 {
 	public ATGGridInventory(ReadOnlyTargetRules Target) : base(Target)
 	{
+		SetupIrisSupport(Target);
+
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
 		PublicIncludePaths.AddRange(
@@ -33,7 +35,6 @@ public class ATGGridInventory : ModuleRules
 				"Slate",
 				"SlateCore",
 				"NetCore",
-				"IrisCore",
 				"GameplayTags",
 				"GameplayAbilities",
 				"GameplayTasks",

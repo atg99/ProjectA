@@ -8,14 +8,18 @@
 
 void UATGHUDWidget::NativeConstruct()
 {
+	Super::NativeConstruct();
+
 	if (HUDComp)
 	{
+		HUDComp->OnInventToggle.RemoveDynamic(this, &UATGHUDWidget::OnToggleInvent);
 		HUDComp->OnInventToggle.AddDynamic(this, &UATGHUDWidget::OnToggleInvent);
 
 		//인벤토리에 주입
 		if (InventoryWidget)
 		{
 			InventoryWidget->SetHUDComp(HUDComp);
+			InventoryWidget->RefreshInventoryBindingsFromPlayerState();
 		}
 	}
 }

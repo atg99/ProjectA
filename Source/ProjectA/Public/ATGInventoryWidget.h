@@ -36,6 +36,7 @@ public:
 	UATGEquipmentGirdWidget* MainWeapon2Grid = nullptr;
 
 	void SetHUDComp(UATGHUDComponent* InHUDComp);
+	void RefreshInventoryBindingsFromPlayerState();
 
 protected:
 	UATGHUDComponent* HUDComp = nullptr;

@@ -25,6 +25,11 @@ void UATGInventoryWidget::NativeConstruct()
 	//SetKeyboardFocus();
 	
 	//UE_LOG(LogTemp, Log, TEXT("Keyboard focus set on widget"));
+	RefreshInventoryBindingsFromPlayerState();
+}
+
+void UATGInventoryWidget::RefreshInventoryBindingsFromPlayerState()
+{
 	if (APlayerController* PC = GetOwningPlayer())
 	{
 		if (APlayerState* PS = PC->PlayerState)
@@ -42,19 +47,6 @@ void UATGInventoryWidget::NativeConstruct()
 			}
 		}
 	}	
-
-	//AATGPlayerController* PC = Cast<AATGPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
-	//if (PC)
-	//{
-	//	if (PC->InvenComp)
-	//	{
-	//		InjectInvenComp(PC->InvenComp);
-	//	}
-	//	else
-	//	{
-	//		PC->InitInventoryComponent.AddDynamic(this, &UATGInventoryWidget::HandleInitInventoryComp);
-	//	}
-	//}
 }
 
 //FReply UATGInventoryWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -81,6 +73,7 @@ void UATGInventoryWidget::SetHUDComp(UATGHUDComponent* InHUDComp)
 
 	if (HUDComp)
 	{
+		HUDComp->OnContainerToggle.RemoveDynamic(this, &UATGInventoryWidget::HandleContainerToggle);
 		HUDComp->OnContainerToggle.AddDynamic(this, &UATGInventoryWidget::HandleContainerToggle);
 	}
 }

@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Net/Serialization/FastArraySerializer.h"
-#include "Iris/ReplicationSystem/FastArrayReplicationFragment.h"
 
 #include "InventoryTypes.generated.h"
 

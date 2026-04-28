@@ -4,6 +4,7 @@
 #include "ATGHUDComponent.h"
 #include "ATGInventoryGirdWidget.h"
 #include "ATGHUDWidget.h"
+#include "ATGInventoryWidget.h"
 #include "GameFramework/HUD.h"
 #include "ATGPlayerController.h"
 
@@ -37,25 +38,36 @@ void UATGHUDComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 void UATGHUDComponent::EnsureWidgetCreated(APlayerController* PC)
 {
-	if (HUDWidget || !HUDWidgetClass)
+	if (!HUDWidget && !HUDWidgetClass)
 	{
 		return;
 	}
-	else
-	{
 
+	if (!HUDWidget)
+	{
+		HUDWidget = CreateWidget<UATGHUDWidget>(PC, HUDWidgetClass);
+		if (HUDWidget)
+		{
+			HUDWidget->HUDComp = this;
+			HUDWidget->AddToViewport();
+			HUDWidget->SetVisibility(ESlateVisibility::Visible);
+		}
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Magenta, TEXT("WidgetCreated"));
+		}
 	}
 
-	HUDWidget = CreateWidget<UATGHUDWidget>(PC, HUDWidgetClass);
 	if (HUDWidget)
 	{
 		HUDWidget->HUDComp = this;
-		HUDWidget->AddToViewport();
-		HUDWidget->SetVisibility(ESlateVisibility::Visible);
+		if (HUDWidget->InventoryWidget)
+		{
+			HUDWidget->InventoryWidget->SetHUDComp(this);
+			HUDWidget->InventoryWidget->RefreshInventoryBindingsFromPlayerState();
+		}
 	}
-
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(10, 3.0f, FColor::Magenta, TEXT("WidgetCreated"));
 }
 
 void UATGHUDComponent::ToggleInventoryUI()
