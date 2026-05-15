@@ -8,7 +8,6 @@
 #include "Data/ATGItemData.h"
 #include "ATGInventoryInterface.generated.h"
 
-// Moved from ProjectA ATGEnum.h — only uses plugin-owned types
 USTRUCT(BlueprintType)
 struct ATGGRIDINVENTORY_API FInteractionData
 {
@@ -63,7 +62,6 @@ struct ATGGRIDINVENTORY_API FATGItemInfo
 	bool bIsRotated = false;
 };
 
-// Moved from ProjectA ATGInterface.h
 UINTERFACE(MinimalAPI, NotBlueprintable)
 class UATGInterface : public UInterface
 {

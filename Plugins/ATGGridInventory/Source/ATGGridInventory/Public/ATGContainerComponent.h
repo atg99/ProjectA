@@ -96,7 +96,6 @@ public:
 
 protected:
 
-	// IATGInterface — implementation lives in ProjectA/Private/ATGContainerComponentImpl.cpp
 	virtual void PlayerInteract(FInteractionData& InteractionData) override;
 
 	virtual void ItemRemoved(int32 EntryId) override;

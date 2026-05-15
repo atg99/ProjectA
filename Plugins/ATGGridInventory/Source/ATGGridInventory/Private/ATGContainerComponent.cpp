@@ -177,8 +177,6 @@ FIntPoint UATGContainerComponent::GetGridSize()
 
 void UATGContainerComponent::PlayerInteract(FInteractionData& InteractionData)
 {
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("UATGContainerComponent PlayerInteract"));
 	InteractionData.InteractedActor = GetOwner();
 	InteractionData.InteractedComponent = this;
 	InteractionData.InteractionType = InteractionType;

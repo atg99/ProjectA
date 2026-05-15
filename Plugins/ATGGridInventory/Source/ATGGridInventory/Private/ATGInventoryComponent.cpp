@@ -272,8 +272,6 @@ void UATGInventoryComponent::ServerAddItemAuto_Implementation(FClientAddRequest 
 
 void UATGInventoryComponent::ClientAddItemResult_Implementation(FInventoryChangeResult Result)
 {
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Emerald, TEXT("ClientCallBackAddItem"));
 }
 
 void UATGInventoryComponent::TryMoveOrSwapClient(int32 EntryId, int32 NewX, int32 NewY, bool bIsRotate)
@@ -372,11 +370,6 @@ void UATGInventoryComponent::ServerMoveOrSwap_Implementation(int32 EntryId, int3
 
 void UATGInventoryComponent::ClientMoveResult_Implementation(const FInventoryChangeResult& Result)
 {
-	if (Result.Status == EInventoryChangeStatus::Rejected)
-	{
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! ClientMoveResult : Rejected"));
-	}
 }
 
 void UATGInventoryComponent::ServerRotateItem_Implementation(int32 EntryId)
@@ -464,8 +457,6 @@ void UATGInventoryComponent::ServerSpawnItem_Implementation(int32 EntryId, int32
 
 void UATGInventoryComponent::HandleReplicatedAdd(int32 EntryId)
 {
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("!!! InventComp HandleReplicatedAdd"));
 }
 
 void UATGInventoryComponent::UseItem(const FATGItemInfo& ItemInfo)

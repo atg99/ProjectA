@@ -17,12 +17,7 @@ void FInventoryEntry::PostReplicatedAdd(const FInventoryGrid& InArraySerializer)
 {
     if (InArraySerializer.Owner)
     {
-        UE_LOG(LogTemp, Display, TEXT("!!! PostReplicatedAdd Owner"));
         InArraySerializer.Owner->ItemAdded(Id);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Display, TEXT("!!! PostReplicatedAdd !Owner"));
     }
 }
 

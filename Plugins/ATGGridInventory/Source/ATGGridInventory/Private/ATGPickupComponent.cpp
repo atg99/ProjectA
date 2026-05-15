@@ -28,11 +28,6 @@ void UATGPickupComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 void UATGPickupComponent::PlayerInteract(FInteractionData& InteractionData)
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("PickupCompoent PlayerInteract"));
-	}
-
 	InteractionData.InteractedActor = GetOwner();
 	InteractionData.InteractionType = InteractionType;
 	InteractionData.ItemDef = ItemDef;
@@ -63,26 +58,15 @@ void UATGPickupComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	FDoRepLifetimeParams RepParams;
-	RepParams.bIsPushBased = true;
-	DOREPLIFETIME_WITH_PARAMS_FAST(UATGPickupComponent, TestInt, RepParams);
-
 	DOREPLIFETIME_CONDITION(UATGPickupComponent, ItemDef, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(UATGPickupComponent, ItemQty, COND_None);
 }
 
 void UATGPickupComponent::SetItemMesh()
 {
-	TestInt++;
-	MARK_PROPERTY_DIRTY_FROM_NAME(UATGPickupComponent, TestInt, this);
-
 	AActor* Owner = GetOwner();
 	if (!Owner)
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("No Owner ATGPickupComp"));
-		}
 		return;
 	}
 
@@ -98,25 +82,17 @@ void UATGPickupComponent::SetItemMesh()
 	}
 
 	UATGItemData* Data = ItemDef.Get();
-	const bool bHasAuthority = Owner->HasAuthority();
-	if (Data)
+	if (!Data)
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("LoadData ATGPickupComp ") + LexToString(bHasAuthority));
-		}
-
-		if (AATGItem* ItemActor = Cast<AATGItem>(Owner))
-		{
-			ItemActor->ApplyItemDataMesh(Data);
-		}
-		else if (Data->Mesh)
-		{
-			ItemMeshComp->SetStaticMesh(Data->Mesh);
-		}
+		return;
 	}
-	else if (GEngine)
+
+	if (AATGItem* ItemActor = Cast<AATGItem>(Owner))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("Can't LoadData ATGPickupComp ") + LexToString(bHasAuthority));
+		ItemActor->ApplyItemDataMesh(Data);
+	}
+	else if (Data->Mesh)
+	{
+		ItemMeshComp->SetStaticMesh(Data->Mesh);
 	}
 }
