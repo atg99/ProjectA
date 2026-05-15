@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Data/ATGWeaponData.h"
+#include "ATGEnum.h"
 #include "ATGRangeWeaponData.generated.h"
 
 /**

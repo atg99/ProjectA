@@ -64,20 +64,7 @@ public class ProjectA : ModuleRules
 		
 
 		PublicIncludePaths.AddRange(new string[] {
-			"ProjectA",
-			"ProjectA/Variant_Platforming",
-			"ProjectA/Variant_Platforming/Animation",
-			"ProjectA/Variant_Combat",
-			"ProjectA/Variant_Combat/AI",
-			"ProjectA/Variant_Combat/Animation",
-			"ProjectA/Variant_Combat/Gameplay",
-			"ProjectA/Variant_Combat/Interfaces",
-			"ProjectA/Variant_Combat/UI",
-			"ProjectA/Variant_SideScrolling",
-			"ProjectA/Variant_SideScrolling/AI",
-			"ProjectA/Variant_SideScrolling/Gameplay",
-			"ProjectA/Variant_SideScrolling/Interfaces",
-			"ProjectA/Variant_SideScrolling/UI"
+			"ProjectA"
 		});
 
         // Uncomment if you are using Slate UI
