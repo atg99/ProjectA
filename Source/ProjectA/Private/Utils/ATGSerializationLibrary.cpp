@@ -5,6 +5,7 @@
 #include "JsonUtilities.h"
 #include "Data/ATGItemData.h"
 #include "Engine/AssetManager.h"
+#include "ATGInventoryOwnerInterface.h"
 
 TSharedPtr<FJsonObject> UATGSerializationLibrary::SerializeActorToJson(AActor* Actor)
 {
@@ -12,11 +13,11 @@ TSharedPtr<FJsonObject> UATGSerializationLibrary::SerializeActorToJson(AActor* A
 
 	TSharedPtr<FJsonObject> JsonObj = MakeShareable(new FJsonObject);
 
-	// 1. Å¬·¡½º Á¤º¸ ÀúÀå (·ÎµåÇÒ ¶§ ½ºÆùÇÏ±â À§ÇÔ)
+	// 1. Å¬ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½Îµï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï±ï¿½ ï¿½ï¿½ï¿½ï¿½)
 	JsonObj->SetStringField(TEXT("ClassPath"), Actor->GetClass()->GetPathName());
 
-	// 2. Transform ÀúÀå (À§Ä¡/È¸Àü/½ºÄÉÀÏ) -> ±âº»ÀûÀ¸·Î ÀúÀåÇÏ´Â °ÍÀÌ ÁÁÀ½;
-	// FJsonObjectConverter¸¦ ÀÌ¿ëÇØ FTransform ±¸Á¶Ã¼¸¦ ¹Ù·Î JSON °´Ã¼·Î º¯È¯
+	// 2. Transform ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½Ä¡/È¸ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½) -> ï¿½âº»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½;
+	// FJsonObjectConverterï¿½ï¿½ ï¿½Ì¿ï¿½ï¿½ï¿½ FTransform ï¿½ï¿½ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½Ù·ï¿½ JSON ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½È¯
 
 	FTransform ActorTransform = Actor->GetActorTransform();
 	//FJsonObjectConverter::UStructToJsonObjectString;
@@ -27,12 +28,12 @@ TSharedPtr<FJsonObject> UATGSerializationLibrary::SerializeActorToJson(AActor* A
 
 	JsonObj->SetObjectField(TEXT("Transform"), TransformJson);
 
-	// 3. ¸®ÇÃ·º¼Ç: ActorÀÇ ¸ðµç ÇÁ·ÎÆÛÆ¼ ¼øÈ¸
+	// 3. ï¿½ï¿½ï¿½Ã·ï¿½ï¿½ï¿½: Actorï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¼ ï¿½ï¿½È¸
 	for (TFieldIterator<FProperty> PropIt(Actor->GetClass()); PropIt; ++PropIt)
 	{
 		FProperty* Property = *PropIt;
 
-		// 'SaveGame' ÅÂ±×°¡ ¾øÀ¸¸é °Ç³Ê¶Ü
+		// 'SaveGame' ï¿½Â±×°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ç³Ê¶ï¿½
 		if (!Property->HasAnyPropertyFlags(CPF_SaveGame))
 		{
 			continue;
@@ -40,12 +41,12 @@ TSharedPtr<FJsonObject> UATGSerializationLibrary::SerializeActorToJson(AActor* A
 
 		FString PropName = Property->GetName();
 
-		// --- ÀÚ·áÇüº° Ã³¸® ---
+		// --- ï¿½Ú·ï¿½ï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ ---
 
-		// 3-1. ¼ýÀÚ (Int, Float, Byte µî)
+		// 3-1. ï¿½ï¿½ï¿½ï¿½ (Int, Float, Byte ï¿½ï¿½)
 		if (FNumericProperty* NumProp = CastField<FNumericProperty>(Property))
 		{
-			// Á¤¼öÀÎÁö ½Ç¼öÀÎÁö ±¸ºÐ
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ç¼ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 			if (NumProp->IsFloatingPoint())
 			{
 				float Val = NumProp->GetFloatingPointPropertyValue(Property->ContainerPtrToValuePtr<void>(Actor));
@@ -57,26 +58,26 @@ TSharedPtr<FJsonObject> UATGSerializationLibrary::SerializeActorToJson(AActor* A
 				JsonObj->SetNumberField(PropName, Val);
 			}
 		}
-		// 3-2. ºÒ¸®¾ð (Bool)
+		// 3-2. ï¿½Ò¸ï¿½ï¿½ï¿½ (Bool)
 		else if (FBoolProperty* BoolProp = CastField<FBoolProperty>(Property))
 		{
 			bool Val = BoolProp->GetPropertyValue_InContainer(Actor);
 			JsonObj->SetBoolField(PropName, Val);
 		}
-		// 3-3. ¹®ÀÚ¿­ (String)
+		// 3-3. ï¿½ï¿½ï¿½Ú¿ï¿½ (String)
 		else if (FStrProperty* StrProp = CastField<FStrProperty>(Property))
 		{
 			FString Val = StrProp->GetPropertyValue_InContainer(Actor);
 			JsonObj->SetStringField(PropName, Val);
 		}
-		// 3-4. ±¸Á¶Ã¼ (Vector, Rotator, Custom Struct µî)
+		// 3-4. ï¿½ï¿½ï¿½ï¿½Ã¼ (Vector, Rotator, Custom Struct ï¿½ï¿½)
 		else if (FStructProperty* StructProp = CastField<FStructProperty>(Property))
 		{
-			// ±¸Á¶Ã¼ ³»ºÎ µ¥ÀÌÅÍ¸¦ JSON Object·Î º¯È¯
+			// ï¿½ï¿½ï¿½ï¿½Ã¼ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ JSON Objectï¿½ï¿½ ï¿½ï¿½È¯
 			const void* StructAddr = StructProp->ContainerPtrToValuePtr<void>(Actor);
 			TSharedRef<FJsonObject> StructJson = MakeShared<FJsonObject>();
 			FJsonObjectConverter::UStructToJsonObject(StructProp->Struct, StructAddr, StructJson);
-			// ¾ð¸®¾ó ³»Àå ÄÁ¹öÅÍ »ç¿ë (¸Å¿ì Æí¸®ÇÔ)
+			// ï¿½ð¸®¾ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ (ï¿½Å¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 			JsonObj->SetObjectField(PropName, StructJson);
 		}
 	}
@@ -88,24 +89,24 @@ void UATGSerializationLibrary::DeserializeJsonToActor(AActor* Actor, TSharedPtr<
 {
 	if (!Actor || !JsonObj.IsValid()) return;
 
-	// 1. TransformÀº ÀÌ¹Ì SpawnÇÒ ¶§ ½èÀ» Å×´Ï »ý·«ÇÏ°Å³ª, ¿©±â¼­ °­Á¦ ¾÷µ¥ÀÌÆ® °¡´É
+	// 1. Transformï¿½ï¿½ ï¿½Ì¹ï¿½ Spawnï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½×´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï°Å³ï¿½, ï¿½ï¿½ï¿½â¼­ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½
 	// ...
 
-	// 2. ¸®ÇÃ·º¼Ç: ActorÀÇ ¸ðµç ÇÁ·ÎÆÛÆ¼ ¼øÈ¸
+	// 2. ï¿½ï¿½ï¿½Ã·ï¿½ï¿½ï¿½: Actorï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¼ ï¿½ï¿½È¸
 	for (TFieldIterator<FProperty> PropIt(Actor->GetClass()); PropIt; ++PropIt)
 	{
 		FProperty* Property = *PropIt;
 		FString PropName = Property->GetName();
 
-		// JSON¿¡ ÇØ´ç Å°°ªÀÌ ¾ø°Å³ª, SaveGame ÅÂ±×°¡ ¾øÀ¸¸é ÆÐ½º
+		// JSONï¿½ï¿½ ï¿½Ø´ï¿½ Å°ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Å³ï¿½, SaveGame ï¿½Â±×°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ð½ï¿½
 		if (!JsonObj->HasField(PropName) || !Property->HasAnyPropertyFlags(CPF_SaveGame))
 		{
 			continue;
 		}
 
-		// --- ÀÚ·áÇüº° °ª ÁÖÀÔ ---
+		// --- ï¿½Ú·ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ---
 
-		// 2-1. ¼ýÀÚ (Int, Float)
+		// 2-1. ï¿½ï¿½ï¿½ï¿½ (Int, Float)
 		if (FNumericProperty* NumProp = CastField<FNumericProperty>(Property))
 		{
 			double Val = JsonObj->GetNumberField(PropName);
@@ -119,26 +120,26 @@ void UATGSerializationLibrary::DeserializeJsonToActor(AActor* Actor, TSharedPtr<
 				NumProp->SetIntPropertyValue(Property->ContainerPtrToValuePtr<void>(Actor), (int64)Val);
 			}
 		}
-		// 2-2. ºÒ¸®¾ð (Bool)
+		// 2-2. ï¿½Ò¸ï¿½ï¿½ï¿½ (Bool)
 		else if (FBoolProperty* BoolProp = CastField<FBoolProperty>(Property))
 		{
 			bool Val = JsonObj->GetBoolField(PropName);
 			BoolProp->SetPropertyValue_InContainer(Actor, Val);
 		}
-		// 2-3. ¹®ÀÚ¿­ (String)
+		// 2-3. ï¿½ï¿½ï¿½Ú¿ï¿½ (String)
 		else if (FStrProperty* StrProp = CastField<FStrProperty>(Property))
 		{
 			FString Val = JsonObj->GetStringField(PropName);
 			StrProp->SetPropertyValue_InContainer(Actor, Val);
 		}
-		// 2-4. ±¸Á¶Ã¼ (Vector µî)
+		// 2-4. ï¿½ï¿½ï¿½ï¿½Ã¼ (Vector ï¿½ï¿½)
 		else if (FStructProperty* StructProp = CastField<FStructProperty>(Property))
 		{
 			const TSharedPtr<FJsonObject>* ChildObj;
 			if (JsonObj->TryGetObjectField(PropName, ChildObj))
 			{
 				void* StructAddr = StructProp->ContainerPtrToValuePtr<void>(Actor);
-				// JSON Object -> UStruct ¸Þ¸ð¸®·Î ¹Ù·Î º¹»ç
+				// JSON Object -> UStruct ï¿½Þ¸ð¸®·ï¿½ ï¿½Ù·ï¿½ ï¿½ï¿½ï¿½ï¿½
 				FJsonObjectConverter::JsonObjectToUStruct(ChildObj->ToSharedRef(), StructProp->Struct, StructAddr, 0, 0);
 			}
 		}
@@ -150,14 +151,14 @@ FString UATGSerializationLibrary::ConvertGridToJson(const FInventoryGrid& Grid)
 
 	FInventorySaveData SaveData;
 
-	// Grid ±âº» Á¤º¸ ÀúÀå
+	// Grid ï¿½âº» ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	SaveData.grid_width = Grid.GridWidth;
 	SaveData.grid_height = Grid.GridHeight;
 
-	// Entries ¼øÈ¸ÇÏ¸ç DTO·Î º¯È¯
+	// Entries ï¿½ï¿½È¸ï¿½Ï¸ï¿½ DTOï¿½ï¿½ ï¿½ï¿½È¯
 	for (const FInventoryEntry& Entry : Grid.Entries)
 	{
-		// ¼ö·®ÀÌ ¾ø°Å³ª ¾ÆÀÌÅÛÀÌ À¯È¿ÇÏÁö ¾ÊÀ¸¸é ½ºÅµ
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Å³ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¿ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Åµ
 		if (Entry.Quantity <= 0 || Entry.Item.IsNull())
 		{
 			continue;
@@ -207,13 +208,13 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 
 	UAssetManager& AssetManager = UAssetManager::Get();
 
-	// DTO -> Runtime Entry º¯È¯
+	// DTO -> Runtime Entry ï¿½ï¿½È¯
 	for (const FInventoryEntrySaveData& SavedEntry : LoadedData.saved_entries)
 	{
-		// ÃÊ±â Null Ã¼Å© »èÁ¦ÇÔ (¿©±â¼­ Ã¼Å©ÇÏ¸é ¾ÈµÊ)
+		// ï¿½Ê±ï¿½ Null Ã¼Å© ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½â¼­ Ã¼Å©ï¿½Ï¸ï¿½ ï¿½Èµï¿½)
 		FInventoryEntry NewEntry;
 
-		// Asset ID È®ÀÎ
+		// Asset ID È®ï¿½ï¿½
 		FPrimaryAssetId AssetId = FPrimaryAssetId::FromString(SavedEntry.primary_asset_id);
 		if (!AssetId.IsValid())
 		{
@@ -221,7 +222,7 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 			continue;
 		}
 
-		// Asset Path Ã£±â
+		// Asset Path Ã£ï¿½ï¿½
 		FSoftObjectPath ItemPath = AssetManager.GetPrimaryAssetPath(AssetId);
 		if (!ItemPath.IsValid())
 		{
@@ -229,7 +230,7 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 			continue;
 		}
 
-		// Soft Pointer ÇÒ´ç
+		// Soft Pointer ï¿½Ò´ï¿½
 		NewEntry.Item = TSoftObjectPtr<UATGItemData>(ItemPath);
 
 		NewEntry.Quantity = SavedEntry.qty;
@@ -237,7 +238,7 @@ bool UATGSerializationLibrary::ConvertDataToGrid(const FInventorySaveData& Loade
 		NewEntry.Y = SavedEntry.y;
 		NewEntry.bRotated = SavedEntry.b_rotated;
 
-		// DB Item PK ÀúÀå °Å·¡¼Ò¿¡ ¾ÆÀÌÅÛ ÆÈ°Å³ª ÇÒ¶§ ÇÊ¿ä
+		// DB Item PK ï¿½ï¿½ï¿½ï¿½ ï¿½Å·ï¿½ï¿½Ò¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½È°Å³ï¿½ ï¿½Ò¶ï¿½ ï¿½Ê¿ï¿½
 		SavedEntry.item_entry_id;
 
 		UATGItemData* ItemData = NewEntry.Item.LoadSynchronous();
@@ -286,7 +287,7 @@ UPrimaryDataAsset* UATGSerializationLibrary::GetPrimaryAssetfromPrimaryAssetName
 		return nullptr;
 	}
 
-	// Asset Path Ã£±â
+	// Asset Path Ã£ï¿½ï¿½
 	FSoftObjectPath ItemPath = AssetManager.GetPrimaryAssetPath(AssetId);
 	if (!ItemPath.IsValid())
 	{
@@ -294,7 +295,7 @@ UPrimaryDataAsset* UATGSerializationLibrary::GetPrimaryAssetfromPrimaryAssetName
 		return nullptr;
 	}
 
-	// Soft Pointer ÇÒ´ç
+	// Soft Pointer ï¿½Ò´ï¿½
 	TSoftObjectPtr<UPrimaryDataAsset> Item = TSoftObjectPtr<UPrimaryDataAsset>(ItemPath);
 	if (UPrimaryDataAsset* ItemData = Item.Get())
 	{

@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Widget/ATGEquipmentGirdWidget.h"
+#include "Widget/ATGEquipmentGridWidget.h"
 
 #include "ATGDragDropOperation.h"
 #include "ATGEquipmentComponent.h"
@@ -13,12 +13,12 @@
 #include "Data/ATGEquipmentData.h"
 #include "Data/ATGItemData.h"
 
-void UATGEquipmentGirdWidget::NativeConstruct()
+void UATGEquipmentGridWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 }
 
-void UATGEquipmentGirdWidget::BindInventoryComp()
+void UATGEquipmentGridWidget::BindInventoryComp()
 {
 	UATGEquipmentComponent* EquipmentComp = Cast<UATGEquipmentComponent>(Inven.GetObject());
 	if (!EquipmentComp)
@@ -26,17 +26,17 @@ void UATGEquipmentGirdWidget::BindInventoryComp()
 		return;
 	}
 
-	EquipmentComp->OnFirstMainWeaponChanged.RemoveDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
-	EquipmentComp->OnSecondMainWeaponChanged.RemoveDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
+	EquipmentComp->OnFirstMainWeaponChanged.RemoveDynamic(this, &UATGEquipmentGridWidget::HandleEquipmentChanged);
+	EquipmentComp->OnSecondMainWeaponChanged.RemoveDynamic(this, &UATGEquipmentGridWidget::HandleEquipmentChanged);
 
 	switch (EquipmentSlot)
 	{
 	case EEquipmentSlotType::MainWeapon1Slot:
-		EquipmentComp->OnFirstMainWeaponChanged.AddDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
+		EquipmentComp->OnFirstMainWeaponChanged.AddDynamic(this, &UATGEquipmentGridWidget::HandleEquipmentChanged);
 		FitEquipmentType = EEquipmentType::Weapon;
 		break;
 	case EEquipmentSlotType::MainWeapon2Slot:
-		EquipmentComp->OnSecondMainWeaponChanged.AddDynamic(this, &UATGEquipmentGirdWidget::HandleEquipmentChanged);
+		EquipmentComp->OnSecondMainWeaponChanged.AddDynamic(this, &UATGEquipmentGridWidget::HandleEquipmentChanged);
 		FitEquipmentType = EEquipmentType::Weapon;
 		break;
 	default:
@@ -46,7 +46,7 @@ void UATGEquipmentGirdWidget::BindInventoryComp()
 	RebuildAll();
 }
 
-void UATGEquipmentGirdWidget::HandleEquipmentChanged(FInventoryEntry EquipmentEntry)
+void UATGEquipmentGridWidget::HandleEquipmentChanged(FInventoryEntry EquipmentEntry)
 {
 	if (!EquipmentEntry.Item)
 	{
@@ -70,7 +70,7 @@ void UATGEquipmentGirdWidget::HandleEquipmentChanged(FInventoryEntry EquipmentEn
 	}
 }
 
-void UATGEquipmentGirdWidget::RebuildAll()
+void UATGEquipmentGridWidget::RebuildAll()
 {
 	if (!GridPanel || !Inven)
 	{
@@ -91,7 +91,7 @@ void UATGEquipmentGirdWidget::RebuildAll()
 	}
 }
 
-void UATGEquipmentGirdWidget::BuildCellBackground()
+void UATGEquipmentGridWidget::BuildCellBackground()
 {
 	if (!GridPanel || !Inven)
 	{
@@ -144,7 +144,7 @@ void UATGEquipmentGirdWidget::BuildCellBackground()
 	}
 }
 
-void UATGEquipmentGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen)
+void UATGEquipmentGridWidget::HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen)
 {
 	if (!InDragged || InDragged->ItemDef.IsNull())
 	{
@@ -163,7 +163,7 @@ void UATGEquipmentGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation
 	}
 }
 
-bool UATGEquipmentGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+bool UATGEquipmentGridWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	if (!Inven || !GridPanel)
 	{
@@ -262,12 +262,12 @@ bool UATGEquipmentGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 	return false;
 }
 
-bool UATGEquipmentGirdWidget::CheckIsFromOther(UATGInventoryItemWidget* Dragged)
+bool UATGEquipmentGridWidget::CheckIsFromOther(UATGInventoryItemWidget* Dragged)
 {
 	return Dragged && !bIsDragLeave;
 }
 
-bool UATGEquipmentGirdWidget::CheckFitEquip(UATGItemData* ItemData)
+bool UATGEquipmentGridWidget::CheckFitEquip(UATGItemData* ItemData)
 {
 	const UATGEquipmentData* EquipData = Cast<UATGEquipmentData>(ItemData);
 	return EquipData && EquipData->EquipmentType == FitEquipmentType;

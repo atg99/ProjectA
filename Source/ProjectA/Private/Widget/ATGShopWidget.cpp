@@ -2,7 +2,7 @@
 
 
 #include "Widget/ATGShopWidget.h"
-#include "ATGInventoryGirdWidget.h"
+#include "ATGInventoryGridWidget.h"
 
 bool UATGShopWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {

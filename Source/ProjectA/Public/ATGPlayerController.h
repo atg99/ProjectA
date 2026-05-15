@@ -8,7 +8,7 @@
 #include "ATGPlayerController.generated.h"
 
 class UInputMappingContext;
-class UATGInventoryGirdWidget;
+class UATGInventoryGridWidget;
 class UATGInventoryComponent;
 /**
  * 
@@ -59,10 +59,10 @@ protected:
 protected:
 
 	//UPROPERTY(EditDefaultsOnly, Category = "UI")
-	//TSubclassOf<UATGInventoryGirdWidget> InventoryWidgetClass;
+	//TSubclassOf<UATGInventoryGridWidget> InventoryWidgetClass;
 
 	//UPROPERTY(Transient)
-	//UATGInventoryGirdWidget* InventoryWidget = nullptr;
+	//UATGInventoryGridWidget* InventoryWidget = nullptr;
 
 	//void EnsureWidgetCreated();
 

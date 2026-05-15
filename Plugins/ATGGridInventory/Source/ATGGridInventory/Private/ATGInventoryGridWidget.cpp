@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ATGInventoryGirdWidget.h"
+#include "ATGInventoryGridWidget.h"
 
 #include "ATGContainerComponent.h"
 #include "ATGDragDropOperation.h"
@@ -15,21 +15,21 @@
 #include "Components/SizeBox.h"
 #include "Data/ATGItemData.h"
 
-void UATGInventoryGirdWidget::NativeConstruct()
+void UATGInventoryGridWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	if (Btn_Sort)
 	{
-		Btn_Sort->OnClicked.AddDynamic(this, &UATGInventoryGirdWidget::OnSortBtnClicked);
+		Btn_Sort->OnClicked.AddDynamic(this, &UATGInventoryGridWidget::OnSortBtnClicked);
 	}
 }
 
-void UATGInventoryGirdWidget::InitializeFromOwner()
+void UATGInventoryGridWidget::InitializeFromOwner()
 {
 }
 
-void UATGInventoryGirdWidget::RebuildAll()
+void UATGInventoryGridWidget::RebuildAll()
 {
 	if (!GridPanel || !Inven)
 	{
@@ -54,46 +54,46 @@ void UATGInventoryGirdWidget::RebuildAll()
 	OnGridRebuild.Broadcast(IdToWidget.Num());
 }
 
-void UATGInventoryGirdWidget::BindInventoryComp()
+void UATGInventoryGridWidget::BindInventoryComp()
 {
 	if (UATGInventoryComponent* InventoryComp = Cast<UATGInventoryComponent>(Inven.GetObject()))
 	{
-		InventoryComp->OnItemAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
-		InventoryComp->OnItemChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
-		InventoryComp->OnItemRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
-		InventoryComp->OnRebuildAll.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleRebuildAll);
-		InventoryComp->OnItemPreAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreAdded);
-		InventoryComp->OnItemPreChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreChanged);
-		InventoryComp->OnItemPreRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemPreRemoved);
+		InventoryComp->OnItemAdded.RemoveDynamic(this, &UATGInventoryGridWidget::HandleItemAdded);
+		InventoryComp->OnItemChanged.RemoveDynamic(this, &UATGInventoryGridWidget::HandleItemChanged);
+		InventoryComp->OnItemRemoved.RemoveDynamic(this, &UATGInventoryGridWidget::HandleItemRemoved);
+		InventoryComp->OnRebuildAll.RemoveDynamic(this, &UATGInventoryGridWidget::HandleRebuildAll);
+		InventoryComp->OnItemPreAdded.RemoveDynamic(this, &UATGInventoryGridWidget::HandleItemPreAdded);
+		InventoryComp->OnItemPreChanged.RemoveDynamic(this, &UATGInventoryGridWidget::HandleItemPreChanged);
+		InventoryComp->OnItemPreRemoved.RemoveDynamic(this, &UATGInventoryGridWidget::HandleItemPreRemoved);
 
-		InventoryComp->OnItemAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
-		InventoryComp->OnItemChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
-		InventoryComp->OnItemRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
-		InventoryComp->OnRebuildAll.AddDynamic(this, &UATGInventoryGirdWidget::HandleRebuildAll);
+		InventoryComp->OnItemAdded.AddDynamic(this, &UATGInventoryGridWidget::HandleItemAdded);
+		InventoryComp->OnItemChanged.AddDynamic(this, &UATGInventoryGridWidget::HandleItemChanged);
+		InventoryComp->OnItemRemoved.AddDynamic(this, &UATGInventoryGridWidget::HandleItemRemoved);
+		InventoryComp->OnRebuildAll.AddDynamic(this, &UATGInventoryGridWidget::HandleRebuildAll);
 	}
 	else if (UATGContainerComponent* ContainerComp = Cast<UATGContainerComponent>(Inven.GetObject()))
 	{
-		ContainerComp->OnContainerAdded.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
-		ContainerComp->OnContainerChanged.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
-		ContainerComp->OnContainerRemoved.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
-		ContainerComp->OnRebuildAll.RemoveDynamic(this, &UATGInventoryGirdWidget::HandleRebuildAll);
+		ContainerComp->OnContainerAdded.RemoveDynamic(this, &UATGInventoryGridWidget::HandleItemAdded);
+		ContainerComp->OnContainerChanged.RemoveDynamic(this, &UATGInventoryGridWidget::HandleItemChanged);
+		ContainerComp->OnContainerRemoved.RemoveDynamic(this, &UATGInventoryGridWidget::HandleItemRemoved);
+		ContainerComp->OnRebuildAll.RemoveDynamic(this, &UATGInventoryGridWidget::HandleRebuildAll);
 
-		ContainerComp->OnContainerAdded.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemAdded);
-		ContainerComp->OnContainerChanged.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemChanged);
-		ContainerComp->OnContainerRemoved.AddDynamic(this, &UATGInventoryGirdWidget::HandleItemRemoved);
-		ContainerComp->OnRebuildAll.AddDynamic(this, &UATGInventoryGirdWidget::HandleRebuildAll);
+		ContainerComp->OnContainerAdded.AddDynamic(this, &UATGInventoryGridWidget::HandleItemAdded);
+		ContainerComp->OnContainerChanged.AddDynamic(this, &UATGInventoryGridWidget::HandleItemChanged);
+		ContainerComp->OnContainerRemoved.AddDynamic(this, &UATGInventoryGridWidget::HandleItemRemoved);
+		ContainerComp->OnRebuildAll.AddDynamic(this, &UATGInventoryGridWidget::HandleRebuildAll);
 	}
 
 	RebuildAll();
 }
 
-int32 UATGInventoryGirdWidget::GetDBIdByEntryId(int32 ItemEntryId)
+int32 UATGInventoryGridWidget::GetDBIdByEntryId(int32 ItemEntryId)
 {
 	const FInventoryEntry* Entry = FindEntryById(ItemEntryId);
 	return Entry ? Entry->DBId : -1;
 }
 
-void UATGInventoryGirdWidget::BuildCellBackground()
+void UATGInventoryGridWidget::BuildCellBackground()
 {
 	if (!GridPanel || !Inven)
 	{
@@ -126,7 +126,7 @@ void UATGInventoryGirdWidget::BuildCellBackground()
 	}
 }
 
-void UATGInventoryGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen)
+void UATGInventoryGridWidget::HandleIncomingItem(UDragDropOperation* InOperation, UATGInventoryItemWidget* InDragged, FVector2D Screen)
 {
 	if (!InDragged || !Inven)
 	{
@@ -148,11 +148,11 @@ void UATGInventoryGirdWidget::HandleIncomingItem(UDragDropOperation* InOperation
 	Inven->TryAddItemAt(InDragged->Inven, InDragged->EntryId, InDragged->ItemDef, InDragged->Quantity, Cell.X, Cell.Y, bIsRotated);
 }
 
-UATGInventoryItemWidget* UATGInventoryGirdWidget::CreateItemWidget(const FInventoryEntry& E)
+UATGInventoryItemWidget* UATGInventoryGridWidget::CreateItemWidget(const FInventoryEntry& E)
 {
 	if (!InventoryItemWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UATGInventoryGirdWidget::CreateItemWidget InventoryItemWidgetClass is not set"));
+		UE_LOG(LogTemp, Warning, TEXT("UATGInventoryGridWidget::CreateItemWidget InventoryItemWidgetClass is not set"));
 		return nullptr;
 	}
 
@@ -165,7 +165,7 @@ UATGInventoryItemWidget* UATGInventoryGirdWidget::CreateItemWidget(const FInvent
 	return Widget;
 }
 
-void UATGInventoryGirdWidget::UpdateItemSlot(UATGInventoryItemWidget* W, const FInventoryEntry& E)
+void UATGInventoryGridWidget::UpdateItemSlot(UATGInventoryItemWidget* W, const FInventoryEntry& E)
 {
 	if (!GridPanel || !W)
 	{
@@ -188,7 +188,7 @@ void UATGInventoryGirdWidget::UpdateItemSlot(UATGInventoryItemWidget* W, const F
 	}
 }
 
-const FInventoryEntry* UATGInventoryGirdWidget::FindEntryById(int32 EntryId) const
+const FInventoryEntry* UATGInventoryGridWidget::FindEntryById(int32 EntryId) const
 {
 	if (!Inven)
 	{
@@ -205,7 +205,7 @@ const FInventoryEntry* UATGInventoryGirdWidget::FindEntryById(int32 EntryId) con
 	return nullptr;
 }
 
-FIntPoint UATGInventoryGirdWidget::CellFromLocal(const FVector2D& Local) const
+FIntPoint UATGInventoryGridWidget::CellFromLocal(const FVector2D& Local) const
 {
 	const float Pitch = float(CellSize + 2 * CellPadding);
 	const int32 X = FMath::Max(0, int32(FMath::FloorToFloat(Local.X / Pitch)));
@@ -213,7 +213,7 @@ FIntPoint UATGInventoryGirdWidget::CellFromLocal(const FVector2D& Local) const
 	return FIntPoint(X, Y);
 }
 
-bool UATGInventoryGirdWidget::CheckIsOutGrid(const FVector2D& Local) const
+bool UATGInventoryGridWidget::CheckIsOutGrid(const FVector2D& Local) const
 {
 	if (!Inven || Local.X < 0.f || Local.Y < 0.f)
 	{
@@ -224,7 +224,7 @@ bool UATGInventoryGirdWidget::CheckIsOutGrid(const FVector2D& Local) const
 	return Local.X > Pitch * Inven->GetGridWidth() || Local.Y > Pitch * Inven->GetGridHeight();
 }
 
-void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen)
+void UATGInventoryGridWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen)
 {
 	const FGeometry PanelGeo = GridPanel->GetTickSpaceGeometry();
 	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
@@ -254,7 +254,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 	Inven->TryMoveOrSwapClient(Dragged->EntryId, Cell.X, Cell.Y, bShouldRotate);
 }
 
-void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen, int32 SplitNum)
+void UATGInventoryGridWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UATGInventoryItemWidget* Dragged, FVector2D Screen, int32 SplitNum)
 {
 	const FGeometry PanelGeo = GridPanel->GetTickSpaceGeometry();
 	const FVector2D Local = PanelGeo.AbsoluteToLocal(Screen);
@@ -284,7 +284,7 @@ void UATGInventoryGirdWidget::DoNativeOnDrop(UDragDropOperation* InOperation, UA
 	Inven->TrySplitStack(Dragged->EntryId, Cell.X, Cell.Y, bShouldRotate, SplitNum);
 }
 
-bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+bool UATGInventoryGridWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	if (!bCanDrag)
 	{
@@ -347,22 +347,22 @@ bool UATGInventoryGirdWidget::NativeOnDrop(const FGeometry& InGeo, const FDragDr
 	return true;
 }
 
-bool UATGInventoryGirdWidget::CheckIsFromOther(UATGInventoryItemWidget* Dragged)
+bool UATGInventoryGridWidget::CheckIsFromOther(UATGInventoryItemWidget* Dragged)
 {
 	return Dragged && Dragged->Inven != Inven && !bIsDragLeave;
 }
 
-void UATGInventoryGirdWidget::NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+void UATGInventoryGridWidget::NativeOnDragEnter(const FGeometry& InGeo, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	bIsDragLeave = false;
 }
 
-void UATGInventoryGirdWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+void UATGInventoryGridWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	SetAllGridDefault();
 }
 
-bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+bool UATGInventoryGridWidget::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	if (!Inven || !GridPanel)
 	{
@@ -473,7 +473,7 @@ bool UATGInventoryGirdWidget::NativeOnDragOver(const FGeometry& InGeometry, cons
 	return false;
 }
 
-void UATGInventoryGirdWidget::SetAllGridDefault()
+void UATGInventoryGridWidget::SetAllGridDefault()
 {
 	bIsDragLeave = true;
 	PrevCell = FIntPoint(-1, -1);
@@ -506,7 +506,7 @@ void UATGInventoryGirdWidget::SetAllGridDefault()
 	}
 }
 
-void UATGInventoryGirdWidget::HandleItemAdded(int32 EntryId)
+void UATGInventoryGridWidget::HandleItemAdded(int32 EntryId)
 {
 	if (const FInventoryEntry* Entry = FindEntryById(EntryId))
 	{
@@ -518,7 +518,7 @@ void UATGInventoryGirdWidget::HandleItemAdded(int32 EntryId)
 	}
 }
 
-void UATGInventoryGirdWidget::HandleItemChanged(int32 EntryId)
+void UATGInventoryGridWidget::HandleItemChanged(int32 EntryId)
 {
 	HandleItemPreRemoved(EntryId);
 
@@ -547,7 +547,7 @@ void UATGInventoryGirdWidget::HandleItemChanged(int32 EntryId)
 	}
 }
 
-void UATGInventoryGirdWidget::HandleItemRemoved(int32 EntryId)
+void UATGInventoryGridWidget::HandleItemRemoved(int32 EntryId)
 {
 	if (UATGInventoryItemWidget* Widget = IdToWidget.FindRef(EntryId).Get())
 	{
@@ -556,12 +556,12 @@ void UATGInventoryGirdWidget::HandleItemRemoved(int32 EntryId)
 	IdToWidget.Remove(EntryId);
 }
 
-void UATGInventoryGirdWidget::HandleRebuildAll(int32 EntryId)
+void UATGInventoryGridWidget::HandleRebuildAll(int32 EntryId)
 {
 	RebuildAll();
 }
 
-void UATGInventoryGirdWidget::HandleItemPreAdded(FInventoryEntry PreE)
+void UATGInventoryGridWidget::HandleItemPreAdded(FInventoryEntry PreE)
 {
 	UATGInventoryItemWidget* Widget = CreateItemWidget(PreE);
 	if (!Widget)
@@ -578,7 +578,7 @@ void UATGInventoryGirdWidget::HandleItemPreAdded(FInventoryEntry PreE)
 	PreviewIdToWidget.FindOrAdd(PreE.Id).Add(Widget);
 }
 
-void UATGInventoryGirdWidget::HandleItemPreChanged(FInventoryEntry PreE)
+void UATGInventoryGridWidget::HandleItemPreChanged(FInventoryEntry PreE)
 {
 	if (TArray<TWeakObjectPtr<UATGInventoryItemWidget>>* Widgets = PreviewIdToWidget.Find(PreE.Id))
 	{
@@ -592,7 +592,7 @@ void UATGInventoryGirdWidget::HandleItemPreChanged(FInventoryEntry PreE)
 	}
 }
 
-void UATGInventoryGirdWidget::HandleItemPreRemoved(int32 PreEId)
+void UATGInventoryGridWidget::HandleItemPreRemoved(int32 PreEId)
 {
 	if (TArray<TWeakObjectPtr<UATGInventoryItemWidget>>* Widgets = PreviewIdToWidget.Find(PreEId))
 	{
@@ -607,7 +607,7 @@ void UATGInventoryGirdWidget::HandleItemPreRemoved(int32 PreEId)
 	}
 }
 
-void UATGInventoryGirdWidget::OnSortBtnClicked()
+void UATGInventoryGridWidget::OnSortBtnClicked()
 {
 	if (Inven)
 	{

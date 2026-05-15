@@ -2,7 +2,7 @@
 
 
 #include "ATGHUDComponent.h"
-#include "ATGInventoryGirdWidget.h"
+#include "ATGInventoryGridWidget.h"
 #include "ATGHUDWidget.h"
 #include "ATGInventoryWidget.h"
 #include "GameFramework/HUD.h"

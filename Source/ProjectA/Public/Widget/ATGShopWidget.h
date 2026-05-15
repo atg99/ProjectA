@@ -6,7 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "ATGShopWidget.generated.h"
 
-class UATGInventoryGirdWidget;
+class UATGInventoryGridWidget;
 /**
  * 
  */
@@ -18,13 +18,13 @@ class PROJECTA_API UATGShopWidget : public UUserWidget
 public:
 
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
-	UATGInventoryGirdWidget* PlayerGrid = nullptr;
+	UATGInventoryGridWidget* PlayerGrid = nullptr;
 
 	//UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
-	//UATGInventoryGirdWidget* TransactionGrid = nullptr;
+	//UATGInventoryGridWidget* TransactionGrid = nullptr;
 
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
-	UATGInventoryGirdWidget* MerchantGrid = nullptr;
+	UATGInventoryGridWidget* MerchantGrid = nullptr;
 
 protected:
 

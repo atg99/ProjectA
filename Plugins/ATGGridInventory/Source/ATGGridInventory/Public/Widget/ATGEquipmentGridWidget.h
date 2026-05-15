@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ATGInventoryGirdWidget.h"
-#include "ATGEquipmentGirdWidget.generated.h"
+#include "ATGInventoryGridWidget.h"
+#include "ATGEquipmentGridWidget.generated.h"
 
 class UATGEquipmentComponent;
 
 UCLASS()
-class ATGGRIDINVENTORY_API UATGEquipmentGirdWidget : public UATGInventoryGirdWidget
+class ATGGRIDINVENTORY_API UATGEquipmentGridWidget : public UATGInventoryGridWidget
 {
 	GENERATED_BODY()
 

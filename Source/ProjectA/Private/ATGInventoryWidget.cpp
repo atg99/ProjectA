@@ -2,7 +2,7 @@
 
 
 #include "ATGInventoryWidget.h"
-#include "ATGInventoryGirdWidget.h"
+#include "ATGInventoryGridWidget.h"
 #include "ATGPlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "ATGInventoryComponent.h"
@@ -13,7 +13,7 @@
 #include "Components/GridPanel.h"
 #include "ATGEquipmentComponent.h"
 #include "GameFramework/PlayerState.h"
-#include "Widget/ATGEquipmentGirdWidget.h"
+#include "Widget/ATGEquipmentGridWidget.h"
 
 
 void UATGInventoryWidget::NativeConstruct()

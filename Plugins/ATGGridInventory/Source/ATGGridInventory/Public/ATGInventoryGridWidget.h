@@ -6,7 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "ATGInventoryOwnerInterface.h"
 #include "InventoryTypes.h"
-#include "ATGInventoryGirdWidget.generated.h"
+#include "ATGInventoryGridWidget.generated.h"
 
 class UButton;
 class UGridPanel;
@@ -21,7 +21,7 @@ class UATGStackSplitWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGridRebuild, int32, ItemNum);
 
 UCLASS()
-class ATGGRIDINVENTORY_API UATGInventoryGirdWidget : public UUserWidget
+class ATGGRIDINVENTORY_API UATGInventoryGridWidget : public UUserWidget
 {
 	GENERATED_BODY()
 

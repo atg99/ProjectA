@@ -13,7 +13,7 @@
 #include "ATGHUDComponent.h"
 #include "ATGHUDWidget.h"
 #include "ATGInventoryWidget.h"
-#include "ATGInventoryGirdWidget.h"
+#include "ATGInventoryGridWidget.h"
 #include "Utils/NetworkUtil.h"
 
 void AATGPlayerController::SetupInputComponent()
@@ -125,7 +125,7 @@ void AATGPlayerController::StartInitInventoryWidget()
 //
 //	}
 //
-//	InventoryWidget = CreateWidget<UATGInventoryGirdWidget>(this, InventoryWidgetClass);
+//	InventoryWidget = CreateWidget<UATGInventoryGridWidget>(this, InventoryWidgetClass);
 //	if (InventoryWidget)
 //	{
 //		InventoryWidget->AddToViewport();

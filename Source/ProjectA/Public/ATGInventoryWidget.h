@@ -6,8 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "ATGInventoryWidget.generated.h"
 
-class UATGInventoryGirdWidget;
-class UATGEquipmentGirdWidget;
+class UATGInventoryGridWidget;
+class UATGEquipmentGridWidget;
 class UATGInventoryComponent;
 class UATGHUDComponent;
 class UATGEquipmentComponent;
@@ -24,16 +24,16 @@ class PROJECTA_API UATGInventoryWidget : public UUserWidget
 public:
 
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
-	UATGInventoryGirdWidget* PlayerGrid = nullptr;
+	UATGInventoryGridWidget* PlayerGrid = nullptr;
 
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
-	UATGInventoryGirdWidget* ContainerGrid = nullptr;
+	UATGInventoryGridWidget* ContainerGrid = nullptr;
 
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
-	UATGEquipmentGirdWidget* MainWeapon1Grid = nullptr;
+	UATGEquipmentGridWidget* MainWeapon1Grid = nullptr;
 
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
-	UATGEquipmentGirdWidget* MainWeapon2Grid = nullptr;
+	UATGEquipmentGridWidget* MainWeapon2Grid = nullptr;
 
 	void SetHUDComp(UATGHUDComponent* InHUDComp);
 	void RefreshInventoryBindingsFromPlayerState();

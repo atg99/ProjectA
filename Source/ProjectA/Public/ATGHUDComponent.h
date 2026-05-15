@@ -7,7 +7,7 @@
 
 #include "ATGHUDComponent.generated.h"
 
-//class UATGInventoryGirdWidget;
+//class UATGInventoryGridWidget;
 class AATGPlayerController;
 class UATGHUDWidget;
 class UATGContainerComponent;
