@@ -23,7 +23,7 @@ enum class EBackendResultType : uint8
 	None			= 0		UMETA(DisplayName = "None"),
 	Login_RES		= 1		UMETA(DisplayName = "Login_RES"),
 	Register_RES	= 2		UMETA(DisplayName = "Register_RES"),
-	TCPLogin_RES	= 2		UMETA(DisplayName = "TCPLogin_RES"),
+	TCPLogin_RES	= 3		UMETA(DisplayName = "TCPLogin_RES"),
 };
 
 USTRUCT(BlueprintType)
@@ -105,7 +105,7 @@ DECLARE_DELEGATE_ThreeParams(FOnNetworkResponse, bool /*bSuccess*/, FString /*Co
 class FTcpSocketWorker : public FRunnable
 {
 public:
-	// 데이터 수신 시 메인 스레드로 넘겨줄 람다 함수 타입
+	// Marshals received socket bytes back to the game thread.
 	using FOnBytesReceived = TFunction<void(const TArray<uint8>&)>;
 
 	FTcpSocketWorker(FSocket* InSocket, FOnBytesReceived InCallback);
@@ -162,15 +162,11 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void BackendValidateToken(const FString& Token, const FUniqueNetIdRepl& RequestUserID);
-
-	// DB에 Inventory 저장
 	UFUNCTION(BlueprintCallable)
 	void SaveInventoryData(FString AuthToken, FString InvenJson);
 
 	UFUNCTION(BlueprintCallable)
 	void LoadInventoryData(FString AuthToken, APlayerController* InventoryOwner);
-
-	// Stash
 	UFUNCTION(BlueprintCallable)
 	void SaveStashData(FString AuthToken, FString InvenJson);
 
@@ -180,7 +176,6 @@ public:
 protected:
 	void SendRequest_Internal(FString Verb, FString Endpoint, FString JsonBody, FString AuthToken, FOnNetworkResponse Callback);
 public:
-	//범용
 	void SendRequest(FString Verb, FString Endpoint, FString JsonBody, FOnNetworkResponse Callback);
 	void SendRequest(FString Verb, FString Endpoint, FString JsonBody, FString AuthToken, FOnNetworkResponse Callback);
 

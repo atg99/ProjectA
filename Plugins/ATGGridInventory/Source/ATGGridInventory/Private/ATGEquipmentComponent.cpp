@@ -9,7 +9,7 @@
 
 UATGEquipmentComponent::UATGEquipmentComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 }
 
@@ -33,10 +33,6 @@ void UATGEquipmentComponent::BeginPlay()
 	}
 }
 
-void UATGEquipmentComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-}
 
 void UATGEquipmentComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -56,10 +52,6 @@ void UATGEquipmentComponent::OnRep_SecondMainWeapon()
 	OnSecondMainWeaponChanged.Broadcast(SecondMainWeapon);
 }
 
-const FInventoryEntry* UATGEquipmentComponent::GetEquipmentById() const
-{
-	return nullptr;
-}
 
 void UATGEquipmentComponent::ItemRemoved(int32 EntryId)
 {
@@ -179,7 +171,10 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 		TargetEntry->Quantity = 1;
 		TargetEntry->bRotated = false;
 
-		Inven->TryHandleTransItemResult(OtherGridId, 1);
+		if (Inven)
+		{
+			Inven->TryHandleTransItemResult(OtherGridId, 1);
+		}
 
 		GetOwner()->ForceNetUpdate();
 
@@ -201,7 +196,10 @@ void UATGEquipmentComponent::ServerAddEquipment_Implementation(const TSoftObject
 
 bool UATGEquipmentComponent::CheckCanMove(int32 StartX, int32 StartY, int32 W, int32 H, int32 IgnoreId)
 {
-	return true;
+	return StartX >= 0
+		&& StartY >= 0
+		&& StartX + W <= WeaponSlotSize.X
+		&& StartY + H <= WeaponSlotSize.Y;
 }
 
 bool UATGEquipmentComponent::CheckItemFitSlot(UATGItemData* ItemData, EEquipmentSlotType SlotType)

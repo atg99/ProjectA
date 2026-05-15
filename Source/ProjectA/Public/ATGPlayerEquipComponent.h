@@ -21,27 +21,22 @@ class PROJECTA_API UATGPlayerEquipComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this component's properties
 	UATGPlayerEquipComponent();
 
 protected:
-	// Called when the game starts
 	virtual void BeginPlay() override;
 
 public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly)
 	FATGCharacterInputState ATGCharacterInputState;
 
-	//슬롯의 상태
+	// Replicated equipment slot table.
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Equipment")
 	TArray<FEquipmentSlot> EquipmentSlots;
 
-	//현재 사용중인 슬롯
+	// Slot currently controlled by player input.
 	UPROPERTY(ReplicatedUsing = "OnRep_CurrentUsingSlot", BlueprintReadOnly, Category = "Equipment")
 	EEquipmentSlotType CurrentUsingSlot = EEquipmentSlotType::None;
 
@@ -85,24 +80,6 @@ public:
 
 protected:
 
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
-	//FName Sniper_SocketName = TEXT("HandGrip_Sniper");
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
-	//FName Sniper_Main1BackSocketName = TEXT("Main1Back_Sniper");
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
-	//FName Sniper_Main2BackSocketName = TEXT("Main2Back_Sniper");
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
-	//FName Sword_SocketName = TEXT("HandGrip_Sword");
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
-	//FName Sword_Main1BackSocketName = TEXT("Main1Back_Sword");
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment");
-	//FName Sword_Main2BackSocketName = TEXT("Main2Back_Sword");
-
 	FTimerHandle TimerHandle_InitCheck;
 
 	ACharacter* GetOwningPlayerCharacter();
@@ -123,7 +100,6 @@ protected:
 
 	FTimerHandle STFTimerHandle;
 	FTimerHandle FireToMoveTimerHandle;
-	FTimerHandle ADSTimerHandle;
 
 	bool bReadyToFire = false;
 

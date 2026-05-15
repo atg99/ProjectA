@@ -20,63 +20,29 @@
 #include "Weapon/ATGRangeWeapon.h"
 #include "Weapon/ATGMeleeWeapon.h"
 
-// Sets default values for this component's properties
 UATGPlayerEquipComponent::UATGPlayerEquipComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
-
 	SetIsReplicatedByDefault(true);
-
-    ////MainWeapon1 슬롯 추가
-    //FEquipmentSlot SlotNone;
-    //SlotNone.SlotType = EEquipmentSlotType::None;
-    //SlotNone.EquippedActor = nullptr; // 초기엔 장비 없음
-    //EquipmentSlots.Add(SlotNone);
-
-    //FEquipmentSlot MeleeSlot;
-    //MeleeSlot.SlotType = EEquipmentSlotType::MeleeWeapon;
-    //MeleeSlot.EquippedActor = nullptr; // 초기엔 장비 없음
-    //EquipmentSlots.Add(MeleeSlot);
-
-    ////MainWeapon1 슬롯 추가
-    //FEquipmentSlot Slot1;
-    //Slot1.SlotType = EEquipmentSlotType::MainWeapon1;
-    //Slot1.EquippedActor = nullptr; // 초기엔 장비 없음
-    //EquipmentSlots.Add(Slot1);
-
-    //FEquipmentSlot Slot2;
-    //Slot2.SlotType = EEquipmentSlotType::MainWeapon2;
-    //Slot2.EquippedActor = nullptr;
-    //EquipmentSlots.Add(Slot2);
-
 }
 
 
-// Called when the game starts
 void UATGPlayerEquipComponent::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 
-	EquipmentSlots.Empty();
+    EquipmentSlots.Empty();
     for (EEquipmentSlotType EquipmentSlotType : TEnumRange<EEquipmentSlotType>())
     {
         InitSlot(EquipmentSlotType);
     }
 
-    // PlayerState가 이미 있다면 바로 초기화
-    if (CheckPlayerStateCompReady())
-    {
-        
-    }
-    else
+    if (!CheckPlayerStateCompReady())
     {
         GetWorld()->GetTimerManager().SetTimer(
             TimerHandle_InitCheck,
-            FTimerDelegate::CreateWeakLambda(this, [this]() //this 유효성 검사
+            FTimerDelegate::CreateWeakLambda(this, [this]()
                 {
-                    // 람다 내부에서 함수 호출
                     CheckPlayerStateCompReady();
                 }),
             0.1f,
@@ -85,25 +51,21 @@ void UATGPlayerEquipComponent::BeginPlay()
     }
 
     OnRep_CurrentUsingSlot();
-
 }
 
 void UATGPlayerEquipComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-    //애니메이션 스테이트 동기화
     DOREPLIFETIME_CONDITION(UATGPlayerEquipComponent, CurrentUsingSlot, COND_None);
 
     DOREPLIFETIME_CONDITION(UATGPlayerEquipComponent, EquipmentSlots, COND_None);
-
-    //조준중인지아닌지 서버, 로컬에서 필요
     DOREPLIFETIME_CONDITION(UATGPlayerEquipComponent, ATGCharacterInputState, COND_OwnerOnly);
 }
 
 bool UATGPlayerEquipComponent::CheckPlayerStateCompReady()
 {
-    APlayerState* PS = GetOwningPlayerCharacter()->GetPlayerState();
+    const ACharacter* Character = GetOwningPlayerCharacter();
+    APlayerState* PS = Character ? Character->GetPlayerState() : nullptr;
     if (PS)
     {
         UATGEquipmentComponent* EqComp = Cast<UATGEquipmentComponent>(PS->GetComponentByClass(UATGEquipmentComponent::StaticClass()));
@@ -120,18 +82,22 @@ bool UATGPlayerEquipComponent::CheckPlayerStateCompReady()
 
 void UATGPlayerEquipComponent::InitEquipComponent(UATGEquipmentComponent* EquipmentComponent)
 {
-    if (EquipmentComponent)
+    if (!EquipmentComponent)
     {
-        UE_LOG(LogTemp, Log, TEXT("PlayerState Ready! Component Initialized."));
-        EquipmentComponent->OnFirstMainWeaponChanged.AddDynamic(this, &UATGPlayerEquipComponent::HandleFirstMainWeaponChanged);
-
-        EquipmentComponent->OnSecondMainWeaponChanged.AddDynamic(this, &UATGPlayerEquipComponent::HandleSecondMainWeaponChanged);
+        return;
     }
+
+    EquipmentComponent->OnFirstMainWeaponChanged.RemoveDynamic(this, &UATGPlayerEquipComponent::HandleFirstMainWeaponChanged);
+    EquipmentComponent->OnSecondMainWeaponChanged.RemoveDynamic(this, &UATGPlayerEquipComponent::HandleSecondMainWeaponChanged);
+
+    EquipmentComponent->OnFirstMainWeaponChanged.AddDynamic(this, &UATGPlayerEquipComponent::HandleFirstMainWeaponChanged);
+    EquipmentComponent->OnSecondMainWeaponChanged.AddDynamic(this, &UATGPlayerEquipComponent::HandleSecondMainWeaponChanged);
 }
 
 void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFirstMainWeapon)
 {
-    //NET_LOG("");
+
+
     if (!GetOwner()->HasAuthority())
     {
         return;
@@ -157,8 +123,6 @@ void UATGPlayerEquipComponent::HandleFirstMainWeaponChanged(FInventoryEntry InFi
 
     if (!InFirstMainWeapon.Item.IsValid())
     {
-        // 로그를 남겨서 로딩 발생 확인
-        NET_LOG(TEXT("Loading Item Asset Synchronously"));
         if (!InFirstMainWeapon.Item.LoadSynchronous())
         {
             NET_LOG(TEXT("Item.LoadSynchronous() Fail"));
@@ -213,8 +177,6 @@ void UATGPlayerEquipComponent::HandleSecondMainWeaponChanged(FInventoryEntry InS
 
     if (!InSecondMainWeapon.Item.IsValid())
     {
-        // 로그를 남겨서 로딩 발생 확인
-        NET_LOG(TEXT("Loading Item Asset Synchronously"));
         if (!InSecondMainWeapon.Item.LoadSynchronous())
         {
             NET_LOG(TEXT("Item.LoadSynchronous() Fail"));
@@ -262,18 +224,10 @@ void UATGPlayerEquipComponent::ClearSlot(FEquipmentSlot& Slot)
     }
 }
 
-// Called every frame
-void UATGPlayerEquipComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
-}
 
 void UATGPlayerEquipComponent::TryChangePlayerUsingSlot(EEquipmentSlotType DesiredSlot)
 {
     ServerChangePlayerUsingSlot(DesiredSlot);
-    //클라이언트 예측
     ChangePlayerUsingSlot(DesiredSlot);
 }
 
@@ -284,177 +238,122 @@ void UATGPlayerEquipComponent::ServerChangePlayerUsingSlot_Implementation(EEquip
 
 void UATGPlayerEquipComponent::ChangePlayerUsingSlot(EEquipmentSlotType DesiredSlot)
 {
-    FEquipmentSlot* TargetSlot = EquipmentSlots.FindByPredicate([DesiredSlot](const FEquipmentSlot& Slot)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("ChangePlayerUsingSlot %d"), (uint8)Slot.SlotType);
-            return Slot.SlotType == DesiredSlot;
-        });
-    if ((TargetSlot && TargetSlot->EquippedActor) || (TargetSlot && TargetSlot->SlotType == EEquipmentSlotType::None))
+    FEquipmentSlot* TargetSlot = GetSlotByType(DesiredSlot);
+    if (!TargetSlot)
     {
-        //NET_LOG("");
-        CurrentUsingSlot = DesiredSlot;
-        
-        //서버에서 attach하면 동기화됨 클라에서 불필요
-        ChangeWeaponEquip();
+        return;
+    }
 
-        //클라 예측이면 OnRep함수 수동호출 (인풋맵핑변경함수임) 서버와 다른 값이면 수정됨
-        ACharacter* Character = GetOwningPlayerCharacter();
-        if (Character)
+    const bool bCanUseSlot = TargetSlot->EquippedActor || TargetSlot->SlotType == EEquipmentSlotType::None;
+    if (!bCanUseSlot)
+    {
+        return;
+    }
+
+    CurrentUsingSlot = DesiredSlot;
+    ChangeWeaponEquip();
+
+    ACharacter* Character = GetOwningPlayerCharacter();
+    if (!Character)
+    {
+        return;
+    }
+
+    if (Character->GetController() && Character->GetController()->IsLocalController())
+    {
+        OnRep_CurrentUsingSlot();
+    }
+
+    if (Character->HasAuthority())
+    {
+        if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(Character))
         {
-            if (Character->GetController() && Character->GetController()->IsLocalController())
-            {
-                OnRep_CurrentUsingSlot();
-            }
-
-            if (Character->HasAuthority())
-            {
-                Cast<AATGPlayerCharacter>(Character)->EquipWeapon((Cast<AATGWeaponBase>(TargetSlot->EquippedActor)));
-            }
+            ATGC->EquipWeapon(Cast<AATGWeaponBase>(TargetSlot->EquippedActor));
         }
-
-    }
-	else if (!TargetSlot)
-    {
-        //NET_LOG("TargetSlot Null");
-    }
-    else if (!TargetSlot->EquippedActor)
-    {
-        //NET_LOG("TargetSlot EquippedActor Null");
     }
 }
 
-
 void UATGPlayerEquipComponent::OnRep_CurrentUsingSlot()
 {
-    //NET_LOG("");
-    
-    if(CurrentUsingSlot == EEquipmentSlotType::None)
+    ACharacter* Character = GetOwningPlayerCharacter();
+
+    if (CurrentUsingSlot == EEquipmentSlotType::None)
     {
-        if (AATGPlayerController* APC = Cast<AATGPlayerController>(GetOwningPlayerCharacter()->GetController()))
+        if (AATGPlayerController* APC = Character ? Cast<AATGPlayerController>(Character->GetController()) : nullptr)
         {
             APC->WeaponInputMapping(EWeaponCategory::None);
         }
         OnEquipWeapon.Broadcast(EWeaponCategory::None);
-		return;
-	}
+        return;
+    }
 
-	FEquipmentSlot* TargetSlot = GetSlotByType(CurrentUsingSlot);
+    FEquipmentSlot* TargetSlot = GetSlotByType(CurrentUsingSlot);
+    if (!TargetSlot || !TargetSlot->EquippedActor)
+    {
+        return;
+    }
 
     AATGWeaponBase* Weapon = Cast<AATGWeaponBase>(TargetSlot->EquippedActor);
-    if (ensure(Weapon) && Weapon->WeaponData)
+    if (Weapon && Weapon->WeaponData)
     {
-        if (AATGPlayerController* APC = Cast<AATGPlayerController>(GetOwningPlayerCharacter()->GetController()))
+        if (AATGPlayerController* APC = Character ? Cast<AATGPlayerController>(Character->GetController()) : nullptr)
         {
             APC->WeaponInputMapping(Weapon->WeaponData->WeaponCategory);
         }
         OnEquipWeapon.Broadcast(Weapon->WeaponData->WeaponCategory);
     }
-
-    //총기 인풋 맵핑
-
-
-    //서버에서 attach하면 동기화됨 클라에서 불필요
-    //ChangeWeaponEquip();
 }
 
 void UATGPlayerEquipComponent::ChangeWeaponEquip()
 {
-    if (!GetSlaveMesh())
+    USceneComponent* SlaveMesh = GetSlaveMesh();
+    if (!SlaveMesh)
     {
         return;
     }
-    //NET_LOG("");
 
-	FEquipmentSlot* NoneSlot = GetSlotByType(EEquipmentSlotType::None);
-	FEquipmentSlot* Main1Slot = GetSlotByType(EEquipmentSlotType::MainWeapon1Slot);
-	FEquipmentSlot* Main2Slot = GetSlotByType(EEquipmentSlotType::MainWeapon2Slot);
-    if(!NoneSlot || !Main1Slot || !Main2Slot)
+    FEquipmentSlot* Main1Slot = GetSlotByType(EEquipmentSlotType::MainWeapon1Slot);
+    FEquipmentSlot* Main2Slot = GetSlotByType(EEquipmentSlotType::MainWeapon2Slot);
+    if (!Main1Slot || !Main2Slot)
     {
         checkNoEntry();
         return;
-	}
-   
-    AATGWeaponBase* Weapon1 = Cast<AATGWeaponBase>(Main1Slot->EquippedActor);
-    AATGWeaponBase* Weapon2 = Cast<AATGWeaponBase>(Main2Slot->EquippedActor);
+    }
 
-    switch (CurrentUsingSlot)
-    {
-    case EEquipmentSlotType::None:
-    {
-        if (Main1Slot->EquippedActor)
+    auto AttachWeapon = [SlaveMesh](FEquipmentSlot* Slot, EEquipmentSlotType SlotType, bool bEquipped)
         {
-            Main1Slot->EquippedActor->AttachToComponent(
-                GetSlaveMesh(),
+            if (!Slot || !Slot->EquippedActor)
+            {
+                return;
+            }
+
+            AATGWeaponBase* Weapon = Cast<AATGWeaponBase>(Slot->EquippedActor);
+            if (!Weapon || !Weapon->WeaponData)
+            {
+                return;
+            }
+
+            Slot->EquippedActor->AttachToComponent(
+                SlaveMesh,
                 FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-				Weapon1->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon1Slot, false)
+                Weapon->WeaponData->GetSocketName(SlotType, bEquipped)
             );
-        }
-        if (Main2Slot->EquippedActor)
-        {
-            Main2Slot->EquippedActor->AttachToComponent(
-                GetSlaveMesh(),
-                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                Weapon2->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon2Slot, false)
-            );
-        }
-        break;
-    }
-    case EEquipmentSlotType::MainWeapon1Slot:
-    {
-        if (Main1Slot->EquippedActor)
-        {
-            Main1Slot->EquippedActor->AttachToComponent(
-                GetSlaveMesh(),
-                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                Weapon1->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon1Slot, true)
-            );
-        }
-        if (Main2Slot->EquippedActor)
-        {
-            Main2Slot->EquippedActor->AttachToComponent(
-                GetSlaveMesh(),
-                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                Weapon2->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon2Slot, false));
-        }
-        break;
-    }
-    case EEquipmentSlotType::MainWeapon2Slot:
-    {
-        if (Main1Slot->EquippedActor)
-        {
-            Main1Slot->EquippedActor->AttachToComponent(
-                GetSlaveMesh(),
-                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                Weapon1->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon1Slot, false)
-            );
-        }
-        if (Main2Slot->EquippedActor)
-        {
-            Main2Slot->EquippedActor->AttachToComponent(
-                GetSlaveMesh(),
-                FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-                Weapon2->WeaponData->GetSocketName(EEquipmentSlotType::MainWeapon2Slot, true)
-            );
-        }
-        break;
-    }
-    }
+        };
+
+    AttachWeapon(Main1Slot, EEquipmentSlotType::MainWeapon1Slot, CurrentUsingSlot == EEquipmentSlotType::MainWeapon1Slot);
+    AttachWeapon(Main2Slot, EEquipmentSlotType::MainWeapon2Slot, CurrentUsingSlot == EEquipmentSlotType::MainWeapon2Slot);
 }
 
 void UATGPlayerEquipComponent::TryFire()
 {
-    //Bullet Manager 에서 Parallel Simulation
-    //ServerDoFire();
     DoFire();
 }
-
 
 void UATGPlayerEquipComponent::DoFire()
 {
     TryWeaponFire();
 }
 
-// deprecated
 void UATGPlayerEquipComponent::ServerDoFire_Implementation()
 {
     TryWeaponFire();
@@ -462,84 +361,89 @@ void UATGPlayerEquipComponent::ServerDoFire_Implementation()
 
 void UATGPlayerEquipComponent::TryWeaponFire()
 {
-    NET_LOG(TEXT(""));
-    //현재 사용하고 있는 슬롯의 무기 유효성 검사
-    EEquipmentSlotType D_CurSlotType = CurrentUsingSlot;
-	FEquipmentSlot* TargetSlot = GetSlotByType(D_CurSlotType);
-    if (TargetSlot && TargetSlot->EquippedActor)
+    FEquipmentSlot* TargetSlot = GetSlotByType(CurrentUsingSlot);
+    if (!TargetSlot || !TargetSlot->EquippedActor)
     {
-        if (AATGWeaponBase* WeaponBase = Cast<AATGWeaponBase>(TargetSlot->EquippedActor))
-        {
-            float STFTime = TargetSlot->STFTime * GetReadyToFireTime();
-            float ADSTime = TargetSlot->ADSTime;
-            
-            //delay가 적용된 상태라면 바로 발사 아니라면 딜레이
-            if (bReadyToFire || STFTime <= 0)
-            {
-                WeaponFire(WeaponBase);
-            }
-            else
-            {   
-                //이미 STF타이머가 돌아가고 있다면 user 광클방지
-                bool bSTFTimer = GetWorld()->GetTimerManager().IsTimerActive(STFTimerHandle);
-                if (!bSTFTimer)
-                {
-                    GetWorld()->GetTimerManager().SetTimer(STFTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this, WeaponBase]() { WeaponFire(WeaponBase); }), STFTime, false);
-                }
-            }
-        }
+        return;
+    }
+
+    AATGWeaponBase* WeaponBase = Cast<AATGWeaponBase>(TargetSlot->EquippedActor);
+    if (!WeaponBase)
+    {
+        return;
+    }
+
+    const float STFTime = TargetSlot->STFTime * GetReadyToFireTime();
+    if (bReadyToFire || STFTime <= 0.f)
+    {
+        WeaponFire(WeaponBase);
+        return;
+    }
+
+    if (!GetWorld()->GetTimerManager().IsTimerActive(STFTimerHandle))
+    {
+        GetWorld()->GetTimerManager().SetTimer(
+            STFTimerHandle,
+            FTimerDelegate::CreateWeakLambda(this, [this, WeaponBase]() { WeaponFire(WeaponBase); }),
+            STFTime,
+            false
+        );
     }
 }
 
-//delay 적용 플레그 업 SprintRecoveryTime 동안 발사없으면 플레그 다운
 void UATGPlayerEquipComponent::WeaponFire(AATGWeaponBase* WeaponBase)
 {
     AATGRangeWeapon* RangeWeapon = Cast<AATGRangeWeapon>(WeaponBase);
-    //조준하는동안은 타이머 안돌게 변경 bp의 characterinputstate값
-    if (RangeWeapon)
+    if (!RangeWeapon)
     {
-        APawn* OwnerPawn = Cast<APawn>(GetOwner());
-        if (OwnerPawn && OwnerPawn->IsLocallyControlled())
-        {
-            NET_LOG(TEXT(""));
-            RangeWeapon->Fire();
+        return;
+    }
 
-            bReadyToFire = true;
-            if (!ATGCharacterInputState.WantsToAim)
+    APawn* OwnerPawn = Cast<APawn>(GetOwner());
+    if (!OwnerPawn || !OwnerPawn->IsLocallyControlled())
+    {
+        return;
+    }
+
+    RangeWeapon->Fire();
+
+    bReadyToFire = true;
+    if (!ATGCharacterInputState.WantsToAim)
+    {
+        GetWorld()->GetTimerManager().SetTimer(FireToMoveTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
             {
-                GetWorld()->GetTimerManager().SetTimer(FireToMoveTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
-                    {
-                        bReadyToFire = false;
-                        if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(GetOwningPlayerCharacter()))
-                        {
-                            ATGC->RecoverMoveAnim();
-                        }
-                    }), MoveRecoveryTime, false);
-            }
-        }
-    }   
+                bReadyToFire = false;
+                if (AATGPlayerCharacter* ATGC = Cast<AATGPlayerCharacter>(GetOwningPlayerCharacter()))
+                {
+                    ATGC->RecoverMoveAnim();
+                }
+            }), MoveRecoveryTime, false);
+    }
 }
 
 void UATGPlayerEquipComponent::ReadyToFire()
 {
-    EEquipmentSlotType D_CurSlotType = CurrentUsingSlot;
-    FEquipmentSlot* TargetSlot = GetSlotByType(D_CurSlotType);
-    float STFTime = TargetSlot->STFTime * GetReadyToFireTime();
-    float ADSTime = TargetSlot->ADSTime;
+    FEquipmentSlot* TargetSlot = GetSlotByType(CurrentUsingSlot);
+    if (!TargetSlot)
+    {
+        return;
+    }
 
-    //delay가 적용된 상태라면 바로 발사 아니라면 딜레이
-    if (bReadyToFire || STFTime <= 0)
+    const float STFTime = TargetSlot->STFTime * GetReadyToFireTime();
+    if (bReadyToFire || STFTime <= 0.f)
     {
         bReadyToFire = true;
+        return;
     }
-    else
+
+    if (!GetWorld()->GetTimerManager().IsTimerActive(STFTimerHandle))
     {
-        //이미 STF타이머가 돌아가고 있다면 user 광클방지
-        bool bSTFTimer = GetWorld()->GetTimerManager().IsTimerActive(STFTimerHandle);
-        if (!bSTFTimer)
-        {
-            GetWorld()->GetTimerManager().SetTimer(STFTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]() { bReadyToFire = true; }), STFTime, false);
-        }
+        GetWorld()->GetTimerManager().SetTimer(
+            STFTimerHandle,
+            FTimerDelegate::CreateWeakLambda(this, [this]() { bReadyToFire = true; }),
+            STFTime,
+            false
+        );
     }
 }
 
@@ -584,7 +488,6 @@ USceneComponent* UATGPlayerEquipComponent::GetSlaveMesh()
     }
 
     TArray<USceneComponent*> Children;
-    USceneComponent* AttachComp = nullptr;
     GetOwningPlayerCharacter()->GetMesh()->GetChildrenComponents(false, Children);
     for (auto Comp : Children)
     {
@@ -599,16 +502,15 @@ USceneComponent* UATGPlayerEquipComponent::GetSlaveMesh()
 
 void UATGPlayerEquipComponent::InitSlot(EEquipmentSlotType InEquipmentSlotType)
 {
-	//NET_LOG(FString::Printf(TEXT("Init Slot %d"), (uint8)InEquipmentSlotType));
+
     FEquipmentSlot EquipmentSlot;
     EquipmentSlot.SlotType = InEquipmentSlotType;
-    EquipmentSlot.EquippedActor = nullptr; // 초기엔 장비 없음
+    EquipmentSlot.EquippedActor = nullptr;
     EquipmentSlots.Add(EquipmentSlot);
 }
 
 void UATGPlayerEquipComponent::SpawnRangeWeaponInSlot(FEquipmentSlot& Slot, UATGRangeWeaponData* RangeWeaponData)
 {
-    //NET_LOG("RangeWeapon Spawn");
 
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     FTransform SpawnTransform = OwnerCharacter->GetActorTransform();
@@ -625,7 +527,7 @@ void UATGPlayerEquipComponent::SpawnRangeWeaponInSlot(FEquipmentSlot& Slot, UATG
     {
         SpawnedActor->SetReplicates(true);
 
-        //총알 정보 복제
+
         SpawnedActor->WeaponBulletData = RangeWeaponData->WeaponBulletData;
         SpawnedActor->WeaponData = RangeWeaponData;
 
@@ -633,7 +535,7 @@ void UATGPlayerEquipComponent::SpawnRangeWeaponInSlot(FEquipmentSlot& Slot, UATG
         Slot.STFTime = RangeWeaponData->SprinttoFireTime;
         Slot.ADSTime = RangeWeaponData->ADSTime;
 
-        //BeginPlay 및 초기화 실행 
+
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
 
 		FName AttachSocketName = RangeWeaponData->GetSocketName(Slot.SlotType, CurrentUsingSlot == Slot.SlotType);
@@ -647,7 +549,6 @@ void UATGPlayerEquipComponent::SpawnRangeWeaponInSlot(FEquipmentSlot& Slot, UATG
 
 void UATGPlayerEquipComponent::SpawnMeleeWeaponInSlot(FEquipmentSlot& Slot, UATGMeleeWeaponData* MeleeWeaponData)
 {
-    //NET_LOG("MeleeWeapon Spawn");
 
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     FTransform SpawnTransform = OwnerCharacter->GetActorTransform();
@@ -664,12 +565,12 @@ void UATGPlayerEquipComponent::SpawnMeleeWeaponInSlot(FEquipmentSlot& Slot, UATG
     {
         SpawnedActor->SetReplicates(true);
 
-        //정보 복제
+
         SpawnedActor->WeaponData = MeleeWeaponData;
 
         Slot.EquippedActor = SpawnedActor;
 
-        //BeginPlay 및 초기화 실행 
+
         UGameplayStatics::FinishSpawningActor(SpawnedActor, SpawnTransform);
 
         FName AttachSocketName = MeleeWeaponData->GetSocketName(Slot.SlotType, CurrentUsingSlot == Slot.SlotType);
