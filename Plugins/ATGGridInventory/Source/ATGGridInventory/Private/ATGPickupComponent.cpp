@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "ATGPickupComponent.h"
+#include "ATGItem.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Data/ATGItemData.h"
@@ -105,7 +106,11 @@ void UATGPickupComponent::SetItemMesh()
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("LoadData ATGPickupComp ") + LexToString(bHasAuthority));
 		}
 
-		if (Data->Mesh)
+		if (AATGItem* ItemActor = Cast<AATGItem>(Owner))
+		{
+			ItemActor->ApplyItemDataMesh(Data);
+		}
+		else if (Data->Mesh)
 		{
 			ItemMeshComp->SetStaticMesh(Data->Mesh);
 		}

@@ -7,6 +7,8 @@
 #include "ATGItem.generated.h"
 
 class UATGPickupComponent;
+class UATGItemData;
+class UStaticMeshComponent;
 
 UCLASS()
 class ATGGRIDINVENTORY_API AATGItem : public AActor
@@ -26,6 +28,19 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UATGPickupComponent> PickupComp;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UStaticMeshComponent> ItemMeshComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Mesh")
+	bool bApplyItemDataMesh = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Mesh", meta = (EditCondition = "bApplyItemDataMesh"))
+	bool bSimulatePhysicsAfterMeshApplied = false;
+
 public:
 	FORCEINLINE UATGPickupComponent* GetPickupComp() const { return PickupComp; }
+	FORCEINLINE UStaticMeshComponent* GetItemMeshComp() const { return ItemMeshComp; }
+
+	UFUNCTION(BlueprintCallable, Category = "Item|Mesh")
+	void ApplyItemDataMesh(UATGItemData* ItemData);
 };
